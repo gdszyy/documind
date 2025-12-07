@@ -652,6 +652,14 @@
                         </div>
                         <div class="parlay-odds" id="parlay-odds">@1.00</div>
                     </div>
+                    <div class="payout-info" id="payout-info" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 14px;">
+                        <span style="color: #666;">Total Stake:</span>
+                        <span style="font-weight: 600;" id="total-stake-display">$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 0 10px 0; font-size: 16px;">
+                        <span style="color: #666;">Est. Payout:</span>
+                        <span style="font-weight: 700; color: #4CAF50; font-size: 18px;" id="est-payout-display">$0.00</span>
+                    </div>
                 </div>
                 <button class="place-bet-btn" id="place-bet-btn" onclick="placeBet()" disabled>
                     Place Bet (0)
@@ -915,11 +923,15 @@
                 totalPayout = validBets.reduce((sum, bet) => sum + bet.stake * bet.odds, 0);
             }
 
+            // 更新展开状态下的预计派彩显示
+            document.getElementById('total-stake-display').textContent = `$${totalStake.toFixed(2)}`;
+            document.getElementById('est-payout-display').textContent = `$${totalPayout.toFixed(2)}`;
+
             const placeBtn = document.getElementById('place-bet-btn');
             placeBtn.disabled = validBets.length === 0 || totalStake === 0;
             
             if (hasAbnormal) {
-                placeBtn.textContent = `移除异常并下单 (${validBets.length})`;
+                placeBtn.textContent = `移除所有异常注单`;
                 placeBtn.className = 'place-bet-btn warning';
             } else {
                 // 展开状态下不显示预计派彩信息
@@ -967,17 +979,38 @@
             }
         }
 
+        // Remove abnormal bets
+        function removeAbnormalBets() {
+            // 移除所有失效和锁定的注单
+            bets = bets.filter(bet => bet.status === 'normal');
+            
+            // 处理串关冲突：同一比赛不同盘口，只保留第一个
+            if (isParlayMode) {
+                const seenMatches = new Set();
+                bets = bets.filter(bet => {
+                    if (seenMatches.has(bet.matchId)) {
+                        return false; // 移除同场比赛的后续注单
+                    }
+                    seenMatches.add(bet.matchId);
+                    return true;
+                });
+            }
+            
+            renderBets();
+            updateToolbar();
+        }
+
         // Place bet
         function placeBet() {
             const hasAbnormal = bets.some(bet => bet.status !== 'normal');
             
             if (hasAbnormal) {
-                const abnormalCount = bets.filter(bet => bet.status !== 'normal').length;
-                bets = bets.filter(bet => bet.status === 'normal');
-                showNotification(`已自动移除 ${abnormalCount} 个异常选项并提交投注`, 'success');
-            } else {
-                showNotification('投注已提交！', 'success');
+                removeAbnormalBets();
+                showNotification('已移除所有异常注单', 'success');
+                return;
             }
+            
+            showNotification('投注已提交！', 'success');
             
             bets = [];
             renderBets();
