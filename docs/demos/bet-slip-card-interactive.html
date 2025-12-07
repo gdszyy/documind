@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bet Slip Card - 交互式组件演示</title>
+  <style>
+    /* ========== 全局样式 ========== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    /* ========== 控制面板 ========== */
+    .control-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .control-panel h3 {
+      margin-bottom: 16px;
+      color: #2e2e2e;
+      font-size: 18px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .control-group label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .control-group button {
+      padding: 8px 16px;
+      border: 2px solid #e0e0e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .control-group button:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .control-group button.active {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+
+    /* ========== 组件展示区 ========== */
+    .demo-area {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 300px;
+    }
+
+    /* ========== Bet Slip Card 组件样式 ========== */
+    .bet-slip-card {
+      width: 340px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      padding: 0;
+      position: relative;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    /* 卡片状态 */
+    .bet-slip-card--normal {
+      background: rgba(255, 255, 255, 0.6);
+      border-color: #d0d0d0;
+    }
+
+    .bet-slip-card--invalid {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .bet-slip-card--locked {
+      background: rgba(208, 208, 208, 0.5);
+      border-color: #9ca3af;
+      position: relative;
+    }
+
+    .bet-slip-card--locked::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.1);
+      pointer-events: none;
+    }
+
+    /* 移除按钮 */
+    .bet-slip-card__remove-button {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 18px;
+      background: rgba(255, 255, 255, 0.6);
+      border-right: 1px solid #d0d0d0;
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .bet-slip-card__remove-button:hover {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .bet-slip-card__remove-icon {
+      width: 12px;
+      height: 12px;
+      position: relative;
+    }
+
+    .bet-slip-card__remove-icon::before,
+    .bet-slip-card__remove-icon::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 2px;
+      background: #8b8b8b;
+      top: 5px;
+      left: 0;
+      border-radius: 1px;
+    }
+
+    .bet-slip-card__remove-icon::before {
+      transform: rotate(45deg);
+    }
+
+    .bet-slip-card__remove-icon::after {
+      transform: rotate(-45deg);
+    }
+
+    /* 主体内容 */
+    .bet-slip-card__body {
+      margin-left: 18px;
+      padding: 12px 16px;
+    }
+
+    /* 顶部信息栏 */
+    .bet-slip-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .bet-slip-card__match-info {
+      flex: 1;
+    }
+
+    .bet-slip-card__match-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #2e2e2e;
+      margin-bottom: 2px;
+    }
+
+    .bet-slip-card__league-info {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .bet-slip-card__odds-container {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bet-slip-card__odds-trend {
+      width: 9px;
+      height: 10px;
+      display: none;
+    }
+
+    .bet-slip-card__odds-trend--up {
+      display: block;
+    }
+
+    .bet-slip-card__odds-trend--up::before {
+      content: '▲';
+      color: #22c55e;
+      font-size: 10px;
+    }
+
+    .bet-slip-card__odds-trend--down {
+      display: block;
+    }
+
+    .bet-slip-card__odds-trend--down::before {
+      content: '▼';
+      color: #ef4444;
+      font-size: 10px;
+    }
+
+    .bet-slip-card__odds {
+      font-size: 14px;
+      font-weight: bold;
+      color: #2e2e2e;
+    }
+
+    .bet-slip-card__odds--increase {
+      color: #0c9c16;
+    }
+
+    .bet-slip-card__odds--decrease {
+      color: #e80104;
+    }
+
+    .bet-slip-card__lock-icon {
+      font-size: 16px;
+      color: #8b8b8b;
+      display: none;
+    }
+
+    .bet-slip-card--locked .bet-slip-card__lock-icon {
+      display: block;
+    }
+
+    .bet-slip-card--locked .bet-slip-card__odds {
+      display: none;
+    }
+
+    /* 盘口信息 */
+    .bet-slip-card__market-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .bet-slip-card__selection {
+      font-size: 14px;
+      font-weight: bold;
+      color: #e80104;
+    }
+
+    .bet-slip-card__market-name {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    /* 投注信息 */
+    .bet-slip-card__betting-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .bet-slip-card__stake-input-wrapper {
+      position: relative;
+    }
+
+    .bet-slip-card__stake-input {
+      width: 80px;
+      height: 32px;
+      padding: 0 8px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #3c4851;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .bet-slip-card__stake-input:focus {
+      border-color: #e80104;
+      border-width: 2px;
+      padding: 0 7px;
+    }
+
+    .bet-slip-card__stake-input::placeholder {
+      color: #9ca3af;
+    }
+
+    /* 快捷按钮 */
+    .bet-slip-card__quick-buttons {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    .bet-slip-card__quick-buttons.hidden {
+      display: none;
+    }
+
+    .bet-slip-card__quick-button {
+      width: 46px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #3c4851;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .bet-slip-card__quick-button:hover {
+      background: #f3f4f6;
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    /* 预计派彩 */
+    .bet-slip-card__payout {
+      display: none;
+      text-align: right;
+      flex: 1;
+    }
+
+    .bet-slip-card__payout.visible {
+      display: block;
+    }
+
+    .bet-slip-card__payout-label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 2px;
+    }
+
+    .bet-slip-card__payout-value {
+      font-size: 14px;
+      font-weight: bold;
+      color: #e80104;
+    }
+
+    /* 隐藏投注信息(失效和锁定状态) */
+    .bet-slip-card--invalid .bet-slip-card__betting-info,
+    .bet-slip-card--locked .bet-slip-card__betting-info {
+      display: none;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .demo-area {
+        padding: 20px;
+      }
+
+      .bet-slip-card {
+        width: 100%;
+        max-width: 340px;
+      }
+    }
+
+    /* 状态指示器 */
+    .status-indicator {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .status-indicator strong {
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎰 Bet Slip Card 组件演示</h1>
+      <p>交互式组件展示 - 可内嵌到文档浏览应用</p>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="control-panel">
+      <h3>🎛️ 状态控制面板</h3>
+      
+      <div class="control-group">
+        <div style="width: 100%; margin-bottom: 8px;">
+          <label>卡片状态 (CardState)</label>
+        </div>
+        <button class="active" onclick="setCardState('normal')">Normal 正常</button>
+        <button onclick="setCardState('locked')">Locked 锁定</button>
+        <button onclick="setCardState('invalid')">Invalid 失效</button>
+      </div>
+
+      <div class="control-group">
+        <div style="width: 100%; margin-bottom: 8px;">
+          <label>赔率变化 (Odds Trend)</label>
+        </div>
+        <button class="active" onclick="setOddsTrend('none')">None 无变化</button>
+        <button onclick="setOddsTrend('up')">Up 上升</button>
+        <button onclick="setOddsTrend('down')">Down 下降</button>
+      </div>
+
+      <div class="status-indicator">
+        <strong>当前状态:</strong> <span id="currentStatus">正常状态, 输入框为空, 显示快捷按钮</span>
+      </div>
+    </div>
+
+    <!-- 组件展示区 -->
+    <div class="demo-area">
+      <div class="bet-slip-card bet-slip-card--normal" id="betSlipCard">
+        <!-- 移除按钮 -->
+        <div class="bet-slip-card__remove-button" onclick="handleRemove()">
+          <div class="bet-slip-card__remove-icon"></div>
+        </div>
+
+        <!-- 主体内容 -->
+        <div class="bet-slip-card__body">
+          <!-- 顶部信息栏 -->
+          <div class="bet-slip-card__header">
+            <div class="bet-slip-card__match-info">
+              <div class="bet-slip-card__match-name">Man United vs Liverpool</div>
+              <div class="bet-slip-card__league-info">Soccer / Premier League</div>
+            </div>
+            <div class="bet-slip-card__odds-container">
+              <div class="bet-slip-card__odds-trend" id="oddsTrend"></div>
+              <div class="bet-slip-card__odds" id="oddsDisplay">@2.75</div>
+              <div class="bet-slip-card__lock-icon">🔒</div>
+            </div>
+          </div>
+
+          <!-- 盘口信息 -->
+          <div class="bet-slip-card__market-info">
+            <div class="bet-slip-card__selection">Man United</div>
+            <div class="bet-slip-card__market-name">Match Winner</div>
+          </div>
+
+          <!-- 投注信息 -->
+          <div class="bet-slip-card__betting-info">
+            <div class="bet-slip-card__stake-input-wrapper">
+              <input 
+                type="text" 
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="bet-slip-card__stake-input" 
+                id="stakeInput"
+                placeholder="$0"
+                value="0"
+                onfocus="handleInputFocus()"
+                onblur="handleInputBlur()"
+                oninput="handleInputChange()"
+                onkeypress="return isNumberKey(event)"
+              />
+            </div>
+
+            <!-- 快捷按钮 -->
+            <div class="bet-slip-card__quick-buttons" id="quickButtons">
+              <button class="bet-slip-card__quick-button" onclick="addQuickAmount(10)">+10</button>
+              <button class="bet-slip-card__quick-button" onclick="addQuickAmount(50)">+50</button>
+              <button class="bet-slip-card__quick-button" onclick="addQuickAmount(100)">+100</button>
+            </div>
+
+            <!-- 预计派彩 -->
+            <div class="bet-slip-card__payout" id="payoutDisplay">
+              <div class="bet-slip-card__payout-label">To Return</div>
+              <div class="bet-slip-card__payout-value" id="payoutValue">$0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局状态
+    let currentCardState = 'normal';
+    let currentOddsTrend = 'none';
+    let isInputFocused = false;
+    const oddsValue = 2.75;
+
+    // 验证是否为数字键
+    function isNumberKey(evt) {
+      const charCode = (evt.which) ? evt.which : evt.keyCode;
+      // 允许: 数字 0-9 (48-57), 小数点 (46), Backspace (8), Delete (46), Tab (9), Enter (13)
+      if (charCode > 31 && (charCode < 48 || charCode > 57) && charCode !== 46) {
+        evt.preventDefault();
+        return false;
+      }
+      return true;
+    }
+
+    // 设置卡片状态
+    function setCardState(state) {
+      currentCardState = state;
+      const card = document.getElementById('betSlipCard');
+      
+      // 移除所有状态类
+      card.classList.remove('bet-slip-card--normal', 'bet-slip-card--locked', 'bet-slip-card--invalid');
+      
+      // 添加新状态类
+      card.classList.add(`bet-slip-card--${state}`);
+      
+      // 更新按钮激活状态
+      document.querySelectorAll('.control-group button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      updateStatus();
+    }
+
+    // 设置赔率变化趋势
+    function setOddsTrend(trend) {
+      currentOddsTrend = trend;
+      const trendEl = document.getElementById('oddsTrend');
+      const oddsEl = document.getElementById('oddsDisplay');
+      
+      // 移除所有趋势类
+      trendEl.classList.remove('bet-slip-card__odds-trend--up', 'bet-slip-card__odds-trend--down');
+      oddsEl.classList.remove('bet-slip-card__odds--increase', 'bet-slip-card__odds--decrease');
+      
+      // 添加新趋势类
+      if (trend === 'up') {
+        trendEl.classList.add('bet-slip-card__odds-trend--up');
+        oddsEl.classList.add('bet-slip-card__odds--increase');
+      } else if (trend === 'down') {
+        trendEl.classList.add('bet-slip-card__odds-trend--down');
+        oddsEl.classList.add('bet-slip-card__odds--decrease');
+      }
+      
+      // 更新按钮激活状态
+      event.target.parentElement.querySelectorAll('button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      updateStatus();
+    }
+
+    // 输入框获得焦点
+    function handleInputFocus() {
+      if (currentCardState !== 'normal') return;
+      
+      isInputFocused = true;
+      document.getElementById('quickButtons').classList.add('hidden');
+      document.getElementById('payoutDisplay').classList.remove('visible');
+      updateStatus();
+    }
+
+    // 输入框失去焦点
+    function handleInputBlur() {
+      isInputFocused = false;
+      const input = document.getElementById('stakeInput');
+      
+      // 如果内容为空,自动填充为 0
+      if (!input.value || input.value.trim() === '' || parseFloat(input.value) === 0) {
+        input.value = '0';
+        document.getElementById('quickButtons').classList.remove('hidden');
+        document.getElementById('payoutDisplay').classList.remove('visible');
+      } else {
+        document.getElementById('quickButtons').classList.add('hidden');
+        document.getElementById('payoutDisplay').classList.add('visible');
+        updatePayout();
+      }
+      
+      updateStatus();
+    }
+
+    // 输入框内容变化
+    function handleInputChange() {
+      const input = document.getElementById('stakeInput');
+      
+      // 过滤非数字字符(保留数字和小数点)
+      let value = input.value.replace(/[^0-9.]/g, '');
+      
+      // 防止多个小数点
+      const parts = value.split('.');
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      
+      input.value = value;
+      const numValue = parseFloat(value) || 0;
+      
+      if (numValue > 0 && !isInputFocused) {
+        document.getElementById('quickButtons').classList.add('hidden');
+        document.getElementById('payoutDisplay').classList.add('visible');
+        updatePayout();
+      }
+    }
+
+    // 快捷金额按钮
+    function addQuickAmount(amount) {
+      if (currentCardState !== 'normal') return;
+      
+      const input = document.getElementById('stakeInput');
+      const currentValue = parseFloat(input.value) || 0;
+      const newValue = currentValue + amount;
+      
+      input.value = newValue;
+      
+      // 显示预计派彩
+      document.getElementById('quickButtons').classList.add('hidden');
+      document.getElementById('payoutDisplay').classList.add('visible');
+      updatePayout();
+      updateStatus();
+    }
+
+    // 更新预计派彩
+    function updatePayout() {
+      const input = document.getElementById('stakeInput');
+      const stake = parseFloat(input.value) || 0;
+      const payout = (stake * oddsValue).toFixed(2);
+      
+      document.getElementById('payoutValue').textContent = `$${payout}`;
+    }
+
+    // 移除按钮
+    function handleRemove() {
+      if (confirm('确定要移除这个投注项吗?')) {
+        alert('投注项已移除(演示模式)');
+      }
+    }
+
+    // 更新状态指示器
+    function updateStatus() {
+      const input = document.getElementById('stakeInput');
+      const value = parseFloat(input.value) || 0;
+      let status = '';
+      
+      if (currentCardState === 'locked') {
+        status = '锁定状态, 显示锁图标, 隐藏投注信息';
+      } else if (currentCardState === 'invalid') {
+        status = '失效状态, 隐藏投注信息, 显示失效样式';
+      } else if (isInputFocused) {
+        status = '正常状态, 输入框聚焦, 隐藏快捷按钮';
+      } else if (value > 0) {
+        status = `正常状态, 投注金额 $${value}, 显示预计派彩 $${(value * oddsValue).toFixed(2)}`;
+      } else {
+        status = '正常状态, 输入框为空, 显示快捷按钮';
+      }
+      
+      if (currentOddsTrend !== 'none') {
+        status += `, 赔率${currentOddsTrend === 'up' ? '上升' : '下降'}`;
+      }
+      
+      document.getElementById('currentStatus').textContent = status;
+    }
+
+    // 初始化
+    updateStatus();
+  </script>
+</body>
+</html>
