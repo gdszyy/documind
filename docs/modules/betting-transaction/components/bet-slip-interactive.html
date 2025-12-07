@@ -95,12 +95,16 @@
             overflow: hidden;
             position: sticky;
             top: 20px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 40px);
         }
 
         .tab-nav {
             display: flex;
             background: #f8f8f8;
             border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
         }
 
         .tab-item {
@@ -131,9 +135,19 @@
         }
 
         .slip-content {
-            max-height: 500px;
             overflow-y: auto;
             padding: 15px;
+            flex: 1 1 auto;
+        }
+
+        /* 当卡片较少时，内容区域hug内容 */
+        .slip-content.hug-content {
+            flex: 0 0 auto;
+        }
+
+        /* 当卡片较多时，内容区域fill剩余空间 */
+        .slip-content.fill-content {
+            flex: 1 1 auto;
         }
 
         .empty-state {
@@ -149,119 +163,184 @@
             opacity: 0.3;
         }
 
-        /* Bet Slip Card */
+        /* Bet Slip Card - 参考bet-slip-card.html */
         .bet-slip-card {
-            background: white;
-            border: 1px solid #e0e0e0;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #d0d0d0;
             border-radius: 8px;
-            padding: 12px;
+            padding: 0;
             margin-bottom: 10px;
             position: relative;
             transition: all 0.3s;
+            overflow: hidden;
         }
 
         .bet-slip-card.locked {
-            background: #f5f5f5;
-            opacity: 0.7;
+            background: rgba(208, 208, 208, 0.5);
+            border-color: #9ca3af;
+        }
+
+        .bet-slip-card.locked::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
         }
 
         .bet-slip-card.invalid {
-            background: #fee;
-            border-color: #fcc;
+            background: #fee2e2;
+            border-color: #fca5a5;
         }
 
         .remove-btn {
             position: absolute;
-            top: 8px;
-            left: 8px;
+            top: 12px;
+            left: 12px;
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #666;
-            color: white;
+            background: #8b8b8b;
             border: none;
             cursor: pointer;
-            font-size: 12px;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .remove-btn::before,
+        .remove-btn::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 2px;
+            background: white;
+        }
+
+        .remove-btn::before {
+            transform: rotate(45deg);
+        }
+
+        .remove-btn::after {
+            transform: rotate(-45deg);
         }
 
         .remove-btn:hover {
             background: #E80104;
         }
 
-        .match-info {
-            margin-left: 30px;
+        .bet-slip-card__body {
+            padding: 12px 12px 12px 40px;
+        }
+
+        .bet-slip-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 8px;
         }
 
-        .match-title {
+        .bet-slip-card__match-name {
             font-weight: 600;
-            color: #333;
+            color: #2e2e2e;
             font-size: 14px;
             margin-bottom: 4px;
         }
 
-        .match-league {
+        .bet-slip-card__league-info {
             font-size: 12px;
-            color: #999;
+            color: #8b8b8b;
         }
 
-        .odds-row {
+        .bet-slip-card__odds-container {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            gap: 4px;
         }
 
-        .market-info {
-            flex: 1;
+        .bet-slip-card__odds {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2e2e2e;
         }
 
-        .selection-name {
+        .bet-slip-card__lock-icon {
+            display: none;
+            font-size: 14px;
+        }
+
+        .bet-slip-card.locked .bet-slip-card__odds {
+            display: none;
+        }
+
+        .bet-slip-card.locked .bet-slip-card__lock-icon {
+            display: block;
+        }
+
+        .bet-slip-card__market-info {
+            margin-bottom: 12px;
+        }
+
+        .bet-slip-card__selection {
             color: #E80104;
             font-weight: 600;
             font-size: 14px;
+            margin-bottom: 2px;
         }
 
-        .market-name {
-            color: #999;
+        .bet-slip-card__market-name {
+            color: #8b8b8b;
             font-size: 12px;
         }
 
-        .odds-display {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .odds-display.locked::before {
-            content: "🔒 ";
-        }
-
-        .stake-row {
+        .bet-slip-card__betting-info {
             display: flex;
             gap: 8px;
             align-items: center;
-            margin-bottom: 8px;
         }
 
-        .stake-input {
+        .bet-slip-card__stake-input-wrapper {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
+            position: relative;
+        }
+
+        .bet-slip-card__stake-input-wrapper::before {
+            content: '$';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b8b8b;
             font-size: 14px;
         }
 
-        .stake-input:focus {
+        .bet-slip-card__stake-input {
+            width: 100%;
+            padding: 8px 12px 8px 28px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .bet-slip-card__stake-input:focus {
             outline: none;
             border-color: #E80104;
         }
 
-        .quick-btn {
-            padding: 6px 12px;
-            border: 1px solid #e0e0e0;
+        .bet-slip-card__quick-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .bet-slip-card__quick-button {
+            padding: 6px 10px;
+            border: 1px solid #d0d0d0;
             border-radius: 6px;
             background: white;
             cursor: pointer;
@@ -269,15 +348,35 @@
             transition: all 0.2s;
         }
 
-        .quick-btn:hover {
+        .bet-slip-card__quick-button:hover {
             border-color: #E80104;
             color: #E80104;
         }
 
-        .payout-display {
+        .bet-slip-card__payout {
+            display: none;
+            flex-direction: column;
+            align-items: flex-end;
             font-size: 12px;
+        }
+
+        .bet-slip-card__payout.visible {
+            display: flex;
+        }
+
+        .bet-slip-card__payout-label {
+            color: #8b8b8b;
+            margin-bottom: 2px;
+        }
+
+        .bet-slip-card__payout-value {
             color: #E80104;
-            text-align: right;
+            font-weight: 600;
+        }
+
+        .bet-slip-card.locked .bet-slip-card__betting-info,
+        .bet-slip-card.invalid .bet-slip-card__betting-info {
+            display: none;
         }
 
         /* Toolbar */
@@ -285,48 +384,57 @@
             border-top: 1px solid #e0e0e0;
             background: white;
             transition: all 0.3s ease;
-            overflow: hidden;
+            flex-shrink: 0;
         }
 
-        .toolbar.collapsed {
-            max-height: 60px;
+        .toolbar.collapsed .toolbar-details {
+            display: none;
         }
 
-        .toolbar.expanded {
-            max-height: 200px;
+        .toolbar.expanded .toolbar-details {
+            display: block;
         }
 
-        .toolbar-summary {
-            padding: 12px 15px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .toolbar-summary:hover {
-            background: #f8f8f8;
-        }
-
-        .summary-text {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .summary-amount {
+        .place-bet-btn {
+            width: 100%;
+            padding: 15px;
+            background: #E80104;
+            color: white;
+            border: none;
+            font-size: 14px;
             font-weight: 600;
-            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .place-bet-btn:hover {
+            background: #c00103;
+        }
+
+        .place-bet-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .place-bet-btn.warning {
+            background: #FF9800;
         }
 
         .toolbar-details {
-            padding: 0 15px 15px;
+            padding: 15px;
+        }
+
+        .mode-switch-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
         }
 
         .mode-switch {
             display: flex;
             gap: 10px;
             align-items: center;
-            margin-bottom: 12px;
         }
 
         .switch-label {
@@ -364,40 +472,47 @@
             left: 33px;
         }
 
-        .total-stake-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .clear-all-btn {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-all-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .parlay-input-row {
+            display: none;
             margin-bottom: 12px;
             padding: 10px;
             background: #f8f8f8;
             border-radius: 6px;
         }
 
-        .place-bet-btn {
-            width: 100%;
-            padding: 15px;
-            background: #E80104;
-            color: white;
-            border: none;
+        .parlay-input-row.visible {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .parlay-stake-input {
+            width: 120px;
+            padding: 6px 10px;
+            border: 1px solid #d0d0d0;
             border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .parlay-odds {
             font-size: 16px;
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .place-bet-btn:hover {
-            background: #c00103;
-        }
-
-        .place-bet-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .place-bet-btn.warning {
-            background: #FF9800;
+            color: #E80104;
         }
 
         /* Notification */
@@ -447,13 +562,19 @@
             
             <div class="control-section">
                 <h3>添加投注选项</h3>
-                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Man United', 2.75, 'match1')">
+                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Man United', 2.75, 'match1', 'Match Winner')">
                     添加: Man United @2.75
                 </button>
-                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Liverpool', 3.20, 'match1')">
-                    添加: Liverpool @3.20 (冲突)
+                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Liverpool', 3.20, 'match1', 'Match Winner')">
+                    添加: Liverpool @3.20 (互斥)
                 </button>
-                <button class="btn btn-primary" onclick="addBet('Arsenal vs Chelsea', 'Arsenal', 1.85, 'match2')">
+                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Draw', 3.50, 'match1', 'Match Winner')">
+                    添加: Draw @3.50 (互斥)
+                </button>
+                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Over 2.5', 1.90, 'match1', 'Total Goals')">
+                    添加: Over 2.5 @1.90 (串关冲突)
+                </button>
+                <button class="btn btn-primary" onclick="addBet('Arsenal vs Chelsea', 'Arsenal', 1.85, 'match2', 'Match Winner')">
                     添加: Arsenal @1.85
                 </button>
             </div>
@@ -475,12 +596,12 @@
                 <h3>说明文档</h3>
                 <p style="font-size: 13px; color: #666; line-height: 1.6;">
                     <strong>核心功能演示：</strong><br>
-                    1. <strong>同场比赛插入机制</strong>：添加Liverpool时会插入到Man United下方<br>
-                    2. <strong>互斥选项自动替换</strong>：添加冲突选项会自动替换旧选项并显示通知<br>
-                    3. <strong>异常选项处理</strong>：锁定/失效的注单会改变样式，下单按钮变为"移除异常并下单"<br>
-                    4. <strong>工具栏动态收缩</strong>：点击工具栏可展开查看详细信息<br>
-                    5. <strong>快捷金额按钮</strong>：点击+10/+50可快速增加投注金额<br>
-                    6. <strong>实时派彩计算</strong>：输入金额后自动计算预计派彩
+                    1. <strong>互斥选项自动替换</strong>：同场比赛同盘口的选项会自动替换（无提示）<br>
+                    2. <strong>串关冲突检测</strong>：串关模式下，同场比赛不同盘口会标记为冲突<br>
+                    3. <strong>动态布局</strong>：卡片少时hug内容，卡片多时fill空间<br>
+                    4. <strong>工具栏收缩</strong>：非悬浮时只显示投注按钮（含金额）<br>
+                    5. <strong>串关模式</strong>：显示串关金额输入框和总赔率<br>
+                    6. <strong>清空与模式切换</strong>：在同一行显示
                 </p>
             </div>
         </div>
@@ -499,7 +620,7 @@
                 </div>
             </div>
 
-            <div class="slip-content" id="slip-content">
+            <div class="slip-content hug-content" id="slip-content">
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -510,26 +631,22 @@
             </div>
 
             <div class="toolbar collapsed" id="toolbar">
-                <div class="toolbar-summary" onclick="toggleToolbar()">
-                    <div>
-                        <span class="summary-text">Total Stake</span>
-                        <span class="summary-amount" id="toolbar-summary">$0.00 → $0.00</span>
-                    </div>
-                    <span style="color: #999;">▼</span>
-                </div>
                 <div class="toolbar-details">
-                    <div class="mode-switch">
-                        <span class="switch-label">Singles</span>
-                        <div class="toggle-switch" id="mode-toggle" onclick="toggleMode()"></div>
-                        <span class="switch-label">Parlay</span>
+                    <div class="mode-switch-row">
+                        <div class="mode-switch">
+                            <span class="switch-label">Singles</span>
+                            <div class="toggle-switch" id="mode-toggle" onclick="toggleMode()"></div>
+                            <span class="switch-label">Parlay</span>
+                        </div>
+                        <button class="clear-all-btn" onclick="clearAll()">Clear all</button>
                     </div>
-                    <div class="total-stake-row">
-                        <span style="color: #666;">Total Stake</span>
-                        <span style="font-weight: 600;" id="total-stake">$0.00</span>
+                    <div class="parlay-input-row" id="parlay-input-row">
+                        <div>
+                            <span style="color: #666; font-size: 13px;">Stake:</span>
+                            <input type="number" class="parlay-stake-input" id="parlay-stake" value="0" onchange="updateToolbar()">
+                        </div>
+                        <div class="parlay-odds" id="parlay-odds">@1.00</div>
                     </div>
-                    <button class="btn btn-secondary" style="width: 100%; margin: 0 0 10px 0;" onclick="clearAll()">
-                        Clear all
-                    </button>
                 </div>
                 <button class="place-bet-btn" id="place-bet-btn" onclick="placeBet()" disabled>
                     Place Bet (0)
@@ -549,21 +666,21 @@
         let lastBetAmount = 0;
 
         // Add bet
-        function addBet(match, selection, odds, matchId) {
-            // Check for conflicts
-            const existingIndex = bets.findIndex(b => b.matchId === matchId);
+        function addBet(match, selection, odds, matchId, marketType) {
+            // Check for conflicts in same match and same market (互斥选项)
+            const existingIndex = bets.findIndex(b => b.matchId === matchId && b.marketType === marketType);
             
             if (existingIndex !== -1) {
-                // Replace conflicting bet
+                // 静默替换，不显示通知
                 bets[existingIndex] = {
                     match,
                     selection,
                     odds,
                     matchId,
+                    marketType,
                     stake: 0,
                     status: 'normal'
                 };
-                showNotification('已自动替换冲突选项', 'info');
             } else {
                 // Insert after same match bets
                 const sameMatchIndex = bets.findIndex(b => b.matchId === matchId);
@@ -572,6 +689,7 @@
                     selection,
                     odds,
                     matchId,
+                    marketType,
                     stake: 0,
                     status: 'normal'
                 };
@@ -583,8 +701,51 @@
                 }
             }
             
+            checkParlayConflicts();
             renderBets();
             updateToolbar();
+            updateSlipContentLayout();
+        }
+
+        // Check parlay conflicts (串关冲突：同场比赛不同盘口)
+        function checkParlayConflicts() {
+            if (!isParlayMode) {
+                // 单关模式下清除所有冲突标记
+                bets.forEach(bet => {
+                    if (bet.status === 'conflict') {
+                        bet.status = 'normal';
+                    }
+                });
+                return;
+            }
+
+            const matchMarkets = {};
+            bets.forEach((bet, index) => {
+                if (!matchMarkets[bet.matchId]) {
+                    matchMarkets[bet.matchId] = [];
+                }
+                matchMarkets[bet.matchId].push({ index, marketType: bet.marketType });
+            });
+
+            // Reset conflict status
+            bets.forEach(bet => {
+                if (bet.status === 'conflict') {
+                    bet.status = 'normal';
+                }
+            });
+
+            // Mark conflicts
+            Object.values(matchMarkets).forEach(markets => {
+                if (markets.length > 1) {
+                    // 同一场比赛有多个不同盘口，标记为冲突
+                    const uniqueMarkets = [...new Set(markets.map(m => m.marketType))];
+                    if (uniqueMarkets.length > 1) {
+                        markets.forEach(m => {
+                            bets[m.index].status = 'invalid';
+                        });
+                    }
+                }
+            });
         }
 
         // Render bets
@@ -606,47 +767,73 @@
 
             content.innerHTML = bets.map((bet, index) => `
                 <div class="bet-slip-card ${bet.status === 'locked' ? 'locked' : ''} ${bet.status === 'invalid' ? 'invalid' : ''}">
-                    <button class="remove-btn" onclick="removeBet(${index})">×</button>
-                    <div class="match-info">
-                        <div class="match-title">${bet.match}</div>
-                        <div class="match-league">Soccer / Premier League</div>
-                    </div>
-                    <div class="odds-row">
-                        <div class="market-info">
-                            <div class="selection-name">${bet.selection}</div>
-                            <div class="market-name">Match Winner</div>
+                    <button class="remove-btn" onclick="removeBet(${index})"></button>
+                    <div class="bet-slip-card__body">
+                        <div class="bet-slip-card__header">
+                            <div class="bet-slip-card__match-info">
+                                <div class="bet-slip-card__match-name">${bet.match}</div>
+                                <div class="bet-slip-card__league-info">Soccer / Premier League</div>
+                            </div>
+                            <div class="bet-slip-card__odds-container">
+                                <div class="bet-slip-card__odds">@${bet.odds.toFixed(2)}</div>
+                                <div class="bet-slip-card__lock-icon">🔒</div>
+                            </div>
                         </div>
-                        <div class="odds-display ${bet.status === 'locked' ? 'locked' : ''}">
-                            ${bet.status === 'locked' ? '' : '@'}${bet.odds.toFixed(2)}
+                        <div class="bet-slip-card__market-info">
+                            <div class="bet-slip-card__selection">${bet.selection}</div>
+                            <div class="bet-slip-card__market-name">${bet.marketType}</div>
                         </div>
-                    </div>
-                    ${bet.status === 'normal' ? `
-                        <div class="stake-row">
-                            <span style="font-size: 14px; color: #666;">$</span>
-                            <input type="number" class="stake-input" value="${bet.stake}" 
-                                   onchange="updateStake(${index}, this.value)"
-                                   onfocus="this.parentElement.parentElement.querySelector('.quick-btn')?.remove()"
-                                   placeholder="0">
-                            <button class="quick-btn" onclick="addQuickAmount(${index}, 10)">+10</button>
-                            <button class="quick-btn" onclick="addQuickAmount(${index}, 50)">+50</button>
-                        </div>
-                        ${bet.stake > 0 ? `
-                            <div class="payout-display">
-                                To Return $${(bet.stake * bet.odds).toFixed(2)}
+                        ${bet.status === 'normal' && !isParlayMode ? `
+                            <div class="bet-slip-card__betting-info">
+                                <div class="bet-slip-card__stake-input-wrapper">
+                                    <input type="number" class="bet-slip-card__stake-input" value="${bet.stake}" 
+                                           onchange="updateStake(${index}, this.value)"
+                                           onfocus="handleInputFocus(${index})"
+                                           onblur="handleInputBlur(${index})"
+                                           placeholder="0">
+                                </div>
+                                <div class="bet-slip-card__quick-buttons" id="quick-buttons-${index}">
+                                    <button class="bet-slip-card__quick-button" onclick="addQuickAmount(${index}, 10)">+10</button>
+                                    <button class="bet-slip-card__quick-button" onclick="addQuickAmount(${index}, 50)">+50</button>
+                                </div>
+                                <div class="bet-slip-card__payout ${bet.stake > 0 ? 'visible' : ''}" id="payout-${index}">
+                                    <div class="bet-slip-card__payout-label">To Return</div>
+                                    <div class="bet-slip-card__payout-value">$${(bet.stake * bet.odds).toFixed(2)}</div>
+                                </div>
                             </div>
                         ` : ''}
-                    ` : ''}
+                    </div>
                 </div>
             `).join('');
 
             document.getElementById('slip-count').textContent = bets.length;
         }
 
+        // Handle input focus
+        function handleInputFocus(index) {
+            const quickButtons = document.getElementById(`quick-buttons-${index}`);
+            if (quickButtons) quickButtons.style.display = 'none';
+        }
+
+        // Handle input blur
+        function handleInputBlur(index) {
+            const quickButtons = document.getElementById(`quick-buttons-${index}`);
+            const payout = document.getElementById(`payout-${index}`);
+            if (bets[index].stake > 0) {
+                if (payout) payout.classList.add('visible');
+            } else {
+                if (quickButtons) quickButtons.style.display = 'flex';
+                if (payout) payout.classList.remove('visible');
+            }
+        }
+
         // Remove bet
         function removeBet(index) {
             bets.splice(index, 1);
+            checkParlayConflicts();
             renderBets();
             updateToolbar();
+            updateSlipContentLayout();
         }
 
         // Update stake
@@ -684,29 +871,53 @@
         // Reset all states
         function resetAllStates() {
             bets.forEach(bet => bet.status = 'normal');
+            checkParlayConflicts();
             renderBets();
             updateToolbar();
         }
 
+        // Update slip content layout
+        function updateSlipContentLayout() {
+            const content = document.getElementById('slip-content');
+            // 简单判断：如果注单数量超过3个，使用fill布局
+            if (bets.length > 3) {
+                content.classList.remove('hug-content');
+                content.classList.add('fill-content');
+            } else {
+                content.classList.remove('fill-content');
+                content.classList.add('hug-content');
+            }
+        }
+
         // Update toolbar
         function updateToolbar() {
-            const totalStake = bets.reduce((sum, bet) => sum + (bet.status === 'normal' ? bet.stake : 0), 0);
-            const totalPayout = bets.reduce((sum, bet) => sum + (bet.status === 'normal' ? bet.stake * bet.odds : 0), 0);
+            const validBets = bets.filter(bet => bet.status === 'normal');
             const hasAbnormal = bets.some(bet => bet.status !== 'normal');
-            const validBetCount = bets.filter(bet => bet.status === 'normal').length;
+            
+            let totalStake = 0;
+            let totalPayout = 0;
 
-            document.getElementById('toolbar-summary').textContent = 
-                `$${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
-            document.getElementById('total-stake').textContent = `$${totalStake.toFixed(2)}`;
+            if (isParlayMode) {
+                // 串关模式
+                const parlayStake = parseFloat(document.getElementById('parlay-stake').value) || 0;
+                const parlayOdds = validBets.reduce((acc, bet) => acc * bet.odds, 1);
+                totalStake = parlayStake;
+                totalPayout = parlayStake * parlayOdds;
+                document.getElementById('parlay-odds').textContent = `@${parlayOdds.toFixed(2)}`;
+            } else {
+                // 单关模式
+                totalStake = validBets.reduce((sum, bet) => sum + bet.stake, 0);
+                totalPayout = validBets.reduce((sum, bet) => sum + bet.stake * bet.odds, 0);
+            }
 
             const placeBtn = document.getElementById('place-bet-btn');
-            placeBtn.disabled = validBetCount === 0;
+            placeBtn.disabled = validBets.length === 0 || totalStake === 0;
             
             if (hasAbnormal) {
-                placeBtn.textContent = `移除异常并下单 (${validBetCount})`;
+                placeBtn.textContent = `移除异常并下单 (${validBets.length})`;
                 placeBtn.className = 'place-bet-btn warning';
             } else {
-                placeBtn.textContent = `Place Bet (${validBetCount}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
+                placeBtn.textContent = `Place Bet (${validBets.length}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
                 placeBtn.className = 'place-bet-btn';
             }
         }
@@ -722,7 +933,15 @@
         function toggleMode() {
             isParlayMode = !isParlayMode;
             const toggle = document.getElementById('mode-toggle');
+            const parlayRow = document.getElementById('parlay-input-row');
+            
             toggle.className = isParlayMode ? 'toggle-switch active' : 'toggle-switch';
+            parlayRow.className = isParlayMode ? 'parlay-input-row visible' : 'parlay-input-row';
+            
+            checkParlayConflicts();
+            renderBets();
+            updateToolbar();
+            
             showNotification(`已切换到 ${isParlayMode ? 'Parlay' : 'Singles'} 模式`, 'info');
         }
 
@@ -732,6 +951,7 @@
                 bets = [];
                 renderBets();
                 updateToolbar();
+                updateSlipContentLayout();
                 showNotification('已清空所有注单', 'info');
             }
         }
@@ -745,14 +965,13 @@
                 bets = bets.filter(bet => bet.status === 'normal');
                 showNotification(`已自动移除 ${abnormalCount} 个异常选项并提交投注`, 'success');
             } else {
-                const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0);
-                lastBetAmount = totalStake;
                 showNotification('投注已提交！', 'success');
             }
             
             bets = [];
             renderBets();
             updateToolbar();
+            updateSlipContentLayout();
         }
 
         // Show notification
@@ -786,6 +1005,7 @@
         // Initialize
         renderBets();
         updateToolbar();
+        updateSlipContentLayout();
     </script>
 </body>
 </html>
