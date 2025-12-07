@@ -395,6 +395,11 @@
             display: block;
         }
 
+        /* 悬浮效果：鼠标悬停时自动展开 */
+        .toolbar:hover .toolbar-details {
+            display: block;
+        }
+
         .place-bet-btn {
             width: 100%;
             padding: 15px;
@@ -917,7 +922,12 @@
                 placeBtn.textContent = `移除异常并下单 (${validBets.length})`;
                 placeBtn.className = 'place-bet-btn warning';
             } else {
-                placeBtn.textContent = `Place Bet (${validBets.length}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
+                // 展开状态下不显示预计派彩信息
+                if (isToolbarExpanded) {
+                    placeBtn.textContent = `Place Bet (${validBets.length})`;
+                } else {
+                    placeBtn.textContent = `Place Bet (${validBets.length}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
+                }
                 placeBtn.className = 'place-bet-btn';
             }
         }
@@ -927,6 +937,7 @@
             isToolbarExpanded = !isToolbarExpanded;
             const toolbar = document.getElementById('toolbar');
             toolbar.className = isToolbarExpanded ? 'toolbar expanded' : 'toolbar collapsed';
+            updateToolbar(); // 更新按钮文本
         }
 
         // Toggle mode
