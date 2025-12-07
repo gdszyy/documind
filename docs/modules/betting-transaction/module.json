@@ -1,0 +1,84 @@
+{
+  "id": "betting-transaction",
+  "name": "投注交易模块",
+  "description": "管理用户的投注选择、提交和历史记录，是平台的核心业务模块",
+  "status": "in-progress",
+  "owner": "系统架构组",
+  "version": "2.0.0",
+  "createdAt": "2025-12-07",
+  "updatedAt": "2025-12-07",
+  "pages": [
+    {
+      "id": "event-list",
+      "title": "赛事列表页",
+      "status": "planned"
+    },
+    {
+      "id": "event-detail",
+      "title": "赛事详情页",
+      "status": "planned"
+    },
+    {
+      "id": "live-event",
+      "title": "实时赛事页",
+      "status": "planned"
+    },
+    {
+      "id": "results",
+      "title": "赛果查询页",
+      "status": "planned"
+    },
+    {
+      "id": "data-hub",
+      "title": "数据中心页",
+      "status": "planned"
+    }
+  ],
+  "components": [
+    {
+      "id": "bet-slip",
+      "title": "投注栏",
+      "type": "global",
+      "status": "completed"
+    },
+    {
+      "id": "modal-message",
+      "title": "模态消息",
+      "type": "global",
+      "status": "completed"
+    },
+    {
+      "id": "toast",
+      "title": "Toast",
+      "type": "global",
+      "status": "completed"
+    }
+  ],
+  "apis": [
+    {
+      "id": "get-events",
+      "title": "获取赛事列表",
+      "status": "completed"
+    },
+    {
+      "id": "get-event-detail",
+      "title": "获取赛事详情",
+      "status": "completed"
+    },
+    {
+      "id": "place-bet",
+      "title": "提交投注",
+      "status": "completed"
+    },
+    {
+      "id": "websocket-api",
+      "title": "实时数据与状态推送",
+      "status": "completed"
+    }
+  ],
+  "stats": {
+    "pageCount": 5,
+    "componentCount": 3,
+    "apiCount": 4
+  }
+}
