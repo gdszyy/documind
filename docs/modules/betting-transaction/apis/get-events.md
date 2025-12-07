@@ -3,109 +3,214 @@ id: get-events
 type: api
 title: 获取赛事列表
 status: completed
-createdAt: '2025-12-07'
-updatedAt: '2025-12-07'
+createdAt: '2024-12-07'
+updatedAt: '2024-12-07'
 description: '获取增强的赛事信息列表，包含完整的赛事详情和盘口数据。'
-owner: '系统架构组'
+owner: 'Manus AI'
 tags: ['赛事', '数据']
-version: '1.0.0'
+version: '1.0'
 apiType: REST
 endpoint: '/api/events'
 method: 'GET'
 ---
 
-# GET /api/events
+# GET /api/events 接口文档
 
-## 基本信息
+**版本:** 1.0  
+**生成日期:** 2024-12-07  
+**作者:** Manus AI
 
-- **API ID**: `get-events`
-- **状态**: `completed`
-- **负责人**: `系统架构组`
+---
 
-## API 概述
+## 1. 接口概述
 
-此 API 用于从 UOF Service 获取一个经过增强的赛事信息列表。与简单的赛事列表不同，此接口返回的数据包含了每个赛事的详细信息，例如体育项目、联赛名称、对阵双方、开赛时间、当前状态，以及关键的盘口统计和具体盘口数据。这使得客户端可以直接在列表视图中展示丰富的赛事信息，而无需为每个赛事单独请求详情。
+`GET /api/events` 是一个功能强大的赛事查询接口,用于获取增强的赛事信息。它支持丰富的过滤和排序选项,可以获取包括赛事基本信息、实时比分、盘口数据在内的完整数据。
 
-## 请求参数
+该接口的核心功能是提供一个统一的入口,用于查询和筛选所有跟踪的赛事,并动态关联其盘口数据,为前端应用提供一站式的数据支持。
 
-### 查询参数 (Query Parameters)
+### 主要特性
 
-| 参数 | 类型 | 默认值 | 描述 |
-|---|---|---|---|
-| `status` | `string` | - | 筛选赛事的当前状态。有效值: `not_started` (未开始), `live` (进行中), `ended` (已结束), `cancelled` (已取消)。 |
-| `sport_id` | `string` | - | 按体育项目ID进行筛选，例如 `sr:sport:1` 代表足球。 |
-| `page` | `int` | `1` | 分页查询的页码。 |
-| `page_size` | `int` | `20` | 每页返回的赛事数量，最大值为 100。 |
+- **丰富的过滤选项:** 支持按赛事状态、订阅状态、体育类型、生产者、是否有盘口等多种条件进行过滤。
+- **灵活的排序功能:** 支持按时间、热度等多种方式排序。
+- **动态盘口关联:** 实时获取并关联赛事的盘口和赔率数据。
+- **数据映射与格式化:** 对原始数据进行映射和格式化,使其更易于前端展示。
+- **缓存机制:** 内置查询缓存,提高重复查询的响应速度。
+- **分页支持:** 支持分页查询,降低单次请求的负载。
 
-## 响应格式
+---
 
-### 成功响应 (Success 200)
+## 2. 请求参数
 
-**Status Code**: `200 OK`
+该接口支持通过 URL 查询参数进行过滤和排序。以下是所有支持的参数列表:
+
+| 参数名 | 类型 | 必填 | 描述 | 默认值 |
+|---|---|---|---|---|
+| `status` | string | 否 | 赛事状态,如 `live`, `not_started`, `ended` | - |
+| `subscribed` | boolean | 否 | 是否已订阅 (`true` 或 `false`) | - |
+| `sport_id` | string | 否 | 体育类型 ID,如 `sr:sport:1` | - |
+| `search` | string | 否 | 搜索关键词 (支持赛事 ID 精确匹配或队伍名称模糊匹配) | - |
+| `producer` | int | 否 | 生产者 ID,用于过滤特定生产者提供的盘口 | - |
+| `is_live` | boolean | 否 | 是否为进行中的比赛 (`true`) | - |
+| `is_ended` | boolean | 否 | 是否为已结束的比赛 (`true` 或 `false`) | - |
+| `has_markets` | boolean | 否 | 是否必须包含盘口数据 (`true`) | - |
+| `market_ids` | string | 否 | 盘口 ID 列表,逗号分隔,用于过滤特定盘口 | - |
+| `sort_by` | string | 否 | 排序字段 (`time`, `popularity`) | `last_update` |
+| `sort_order` | string | 否 | 排序顺序 (`asc`, `desc`) | `desc` |
+| `page` | int | 否 | 页码 | 1 |
+| `page_size` | int | 否 | 每页数量 (最大 50) | 20 |
+| `include_unsubscribed_started` | boolean | 否 | 是否包含未订阅且已开赛的比赛 (`true`) | `false` |
+
+### 参数详解
+
+- **`status`**: 用于过滤特定状态的比赛。常见状态包括:
+  - `not_started`: 未开始
+  - `live`: 进行中
+  - `ended`: 已结束
+  - `cancelled`: 已取消
+
+- **`search`**: 提供强大的搜索功能。如果提供的是赛事 ID,则进行精确匹配;如果是文本,则对主队和客队名称进行不区分大小写的模糊匹配。
+
+- **`is_ended`**: 一个便捷的过滤器,`is_ended=false` 可以排除所有已结束、取消或废弃的比赛,`is_ended=true` 则只返回这些比赛。
+
+- **`has_markets`**: 设置为 `true` 时,将只返回那些当前至少有一个有效盘口的比赛,非常适合用于展示有投注选项的比赛列表。
+
+- **`market_ids`**: 允许您只获取包含特定盘口的比赛,例如 `market_ids=1,18` 将只返回包含 "1X2" 和 "Total Goals" 盘口的比赛。
+
+- **`sort_by`**:
+  - `time`: 按比赛计划时间 (`schedule_time`) 排序。
+  - `popularity`: 按热度 (消息数量 `message_count`) 排序。
+  - 默认: 按最后更新时间 (`last_update`, 包括盘口更新时间) 排序,确保最新的数据排在最前面。
+
+- **`include_unsubscribed_started`**: 默认情况下,接口会过滤掉那些**未订阅**且**已开赛**的比赛,因为这类比赛通常没有可用的滚球盘口。将此参数设置为 `true` 可以禁用此默认行为,返回所有符合条件的比赛。
+
+---
+
+## 3. 响应结构
+
+接口返回一个 JSON 对象,包含赛事列表和分页信息。
 
 ```json
 {
+  "success": true,
+  "count": 1,
   "events": [
     {
       "event_id": "sr:match:12345",
+      "srn_id": "srn:match:12345",
       "sport_id": "sr:sport:1",
-      "sport_name": "Football",
-      "tournament_name": "Premier League",
-      "home_team": "Manchester United",
-      "away_team": "Liverpool",
-      "scheduled": "2025-12-07T15:00:00Z",
       "status": "live",
-      "markets_count": 150,
-      "markets": []
+      "schedule_time": "2024-12-07T15:00:00Z",
+      "home_team_id": "sr:competitor:1",
+      "home_team_name": "Manchester United",
+      "away_team_id": "sr:competitor:2",
+      "away_team_name": "Liverpool",
+      "home_score": 1,
+      "away_score": 0,
+      "match_status": "2nd_half",
+      "match_time": "65:00",
+      "message_count": 500,
+      "last_message_at": "2024-12-07T16:10:00Z",
+      "subscribed": true,
+      "created_at": "2024-12-07T10:00:00Z",
+      "updated_at": "2024-12-07T16:10:00Z",
+      "sport": "SOCCER",
+      "sport_name": "足球",
+      "match_status_mapped": "2nd_half",
+      "match_status_name": "下半场",
+      "match_time_mapped": "65:00",
+      "home_team_id_mapped": "1",
+      "away_team_id_mapped": "2",
+      "is_live": true,
+      "is_ended": false,
+      "markets": {
+        "1": {
+          "sr_market_id": "1",
+          "market_name": "1X2",
+          "specifiers": {
+            "default": {
+              "specifier": "",
+              "status": "active",
+              "producer_id": 1,
+              "outcomes": [
+                {
+                  "outcome_id": "1",
+                  "name": "Home",
+                  "outcome_name": "主胜",
+                  "odds": 1.50,
+                  "probability": 0.65,
+                  "active": true
+                }
+              ],
+              "updated_at": "2024-12-07T16:09:00Z"
+            }
+          }
+        }
+      }
     }
-  ],
-  "total": 100,
-  "page": 1,
-  "page_size": 20
+  ]
 }
 ```
 
-| 字段 | 类型 | 描述 |
-|---|---|---|
-| `events` | `array` | 赛事对象数组。 |
-| `events[].event_id` | `string` | 赛事的唯一标识符。 |
-| `events[].sport_name` | `string` | 体育项目名称。 |
-| `events[].tournament_name` | `string` | 联赛或锦标赛名称。 |
-| `events[].home_team` | `string` | 主队名称。 |
-| `events[].away_team` | `string` | 客队名称。 |
-| `events[].scheduled` | `string` | 预定的开赛时间 (ISO 8601 格式)。 |
-| `events[].status` | `string` | 赛事当前状态。 |
-| `events[].markets_count` | `int` | 该赛事可用的盘口总数。 |
-| `events[].markets` | `array` | 盘口数据数组 (通常在此接口中为节省带宽而返回空数组或有限的关键盘口)。 |
-| `total` | `int` | 符合查询条件的总赛事数。 |
-| `page` | `int` | 当前页码。 |
-| `page_size` | `int` | 每页数量。 |
+### 字段说明
 
-## 错误码
+- **`event_id`**: 赛事的唯一标识符。
+- **`srn_id`**: Sportradar 提供的赛事 URN。
+- **`sport_id`**: 体育类型 ID。
+- **`status`**: 赛事的原始状态 (`live`, `ended` 等)。
+- **`schedule_time`**: 比赛计划开始时间。
+- **`home_team_name` / `away_team_name`**: 主客队名称。
+- **`home_score` / `away_score`**: 主客队比分。
+- **`match_status`**: 比赛内部状态,如 `2nd_half`。
+- **`match_time`**: 比赛进行时间。
+- **`message_count`**: 该赛事接收到的消息总数,可作为热度指标。
+- **`subscribed`**: 是否已订阅该赛事。
+- **`sport_name`**: 映射后的体育类型中文名称。
+- **`match_status_name`**: 映射后的比赛状态中文名称。
+- **`is_live`**: 是否为进行中的比赛 (根据 `status` 字段判断)。
+- **`is_ended`**: 是否为已结束的比赛。
+- **`markets`**: 盘口数据,一个以盘口 ID 为键的 map。
+  - **`market_name`**: 盘口名称,已根据盘口描述服务进行本地化。
+  - **`specifiers`**: 盘口的 specifier 分组,以 specifier 字符串为键。
+    - **`outcomes`**: 该 specifier 下的所有投注项。
+      - **`outcome_name`**: 投注项名称,已本地化。
+      - **`odds`**: 赔率。
+      - **`active`**: 是否可投注。
 
-| 状态码 | 错误码 | 描述 |
-|---|---|---|
-| `400` | `INVALID_PARAMETER` | 查询参数无效，例如 `page_size` 超出范围。 |
-| `500` | `INTERNAL_SERVER_ERROR` | 服务器内部错误。 |
+---
 
-## 调用示例
+## 4. 示例请求
 
-获取第一页正在进行的足球比赛：
+### 示例 1: 获取所有进行中的足球比赛,按热度降序排序
 
-```bash
-curl -X GET \
-  'http://<uof-service-address>/api/events?status=live&sport_id=sr:sport:1&page=1&page_size=10' \
-  -H 'Content-Type: application/json'
+```
+GET /api/events?sport_id=sr:sport:1&is_live=true&sort_by=popularity&sort_order=desc
 ```
 
-## 被使用的页面/组件
+### 示例 2: 获取已订阅且包含 "1X2" 和 "大小球" 盘口的未结束比赛
 
-- [@赛事列表页](../pages/event-list.md)
-- [@实时赛事页](../pages/live-event.md)
-- [@热门赛事](../components/hot-matches.md)
+```
+GET /api/events?subscribed=true&is_ended=false&market_ids=1,18
+```
 
-## 变更历史
+### 示例 3: 搜索队伍名称包含 "United" 的比赛,每页返回 10 条
 
-| 日期 | 版本 | 变更内容 | 变更人 |
-|---|---|---|---|
-| 2025-12-07 | v1.0.0 | 初始版本，根据 UOF Service 文档创建。 | Manus AI |
+```
+GET /api/events?search=United&page_size=10
+```
+
+---
+
+## 5. 缓存机制
+
+为了提高性能,该接口实现了一套查询缓存机制。当使用相同的查询参数组合发起请求时,服务器会直接返回缓存的结果,从而大大减少数据库负载和响应时间。
+
+- **缓存键:** 根据所有查询参数生成唯一的缓存键。
+- **缓存时间:** 默认为 30 秒。
+- **缓存命中:** 当缓存命中时,响应头中会包含 `X-Cache: HIT`。
+- **缓存未命中:** 当缓存未命中时,响应头中会包含 `X-Cache: MISS`,服务器会执行数据库查询并将结果存入缓存。
+
+---
+
+## 6. 总结
+
+`GET /api/events` 是一个高度优化的、功能全面的赛事查询接口。通过组合使用其丰富的过滤和排序参数,开发者可以高效地获取所需的数据,满足各种复杂的前端展示需求。其内置的缓存和数据映射机制进一步提升了性能和开发效率,使其成为 `uof-service` 中最核心的数据查询接口之一。
