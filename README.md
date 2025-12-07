@@ -22,10 +22,10 @@ DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 
 ### 核心文档
 
 - **[v4 规范文档](./docs/standards/00-specification-v4.md)** - 完整的文档标准和规范
-- **[Figma 命名规范](./docs/standards/figma-naming-convention.md)** - 设计师必读的命名规则
-- **[自动化工作流指南](./docs/standards/automation-workflow-guide.md)** - 从 Figma 到文档的自动化流程
-- **[整合方案说明](./docs/standards/00-integration-plan.md)** - v3 和 Figma 系统的整合思路
-- **[v4 交付总结](./docs/DELIVERY-SUMMARY-V4.md)** - 完整的项目交付说明
+- **[Figma 命名规范](./docs/standards/01-figma-naming-convention.md)** - 设计师必读的命名规则
+- **[自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)** - 从 Figma 到文档的自动化流程
+- **[整合方案说明](./docs/standards/03-integration-plan.md)** - v3 和 Figma 系统的整合思路
+- **[v4 交付总结](./docs/planning/delivery-summary-v4.md)** - 完整的项目交付说明
 
 ### 文档模板
 
@@ -49,14 +49,14 @@ DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 
 3. 使用 AI (如 Manus) 生成 Markdown 文档
 4. 人工审核和补充内容
 
-详见 [自动化工作流指南](./docs/standards/automation-workflow-guide.md)。
+详见 [自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)。
 
 ## 项目文档
 
-- [项目计划书](./docs/DocuMind_Project_Plan.md) - 完整的 MVP 项目计划
-- [MVP 详细设计](./docs/documind_mvp_revised.md) - MVP 版本的详细功能设计
-- [功能架构图](./docs/functional_architecture_revised.png) - 系统功能架构
-- [页面信息架构图](./docs/page_information_architecture_revised.png) - 页面流程和跳转关系
+- [项目计划书](./docs/planning/project-plan.md) - 完整的 MVP 项目计划
+- [MVP 详细设计](./docs/planning/mvp-design.md) - MVP 版本的详细功能设计
+- [功能架构图](./docs/planning/diagrams/functional-architecture.png) - 系统功能架构
+- [页面信息架构图](./docs/planning/diagrams/page-information-architecture.png) - 页面流程和跳转关系
 
 ## 技术栈
 
@@ -95,8 +95,8 @@ DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 
 
 ### 从 Figma 自动生成文档
 
-1. 确保设计师遵循 [Figma 命名规范](./docs/standards/figma-naming-convention.md)
-2. 参考 [自动化工作流指南](./docs/standards/automation-workflow-guide.md) 实施自动化流程
+1. 确保设计师遵循 [Figma 命名规范](./docs/standards/01-figma-naming-convention.md)
+2. 参考 [自动化工作流指南](./docs/standards/02-automation-workflow-guide.md) 实施自动化流程
 
 ### 开发平台 (待完成)
 

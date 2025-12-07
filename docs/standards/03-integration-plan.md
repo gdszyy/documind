@@ -35,8 +35,8 @@
 
 1.  **创建 v4 目录**: 建立 `/home/ubuntu/documind_v4` 目录。
 2.  **创建整合后的组件模板**: 生成 `component-template-v4.md`。
-3.  **创建 Figma 命名规范指南**: 编写 `figma-naming-convention.md`, 指导设计师如何组织设计稿以便于自动化处理。
-4.  **创建自动化工作流指南**: 编写 `automation-workflow-guide.md`, 描述从 Figma 提取数据到 AI 生成文档的完整流程,并提供主提示词 (Master Prompt)。
+3.  **创建 Figma 命名规范指南**: 编写 `01-figma-naming-convention.md`, 指导设计师如何组组织设计稿以便于自动化处理。
+4.  **创建自动化工作流指南**: 编写 `02-automation-workflow-guide.md`, 描述从 Figma 提取数据到 AI 生成文档的完整流程,并提供主提示词 (Master Prompt)。
 5.  **更新项目文档**: 更新 `README.md` 和 `00-specification.md` 以反映 v4 的变化。
 6.  **打包交付**: 将所有产出物打包成 `documind_v4_final.zip`。
 

@@ -6,23 +6,29 @@
 
 ```
 docs/
-├── README.md                           # 本文件
-├── DELIVERY-SUMMARY-V4.md              # v4 版本交付总结
-├── standards/                          # 标准化规范
-│   ├── 00-specification-v4.md          # 核心规范文档
-│   ├── figma-naming-convention.md      # Figma 命名规范
-│   ├── automation-workflow-guide.md    # 自动化工作流指南
-│   └── 00-integration-plan.md          # 整合方案说明
-├── templates/                          # 文档模板
-│   ├── module-template.md              # 模块模板
-│   ├── page-template.md                # 页面模板
-│   ├── component-template-v4.md        # 组件模板 (v4)
-│   └── api-template.md                 # API 模板
-├── examples/                           # 示例文档 (待添加)
-├── DocuMind_Project_Plan.md            # 项目计划书
-├── documind_mvp_revised.md             # MVP 详细设计
-├── functional_architecture_revised.png # 功能架构图
-└── page_information_architecture_revised.png # 页面信息架构图
+├── README.md                               # 本文件
+├── planning/                               # 项目规划文档
+│   ├── project-plan.md                     # 项目计划书
+│   ├── mvp-design.md                       # MVP 详细设计
+│   ├── delivery-summary-v4.md              # v4 版本交付总结
+│   └── diagrams/                           # 架构图和流程图
+│       ├── functional-architecture.png     # 功能架构图
+│       └── page-information-architecture.png # 页面信息架构图
+├── standards/                              # 标准化规范
+│   ├── 00-specification-v4.md              # 核心规范文档
+│   ├── 01-figma-naming-convention.md       # Figma 命名规范
+│   ├── 02-automation-workflow-guide.md     # 自动化工作流指南
+│   ├── 03-integration-plan.md              # 整合方案说明
+│   └── 04-repository-structure.md          # 仓库结构规范
+├── templates/                              # 文档模板
+│   ├── module-template.md                  # 模块模板
+│   ├── page-template.md                    # 页面模板
+│   ├── component-template-v4.md            # 组件模板 (v4)
+│   └── api-template.md                     # API 模板
+└── research/                               # 研究和分析文档
+    ├── ai-element-recognition-feasibility.md # AI 元素识别可行性分析
+    └── case-studies/                       # 案例研究
+        └── betting-platform/               # 博彩平台案例
 ```
 
 ## 📚 核心文档
@@ -36,26 +42,25 @@ docs/
    - 文档引用语法
    - 组件文档的标准章节结构
 
-2. **[Figma 命名规范](./standards/figma-naming-convention.md)**
+2. **[Figma 命名规范](./standards/01-figma-naming-convention.md)**
    - 设计师必读的命名规则
    - 四级命名结构: 分类 / 组件 / 变体 / 元素
    - 详细的规则说明和示例
 
-3. **[自动化工作流指南](./standards/automation-workflow-guide.md)**
+3. **[自动化工作流指南](./standards/02-automation-workflow-guide.md)**
    - 从 Figma 到文档的自动化流程
    - 四步工作流: 设计 → 提取 → 生成 → 审核
    - JSON 数据结构定义
    - AI 主提示词 (Master Prompt)
 
-4. **[整合方案说明](./standards/00-integration-plan.md)**
+4. **[整合方案说明](./standards/03-integration-plan.md)**
    - v3 和 Figma 系统的整合思路
    - 统一组件模板的设计原则
    - 实施计划
 
-5. **[v4 交付总结](./DELIVERY-SUMMARY-V4.md)**
-   - 完整的项目交付说明
-   - 核心成果和特性
-   - 使用方式和最佳实践
+5. **[仓库结构规范](./standards/04-repository-structure.md)**
+   - 项目目录结构说明
+   - 开发规范和最佳实践
 
 ### 文档模板
 
@@ -80,21 +85,36 @@ docs/
 
 ### 项目规划文档
 
-1. **[项目计划书](./DocuMind_Project_Plan.md)**
+1. **[项目计划书](./planning/project-plan.md)**
    - 完整的 MVP 项目计划
    - 开发阶段和时间表
 
-2. **[MVP 详细设计](./documind_mvp_revised.md)**
+2. **[MVP 详细设计](./planning/mvp-design.md)**
    - MVP 版本的详细功能设计
    - 技术实现方案
 
-3. **[功能架构图](./functional_architecture_revised.png)**
+3. **[v4 交付总结](./planning/delivery-summary-v4.md)**
+   - 完整的项目交付说明
+   - 核心成果和特性
+   - 使用方式和最佳实践
+
+4. **[功能架构图](./planning/diagrams/functional-architecture.png)**
    - 系统功能架构
    - 模块关系图
 
-4. **[页面信息架构图](./page_information_architecture_revised.png)**
+5. **[页面信息架构图](./planning/diagrams/page-information-architecture.png)**
    - 页面流程和跳转关系
    - 用户交互路径
+
+### 研究文档
+
+1. **[AI 元素识别可行性分析](./research/ai-element-recognition-feasibility.md)**
+   - AI 自动判断 Figma 元素类型的可行性研究
+   - 技术方案和实施建议
+
+2. **[博彩平台案例研究](./research/case-studies/betting-platform/)**
+   - 博彩平台产品文档体系的完整案例
+   - 包含架构分析、工作流程、模板设计等
 
 ## 🚀 快速开始
 
@@ -103,7 +123,7 @@ docs/
 首先阅读以下文档,了解 DocuMind v4 的完整规范:
 
 1. [v4 规范文档](./standards/00-specification-v4.md) - 核心规范
-2. [v4 交付总结](./DELIVERY-SUMMARY-V4.md) - 快速概览
+2. [v4 交付总结](./planning/delivery-summary-v4.md) - 快速概览
 
 ### 2. 选择工作方式
 
@@ -113,8 +133,8 @@ docs/
 - 遵循命名和格式要求
 
 **方式 B: 从 Figma 自动生成**
-- 设计师遵循 [Figma 命名规范](./standards/figma-naming-convention.md)
-- 开发者实施 [自动化工作流](./standards/automation-workflow-guide.md)
+- 设计师遵循 [Figma 命名规范](./standards/01-figma-naming-convention.md)
+- 开发者实施 [自动化工作流](./standards/02-automation-workflow-guide.md)
 - 使用 AI 生成文档草稿
 - 人工审核和补充
 
@@ -128,6 +148,7 @@ docs/
 ## 💡 最佳实践
 
 - **文件命名**: 使用 kebab-case (小写、连字符分隔)
+- **目录组织**: 按文档类型分类存放 (规划/规范/模板/研究)
 - **Front Matter**: 确保所有必填字段都已填写
 - **文档引用**: 使用相对路径,确保链接准确
 - **章节结构**: 严格按照规范的顺序组织章节
@@ -138,11 +159,11 @@ docs/
 如有任何问题:
 
 1. 查阅 [v4 规范文档](./standards/00-specification-v4.md)
-2. 参考 [v4 交付总结](./DELIVERY-SUMMARY-V4.md)
+2. 参考 [v4 交付总结](./planning/delivery-summary-v4.md)
 3. 通过 GitHub Issues 联系团队
 
 ---
 
 **版本**: 4.0.0  
-**最后更新**: 2025-12-08  
+**最后更新**: 2025-12-07  
 **维护者**: Documentation Team

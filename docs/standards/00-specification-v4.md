@@ -47,8 +47,8 @@ v4 引入了完整的自动化工作流,支持从 Figma 设计稿直接生成符
 docs/
 ├── 00-specification-v4.md       # 本规范文档
 ├── README.md                    # 项目说明
-├── figma-naming-convention.md   # Figma 命名规范
-├── automation-workflow-guide.md # 自动化工作流指南
+├── 01-figma-naming-convention.md   # Figma 命名规范
+├── 02-automation-workflow-guide.md # 自动化工作流指南
 ├── index.json                   # 全局索引文件
 ├── templates/                   # 模板目录
 │   ├── module-template.md
@@ -124,15 +124,15 @@ docs/
 
 ### 7.1. Figma 命名规范
 
-详见 [Figma 命名规范指南](./figma-naming-convention.md)。
+详见 [Figma 命名规范指南](./01-figma-naming-convention.md)。
 
 ### 7.2. 数据提取格式
 
-从 Figma 提取的数据应遵循 [自动化工作流指南](./automation-workflow-guide.md) 中定义的 JSON 格式。
+从 Figma 提取的数据应遵循 [自动化工作流指南](./02-automation-workflow-guide.md) 中定义的 JSON 格式。
 
 ### 7.3. AI 生成指南
 
-AI 应遵循 [自动化工作流指南](./automation-workflow-guide.md) 中的"主提示词"来生成符合规范的文档。
+AI 应遵循 [自动化工作流指南](./02-automation-workflow-guide.md) 中的“主提示词”来生成符合规范的文档。
 
 ## 8. 向后兼容性
 

@@ -15,7 +15,7 @@ graph TD
 
 | 步骤 | 角色 | 核心任务 |
 | :--- | :--- | :--- |
-| 1. **设计** | UI/UX 设计师 | 严格按照 [Figma 命名规范](./figma-naming-convention.md) 创建和组织组件。 |
+| 1. **设计** | UI/UX 设计师 | 严格按照 [Figma 命名规范](./01-figma-naming-convention.md) 创建和组织组件。 |
 | 2. **提取** | 开发/自动化 | 运行脚本,通过 Figma API 提取设计信息,并转换为下文定义的 JSON 格式。 |
 | 3. **生成** | AI (Manus) | 使用 [主提示词](#4-主提示词-master-prompt) 和提取的 JSON 数据,自动生成符合 v4 模板的 Markdown 文档。 |
 | 4. **审核** | 产品经理/开发者 | 审核 AI 生成的文档,补充业务逻辑、技术细节,并最终发布。 |
@@ -26,7 +26,7 @@ graph TD
 
 此阶段的成功完全依赖于设计师是否严格遵守了命名规范。请确保所有参与的团队成员都已熟悉并遵循:
 
-> **[DocuMind: Figma 命名规范指南](./figma-naming-convention.md)**
+> **[DocuMind: Figma 命名规范指南](./01-figma-naming-convention.md)**
 
 ### 步骤 2: 提取
 
