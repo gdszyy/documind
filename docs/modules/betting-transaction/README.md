@@ -103,7 +103,41 @@ API 清单也根据组件的调整进行了更新。
 
 ---
 
-## 6. 总结
+## 6. 相关技术规范
+
+本模块的实现依赖以下核心技术规范：
+
+### 6.1 数据源集成规范
+
+- **[Sportradar UOF 实时层规范](../../standards/05-sportradar-uof-realtime-layer.md)**
+  - 实时赔率更新处理
+  - 盘口状态管理
+  - 高频消息优化
+
+- **[Sportradar UOF 确认层规范](../../standards/06-sportradar-uof-confirmation-layer.md)**
+  - 注单结算处理
+  - 结算冲正机制
+  - 资金安全保障
+
+- **[Sportradar Outcome Mapping API 规范](../../standards/07-sportradar-outcome-mapping-api.md)**
+  - 盘口定义获取
+  - 结果映射处理
+  - Variant 市场处理
+
+### 6.2 文档规范
+
+- **[v4 规范文档](../../standards/00-specification-v4.md)**
+  - 文档标准和格式
+  - 元数据定义
+  - 引用语法
+
+- **[仓库结构规范](../../standards/04-repository-structure.md)**
+  - 项目目录结构
+  - 开发规范
+
+---
+
+## 7. 总结
 
 本次修订根据您的反馈，对投注交易模块的页面和组件清单进行了精简和重构，使其更符合当前的项目需求。最终确定的清单包括 **5 个页面**、**6 个全局组件**、**12 个普通组件** 和 **7 个核心 API**。
 

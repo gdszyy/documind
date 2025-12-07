@@ -62,6 +62,24 @@ docs/
    - 项目目录结构说明
    - 开发规范和最佳实践
 
+6. **[Sportradar UOF 实时层规范](./standards/05-sportradar-uof-realtime-layer.md)**
+   - 实时层消息类型详解（odds_change, bet_stop, bet_cancel 等）
+   - 消息字段业务含义与处理逻辑
+   - 双层机制中的实时层定位
+   - 高频消息处理最佳实践
+
+7. **[Sportradar UOF 确认层规范](./standards/06-sportradar-uof-confirmation-layer.md)**
+   - 确认层消息类型详解（bet_settlement, rollback_bet_settlement 等）
+   - 官方确认机制与 certainty 字段
+   - 结算冲正与资金安全保障
+   - 确认层优先级处理规则
+
+8. **[Sportradar Outcome Mapping API 规范](./standards/07-sportradar-outcome-mapping-api.md)**
+   - Market Descriptions API 端点详解
+   - Variant Market Descriptions API 使用指南
+   - include_mappings 参数说明
+   - API 调用示例与最佳实践
+
 ### 文档模板
 
 在 `templates/` 目录下提供了四种标准化模板:
