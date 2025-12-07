@@ -928,16 +928,21 @@
             document.getElementById('est-payout-display').textContent = `$${totalPayout.toFixed(2)}`;
 
             const placeBtn = document.getElementById('place-bet-btn');
-            placeBtn.disabled = validBets.length === 0 || totalStake === 0;
             
             if (hasAbnormal) {
+                // 存在异常注单时，按钮不禁用，显示移除按钮
+                placeBtn.disabled = false;
                 placeBtn.textContent = `移除所有异常注单`;
                 placeBtn.className = 'place-bet-btn warning';
             } else {
-                // 展开状态下不显示预计派彩信息
+                // 正常状态下，没有有效注单或金额为0时禁用
+                placeBtn.disabled = validBets.length === 0 || totalStake === 0;
+                
+                // 展开状态下只显示"Place Bet"
                 if (isToolbarExpanded) {
-                    placeBtn.textContent = `Place Bet (${validBets.length})`;
+                    placeBtn.textContent = `Place Bet`;
                 } else {
+                    // 收起状态显示完整信息
                     placeBtn.textContent = `Place Bet (${validBets.length}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}`;
                 }
                 placeBtn.className = 'place-bet-btn';
