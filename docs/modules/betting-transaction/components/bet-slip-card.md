@@ -12,7 +12,7 @@ version: '1.0.0'
 componentType: 'normal'
 figmaUrl: 'https://www.figma.com/file/xxxx/documind?node-id=13:10227'
 hasInteractive: true
-interactiveUrl: https://github.com/gdszyy/documind/blob/main/docs/demos/bet-slip-card-interactive.html
+interactiveUrl: ./bet-slip-card.html
 ---
 
 # 投注单卡片 `[组件]`
