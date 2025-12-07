@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投注栏完整交互演示 - Bet Slip with Tickets</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+
+        /* Demo Controls */
+        .demo-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .demo-controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+        }
+
+        .control-section h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #E80104;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c00103;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-warning {
+            background: #FF9800;
+            color: white;
+        }
+
+        /* Bet Slip */
+        .bet-slip {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 800px;
+            position: relative;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 8px;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #E80104;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 15px;
+        }
+
+        .tab-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+            color: #666;
+            position: relative;
+        }
+
+        .tab-item:hover {
+            color: #333;
+        }
+
+        .tab-item.active {
+            color: #E80104;
+            border-bottom-color: #E80104;
+        }
+
+        .badge {
+            background: #E80104;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        /* Content Area */
+        .slip-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .slip-content.hug-content {
+            flex: 0 1 auto;
+        }
+
+        .slip-content.fill-content {
+            flex: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Bet Slip Card */
+        .bet-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .bet-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .bet-card.invalid {
+            background: rgba(255, 0, 0, 0.05);
+            border-color: #ffcdd2;
+        }
+
+        .bet-card.locked {
+            background: rgba(158, 158, 158, 0.1);
+            opacity: 0.6;
+        }
+
+        /* Betting Ticket */
+        .ticket {
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px dashed #6b46c1;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .ticket:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .ticket.void {
+            opacity: 0.6;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .settle-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.won {
+            background: #e8f5e9;
+            color: #0c9c16;
+        }
+
+        .status-badge.lost {
+            background: #ffebee;
+            color: #b30505;
+        }
+
+        .status-badge.pending {
+            background: #fff3e0;
+            color: #d89600;
+        }
+
+        .status-badge.void {
+            background: #f5f5f5;
+            color: #a0a0a0;
+        }
+
+        .ticket-match {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .ticket-league {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .ticket-selection {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .selection-team {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .selection-market {
+            font-size: 13px;
+            color: #666;
+            margin-left: 8px;
+        }
+
+        .ticket-odds {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .ticket-outcome {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .ticket-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .ticket-stake, .ticket-payout {
+            text-align: center;
+        }
+
+        .ticket-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .ticket-amount {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .ticket-amount.won {
+            color: #0c9c16;
+        }
+
+        .ticket-amount.lost {
+            color: #b30505;
+        }
+
+        .ticket-amount.pending {
+            color: #d89600;
+        }
+
+        .ticket-arrow {
+            font-size: 24px;
+            color: #ccc;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            border-top: 1px solid #e0e0e0;
+            background: white;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .toolbar.collapsed .toolbar-details {
+            display: none;
+        }
+
+        .toolbar.expanded .toolbar-details {
+            display: block;
+        }
+
+        .toolbar:hover .toolbar-details {
+            display: block;
+        }
+
+        .toolbar:hover .place-bet-btn .btn-details {
+            display: none;
+        }
+
+        .place-bet-btn {
+            width: 100%;
+            padding: 15px;
+            background: #E80104;
+            color: white;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .place-bet-btn:hover:not(:disabled) {
+            background: #c00103;
+        }
+
+        .place-bet-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .place-bet-btn.warning {
+            background: #FF9800;
+        }
+
+        .place-bet-btn.loading {
+            background: #999;
+            cursor: wait;
+        }
+
+        .toolbar-details {
+            padding: 15px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .notification.error {
+            background: #F44336;
+            color: white;
+        }
+
+        .notification.info {
+            background: #2196F3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Demo Controls -->
+        <div class="demo-controls">
+            <h2>🎮 交互演示控制面板</h2>
+            
+            <div class="control-section">
+                <h3>添加投注选项</h3>
+                <button class="btn btn-primary" onclick="addBet('Man United vs Liverpool', 'Man United', 2.75, 'match1', 'Match Winner', 'Soccer / Premier League')">
+                    添加: Man United @2.75
+                </button>
+                <button class="btn btn-primary" onclick="addBet('Arsenal vs Chelsea', 'Arsenal', 1.85, 'match2', 'Match Winner', 'Soccer / Premier League')">
+                    添加: Arsenal @1.85
+                </button>
+            </div>
+
+            <div class="control-section">
+                <h3>模拟票据状态变化</h3>
+                <button class="btn btn-secondary" onclick="simulateTicketSettle('won')">模拟赢</button>
+                <button class="btn btn-secondary" onclick="simulateTicketSettle('lost')">模拟输</button>
+                <button class="btn btn-secondary" onclick="simulateTicketSettle('void')">模拟作废</button>
+            </div>
+
+            <div class="control-section">
+                <h3>说明文档</h3>
+                <p style="font-size: 13px; color: #666; line-height: 1.6;">
+                    <strong>核心功能演示：</strong><br>
+                    1. <strong>Slip Tab</strong>：编辑中的注单<br>
+                    2. <strong>Open Tab</strong>：Pending状态的票据<br>
+                    3. <strong>Settled Tab</strong>：已结算的票据（Won/Lost/Void）<br>
+                    4. <strong>投注流程</strong>：加载状态 → 蒙版 → Toast → 清空Slip → 添加到Open<br>
+                    5. <strong>票据展示</strong>：根据Figma设计还原的完整票据样式
+                </p>
+            </div>
+        </div>
+
+        <!-- Bet Slip -->
+        <div class="bet-slip">
+            <!-- Loading Overlay -->
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <div class="loading-text">投注中...</div>
+                </div>
+            </div>
+
+            <div class="tab-nav">
+                <div class="tab-item active" onclick="switchTab('slip')" data-tab="slip">
+                    Slip <span class="badge" id="slip-count">0</span>
+                </div>
+                <div class="tab-item" onclick="switchTab('open')" data-tab="open">
+                    Open <span class="badge" id="open-count">0</span>
+                </div>
+                <div class="tab-item" onclick="switchTab('settled')" data-tab="settled">
+                    Settled <span class="badge" id="settled-count">0</span>
+                </div>
+            </div>
+
+            <div class="slip-content hug-content" id="slip-content">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    <p>暂无投注选项</p>
+                    <p style="font-size: 12px; margin-top: 5px;">点击左侧按钮添加投注</p>
+                </div>
+            </div>
+
+            <div class="toolbar collapsed" id="toolbar">
+                <button class="place-bet-btn" id="place-bet-btn" onclick="placeBet()" disabled>
+                    Place Bet (0)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // State management
+        let bets = [];
+        let openTickets = [];
+        let settledTickets = [];
+        let currentTab = 'slip';
+        let isPlacingBet = false;
+
+        // Add bet
+        function addBet(match, selection, odds, matchId, marketType, league) {
+            const newBet = {
+                match,
+                selection,
+                odds,
+                matchId,
+                marketType,
+                league,
+                stake: 25,
+                status: 'normal'
+            };
+            
+            bets.push(newBet);
+            
+            if (currentTab === 'slip') {
+                renderBets();
+            }
+            updateCounts();
+        }
+
+        // Render bets (Slip Tab)
+        function renderBets() {
+            const content = document.getElementById('slip-content');
+            
+            if (bets.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        </svg>
+                        <p>暂无投注选项</p>
+                        <p style="font-size: 12px; margin-top: 5px;">点击左侧按钮添加投注</p>
+                    </div>
+                `;
+                document.getElementById('place-bet-btn').disabled = true;
+                document.getElementById('place-bet-btn').innerHTML = 'Place Bet (0)';
+                return;
+            }
+
+            const totalStake = bets.reduce((sum, bet) => sum + bet.stake, 0);
+            const totalPayout = bets.reduce((sum, bet) => sum + bet.stake * bet.odds, 0);
+
+            content.innerHTML = bets.map((bet, index) => `
+                <div class="bet-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${bet.match}</div>
+                            <div style="font-size: 12px; color: #666;">${bet.league}</div>
+                        </div>
+                        <div style="font-weight: 700; font-size: 16px;">@${bet.odds.toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-weight: 600;">${bet.selection}</span>
+                            <span style="color: #666; font-size: 13px; margin-left: 8px;">${bet.marketType}</span>
+                        </div>
+                        <button onclick="removeBet(${index})" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px;">×</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #666; font-size: 13px;">$</span>
+                        <input type="number" value="${bet.stake}" onchange="updateStake(${index}, this.value)" style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                        <button onclick="addQuickAmount(${index}, 10)" style="padding: 6px 12px; background: #f5f5f5; border: none; border-radius: 4px; cursor: pointer;">+10</button>
+                        <button onclick="addQuickAmount(${index}, 50)" style="padding: 6px 12px; background: #f5f5f5; border: none; border-radius: 4px; cursor: pointer;">+50</button>
+                    </div>
+                    <div style="margin-top: 10px; text-align: right; color: #666; font-size: 13px;">
+                        To Return: <span style="color: #4CAF50; font-weight: 600;">$${(bet.stake * bet.odds).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('place-bet-btn').disabled = false;
+            document.getElementById('place-bet-btn').innerHTML = `Place Bet <span class="btn-details">(${bets.length}) $${totalStake.toFixed(2)} → $${totalPayout.toFixed(2)}</span>`;
+        }
+
+        // Render tickets (Open/Settled Tab)
+        function renderTickets(tickets, type) {
+            const content = document.getElementById('slip-content');
+            
+            if (tickets.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <p>${type === 'open' ? '暂无待结算注单' : '暂无已结算注单'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            content.innerHTML = tickets.map(ticket => `
+                <div class="ticket ${ticket.status === 'void' ? 'void' : ''}">
+                    <div class="ticket-header">
+                        <div class="settle-time">Settle time: ${ticket.settleTime || '-'}</div>
+                        <div class="status-badge ${ticket.status}">${ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                        <div class="ticket-match">${ticket.match}</div>
+                        <div class="ticket-odds">@${ticket.odds.toFixed(2)}</div>
+                    </div>
+                    <div class="ticket-league">${ticket.league}</div>
+                    <div class="ticket-selection">
+                        <div>
+                            <span class="selection-team">${ticket.selection}</span>
+                            <span class="selection-market">${ticket.marketType}</span>
+                        </div>
+                    </div>
+                    ${ticket.outcome ? `<div class="ticket-outcome">outcome: ${ticket.outcome}</div>` : ''}
+                    <div class="ticket-footer">
+                        <div class="ticket-stake">
+                            <div class="ticket-label">Stake</div>
+                            <div class="ticket-amount">$${ticket.stake.toFixed(2)}</div>
+                        </div>
+                        <div class="ticket-arrow">→</div>
+                        <div class="ticket-payout">
+                            <div class="ticket-label">Payout</div>
+                            <div class="ticket-amount ${ticket.status}">${ticket.payout !== undefined ? '$' + ticket.payout.toFixed(2) : '—'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Place bet
+        async function placeBet() {
+            if (isPlacingBet || bets.length === 0) return;
+
+            isPlacingBet = true;
+            
+            // Show loading overlay
+            document.getElementById('loading-overlay').classList.add('show');
+            document.getElementById('place-bet-btn').classList.add('loading');
+            document.getElementById('place-bet-btn').innerHTML = '投注中...';
+
+            // Simulate API call (3-5 seconds)
+            const delay = 3000 + Math.random() * 2000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Create tickets from bets
+            const newTickets = bets.map(bet => ({
+                ...bet,
+                status: 'pending',
+                settleTime: null,
+                outcome: null,
+                payout: undefined,
+                createdAt: new Date().toISOString()
+            }));
+
+            // Add to open tickets
+            openTickets.push(...newTickets);
+
+            // Clear bets
+            bets = [];
+
+            // Hide loading overlay
+            document.getElementById('loading-overlay').classList.remove('show');
+            document.getElementById('place-bet-btn').classList.remove('loading');
+
+            // Show success notification
+            showNotification('投注成功！', 'success');
+
+            // Update UI
+            renderBets();
+            updateCounts();
+            isPlacingBet = false;
+        }
+
+        // Switch tab
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            const tabs = document.querySelectorAll('.tab-item');
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            // Hide toolbar for Open/Settled tabs
+            const toolbar = document.getElementById('toolbar');
+            if (tab === 'slip') {
+                toolbar.style.display = 'block';
+                renderBets();
+            } else {
+                toolbar.style.display = 'none';
+                if (tab === 'open') {
+                    renderTickets(openTickets, 'open');
+                } else {
+                    renderTickets(settledTickets, 'settled');
+                }
+            }
+        }
+
+        // Update counts
+        function updateCounts() {
+            document.getElementById('slip-count').textContent = bets.length;
+            document.getElementById('open-count').textContent = openTickets.length;
+            document.getElementById('settled-count').textContent = settledTickets.length;
+        }
+
+        // Remove bet
+        function removeBet(index) {
+            bets.splice(index, 1);
+            renderBets();
+            updateCounts();
+        }
+
+        // Update stake
+        function updateStake(index, value) {
+            bets[index].stake = parseFloat(value) || 0;
+            renderBets();
+        }
+
+        // Add quick amount
+        function addQuickAmount(index, amount) {
+            bets[index].stake += amount;
+            renderBets();
+        }
+
+        // Simulate ticket settle
+        function simulateTicketSettle(status) {
+            if (openTickets.length === 0) {
+                showNotification('没有待结算的票据', 'info');
+                return;
+            }
+
+            const ticket = openTickets.shift();
+            ticket.status = status;
+            ticket.settleTime = new Date().toLocaleString('zh-CN', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            }).replace(/\//g, '-');
+            
+            if (status === 'won') {
+                ticket.payout = ticket.stake * ticket.odds;
+                ticket.outcome = '2-1';
+            } else if (status === 'lost') {
+                ticket.payout = 0;
+                ticket.outcome = '1-1';
+            } else if (status === 'void') {
+                ticket.payout = undefined;
+                ticket.outcome = null;
+            }
+
+            settledTickets.unshift(ticket);
+            
+            updateCounts();
+            if (currentTab === 'open') {
+                renderTickets(openTickets, 'open');
+            } else if (currentTab === 'settled') {
+                renderTickets(settledTickets, 'settled');
+            }
+
+            showNotification(`票据已${status === 'won' ? '赢' : status === 'lost' ? '输' : '作废'}`, 'info');
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // Initialize
+        updateCounts();
+    </script>
+</body>
+</html>
