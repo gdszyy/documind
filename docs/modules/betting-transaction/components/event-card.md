@@ -2,16 +2,16 @@
 id: 'event-card'
 type: component
 title: '赛事卡片'
-status: draft
+status: completed
 createdAt: '2025-12-07'
 updatedAt: '2025-12-07'
 description: '在赛事列表页中，以卡片形式展示单场比赛的核心信息和主要盘口。'
 owner: '@frontend-team'
 tags: [赛事, 列表, 核心组件]
-version: '1.0.0'
+version: '1.1.0'
 componentType: 'normal'
 figmaUrl: 'https://www.figma.com/file/xxxx/documind'
-hasInteractive: false
+hasInteractive: true
 ---
 
 # 赛事卡片 `[组件]`
@@ -20,118 +20,123 @@ hasInteractive: false
 
 赛事卡片是赛事列表页的核心组成部分，用于以一种紧凑且信息丰富的方式展示单场比赛。它提供了比赛的关键信息（如对阵双方、开赛时间、实时比分），并直接展示了最主要的盘口（如1X2、让球、大小球），允许用户快速将选项添加到投注栏或导航到赛事详情页。
 
+本组件采用 **Swiss Style (国际主义设计风格)**，强调网格对齐、高可读性和客观的数据展示。
+
 ## 2. 视觉预览
 
-![默认状态预览](https://via.placeholder.com/800x200.png/1A1A1A/FFFFFF?text=Event+Card+Default+View)
+*(请参考 Figma 设计稿或在线演示)*
 
 ## 3. 组件剖析
 
-![组件剖析图](https://via.placeholder.com/800x200.png/1A1A1A/FFFFFF?text=Event+Card+Anatomy)
-
-| 序号 | 元素名称 (Figma) | 功能描述 |
+| 序号 | 区域 | 功能描述 |
 | :--- | :--- | :--- |
-| 1 | `.header` | 显示比赛所属的联赛名称和开赛时间。 |
-| 2 | `.teams-info` | 显示对阵双方的队名和队徽。 |
-| 3 | `.live-info` | 在滚球比赛中显示实时比分和比赛进行时间。 |
-| 4 | `.main-markets` | 展示该场比赛最主要的几个盘口及其赔率。 |
-| 5 | `.stats-link` | 提供一个链接到赛事详情页的入口，通常显示为“+更多玩法”。 |
+| 1 | **左侧信息区** | 包含比赛时间/状态、比赛阶段、主客队队徽及名称、实时比分。 |
+| 2 | **中间盘口区** | 展示三个核心盘口：1x2 (胜平负)、Handicap (让球)、Total (大小球)。 |
+| 3 | **右侧操作区** | 提供“更多玩法”按钮，显示剩余盘口数量，点击跳转详情页。 |
 
-## 4. 内容指南
+## 4. 数据来源与更新机制
 
-| 元素 | 内容要求 | 示例 |
+### 4.1. 初始数据
+组件初始化时，数据来源于 `/apis/get-events` 接口。
+
+### 4.2. 实时更新
+组件通过 WebSocket 监听 `odds_change` 消息，实时更新以下字段：
+- **比分 (`score`)**：主客队进球数。
+- **比赛时间 (`matchTime`)**：比赛进行时间（如 68:32）。
+- **比赛阶段 (`matchStatus`)**：如 "1st Half", "2nd Half"。
+- **赔率 (`odds`)**：盘口赔率的变化。
+
+## 5. 交互逻辑
+
+### 5.1. 状态显示逻辑
+- **未开赛 (`not_started`)**：
+  - 左侧显示比赛日期 (YY mm/dd) 和时间 (HH:MM)。
+  - 比分显示为 `-`。
+- **进行中 (`live`)**：
+  - 左侧显示实时比赛时间（秒级跳动）和伤停补时。
+  - 显示实时比分。
+  - 显示比赛阶段（如 "1st Round"）。
+
+### 5.2. 用户交互
+| 操作 | 目标元素 | 行为 |
 | :--- | :--- | :--- |
-| `teams-info .team-name` | 队名最多显示10个汉字，超出部分用...截断。 | `曼彻斯特联` |
-| `main-markets .odds-btn` | 按钮内同时显示选项名称和赔率。 | `主胜 1.85` |
+| **点击盘口选项** | 赔率按钮 | 切换选中状态。选中时背景变为深色 (`#2e2e2e`)，文字变白。阻止事件冒泡。 |
+| **点击卡片主体** | 卡片背景 | 触发 `onCardClick`，通常跳转至赛事详情页。 |
+| **点击更多按钮** | 右侧 `+120` 按钮 | 触发 `onCardClick`，跳转至赛事详情页。 |
+| **悬停** | 卡片整体 | 背景色从 `bg-white/60` 变为 `bg-white/85`，增加视觉反馈。 |
 
-## 5. 属性与状态
+## 6. 技术规格
 
-### 5.1. 状态维度
+### 6.1. TypeScript 接口
 
-| 维度名称 | 属性 (Figma) | 描述 | 可选值 |
+```typescript
+export type MatchStatus = "not_started" | "live" | "ended" | "cancelled";
+
+export interface MarketOutcome {
+  id: string;
+  name: string; // e.g., "1", "x", "2", "Over", "Under"
+  odds: number;
+  active: boolean;
+}
+
+export interface Market {
+  id: string;
+  name: string; // e.g., "1x2", "Handicap", "Total"
+  outcomes: MarketOutcome[];
+}
+
+export interface EventData {
+  id: string;
+  status: MatchStatus;
+  scheduleTime: string; // ISO string
+  matchTime?: string; // e.g., "68:32"
+  matchStatus?: string; // e.g., "1st Round"
+  homeTeam: {
+    name: string;
+    logo: string;
+    score: number;
+  };
+  awayTeam: {
+    name: string;
+    logo: string;
+    score: number;
+  };
+  markets: {
+    main: Market; // 1x2
+    handicap?: Market;
+    total?: Market;
+  };
+  marketCount: number;
+}
+```
+
+### 6.2. 组件 Props
+
+| Prop 名称 | 类型 | 是否必填 | 描述 |
 | :--- | :--- | :--- | :--- |
-| **比赛状态** | `Status` | 控制卡片显示赛前、滚球还是赛后的视图。 | `PreMatch`, `Live`, `Ended` |
-
-### 5.2. 状态矩阵
-
-| 状态组合 | 元素显隐说明 | 视觉预览 |
-| :--- | :--- | :--- |
-| `Status=PreMatch` | 显示开赛时间，隐藏 `.live-info`。 | ![赛前视图](https://via.placeholder.com/800x200.png/1A1A1A/FFFFFF?text=PreMatch+View) |
-| `Status=Live` | 显示 `.live-info`（实时比分和时间），隐藏开赛时间。赔率会动态闪烁。 | ![滚球视图](https://via.placeholder.com/800x200.png/1A1A1A/FFFFFF?text=Live+View) |
-| `Status=Ended` | 显示最终比分，禁用所有盘口按钮。 | ![赛后视图](https://via.placeholder.com/800x200.png/1A1A1A/FFFFFF?text=Ended+View) |
-
-### 5.3. 交互状态
-
-| 状态 | 描述 |
-| :--- | :--- |
-| **Hover** | 鼠标悬停在盘口按钮上时，按钮背景色变亮。 |
-| **Selected** | 当一个盘口选项已被添加到投注栏时，该按钮保持高亮状态。 |
-
-## 6. 行为与交互
-
-### 6.1. 用户操作
-
-| 操作 | 元素 | 反馈 |
-| :--- | :--- | :--- |
-| **Click** | `.main-markets .odds-btn` | 将该盘口选项添加到投注栏。如果已添加，则移除。触发 `Toast` 提示。 |
-| **Click** | `.stats-link` 或卡片主体区域 | 导航到该赛事的详情页 (`/events/:eventId`)。 |
+| `event` | `EventData` | 否 (Demo用) | 包含赛事所有信息的对象。 |
+| `onCardClick` | `(eventId: string) => void` | 否 | 点击卡片主体时的回调函数。 |
+| `onOutcomeClick` | `(eventId: string, marketId: string, outcomeId: string) => void` | 否 | 点击盘口按钮时的回调函数。 |
 
 ## 7. 使用示例
 
-```jsx
-import { EventCard } from '@/components/events/EventCard';
+```tsx
+import EventCard from "@/components/EventCard";
 
-const EventList = ({ events }) => (
-  <div>
-    {events.map(event => (
-      <EventCard 
-        key={event.id} 
-        event={event} 
-        onOddsClick={(selection) => console.log('Odds clicked:', selection)}
-      />
-    ))}
-  </div>
-);
+// 在列表中使用
+{events.map(event => (
+  <EventCard 
+    key={event.id} 
+    event={event}
+    onCardClick={(id) => router.push(`/events/${id}`)}
+    onOutcomeClick={(evtId, mktId, outId) => addToBetSlip(evtId, mktId, outId)}
+  />
+))}
 ```
 
-## 8. 无障碍设计
+## 8. 变更历史
 
-| 准则 | 实现说明 |
-| :--- | :--- |
-| **键盘导航** | 用户可使用 `Tab` 键在卡片内的各个盘口按钮和“更多玩法”链接之间导航。 |
-| **屏幕阅读器** | 完整播报卡片信息：“[联赛名称]，[主队] 对阵 [客队]，[比赛状态]。主胜赔率[赔率]，平局赔率[赔率]...” |
-
-## 9. 技术规格
-
-### 9.1. 关联关系
-
-- **调用的 API**: 无直接调用，数据由父组件传入。
-- **依赖的组件**: 无。
-- **被使用的页面**: [@赛事列表页](../pages/event-list.md), [@实时赛事页](../pages/live-event.md)
-
-### 9.2. 组件 Props
-
-| Prop 名称 | 类型 | 是否必填 | 默认值 | 描述 |
-| :--- | :--- | :--- | :--- | :--- |
-| `event` | `object` | 是 | - | 包含赛事所有信息的对象。 |
-| `onOddsClick` | `function` | 否 | - | 点击盘口按钮时的回调函数，返回被点击的选项信息。 |
-| `onCardClick` | `function` | 否 | - | 点击卡片主体时的回调函数。 |
-
-### 9.3. 技术细节
-
-- **Figma 组件链接**: [在 Figma 中查看](https://www.figma.com/file/xxxx/documind)
-- **代码组件名称**: `<EventCard>`
-- **代码仓库路径**: `src/components/events/EventCard.tsx`
-
-### 9.4. CSS 变量
-
-| CSS 变量 | 默认值 | 描述 |
-| :--- | :--- | :--- |
-| `--event-card-bg` | `#2C2C2C` | 卡片的背景颜色 |
-| `--event-card-border` | `1px solid #444` | 卡片的边框样式 |
-| `--odds-btn-bg-hover` | `#4CAF50` | 盘口按钮悬停时的背景色 |
-
-## 10. 变更历史
-
-| 日期 | 版本 | 变更内容 | 变更人 | Figma 版本 |
-| :--- | :--- | :--- | :--- | :--- |
-| 2025-12-07 | v1.0.0 | 初始版本，基于v6模板创建。 | @manus-ai | [v1.0] |
+| 日期 | 版本 | 变更内容 | 变更人 |
+| :--- | :--- | :--- | :--- |
+| 2025-12-07 | v1.1.0 | 更新文档以匹配 Figma 像素级还原实现，添加 WebSocket 更新逻辑说明。 | @manus-ai |
+| 2025-12-07 | v1.0.0 | 初始草稿。 | @frontend-team |
