@@ -1,8 +1,8 @@
 ---
 title: 投注交易模块 API 文档
 author: Manus AI
-date: 2025-12-07
-version: 1.1
+date: 2025-12-08
+version: 1.2
 ---
 
 # 投注交易模块 API 文档
@@ -29,7 +29,7 @@ version: 1.1
     - **来源**: UOF Service & MTS Service (整合)
     - **功能**: 通过一个统一的 WebSocket 连接，实现赔率、盘口状态的实时更新，以及注单提交结果的即时反馈。
 
-### UOF 首页API文档 (新增)
+### UOF 首页API文档
 
 以下是从 **UOF 首页API文档** 提取并生成的API接口文档：
 
@@ -57,6 +57,50 @@ version: 1.1
     - **来源**: UOF 首页API
     - **功能**: 获取比赛列表，支持按体育类型、联赛、状态、玩法、时间范围等多种条件筛选，支持分页。
 
+#### 比赛详情相关
+
+10. **[获取比赛详情Header (get-match-detail.md)](./get-match-detail.md)**
+    - **来源**: UOF 首页API
+    - **功能**: 获取指定比赛的详细header信息，包括比赛基本信息、参赛队伍、比分等核心数据。
+
+11. **[获取比赛Market列表 (get-match-markets.md)](./get-match-markets.md)**
+    - **来源**: UOF 首页API
+    - **功能**: 获取指定比赛的所有盘口（market）信息，包括各种玩法的赔率、状态、结果等详细数据，支持分页查询。
+
+#### Websocket 服务专用接口
+
+12. **[获取Market信息 (get-market-info.md)](./get-market-info.md)**
+    - **来源**: UOF 首页API
+    - **功能**: 获取指定比赛和玩法的Market详细信息，主要用于Websocket服务中查询Market名称等信息。
+
+### Websocket 消息说明
+
+以下是Websocket实时消息的详细说明文档：
+
+13. **[Fixture Change - 比赛变化消息 (websocket-fixture-change.md)](./websocket-fixture-change.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: 赛程变更通知，当赛程变更或比赛被添加到实时赔率程序中时发送。
+
+14. **[Odds Change - 赔率变化消息 (websocket-odds-change.md)](./websocket-odds-change.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: 更新比赛中一个或多个盘口的赔率时发送，包含赔率、状态、比分等实时数据。
+
+15. **[Alive - UOF心跳消息 (websocket-alive.md)](./websocket-alive.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: UOF服务心跳消息，用于检测服务是否正常运行，offset_time > 20时表示服务停止。
+
+16. **[BetStop - 停止投注消息 (websocket-bet-stop.md)](./websocket-bet-stop.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: 停止所有或部分市场的投注（继续显示赔率，但不接受投注）。
+
+17. **[BetCancel - 取消投注消息 (websocket-bet-cancel.md)](./websocket-bet-cancel.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: 需要取消并退款时发送，包含取消原因和时间范围。
+
+18. **[Bet Settlement - 结算消息 (websocket-bet-settlement.md)](./websocket-bet-settlement.md)**
+    - **来源**: UOF 首页API - Websocket
+    - **功能**: 投注结算消息，通知投注的最终结果（赢、输、无效、半赢等）。
+
 ## 设计与规范
 
 - **遵循 DocuMind 规范**: 所有文档均采用标准的 Front Matter 元数据和章节结构。
@@ -64,8 +108,23 @@ version: 1.1
 - **关联业务场景**: 文档中详细描述了每个 API 在前端页面和组件中的具体使用场景，例如 `get-event-detail` 被 `赛事详情页` 使用。
 - **请求与响应示例**: 提供了清晰的 `curl` 调用示例和 JSON 响应结构，方便前端开发人员理解和对接。
 - **统一响应格式**: 所有UOF首页API都遵循统一的响应格式，通过`code`字段判断成功或失败。
+- **Websocket消息规范**: 所有Websocket消息都包含cmd、time和data字段，通过cmd区分不同的消息类型。
 
 ## 更新日志
+
+### v1.2 (2025-12-08)
+
+- 新增3个比赛详情相关API接口文档
+  - 获取比赛详情Header
+  - 获取比赛Market列表
+  - 获取Market信息（Websocket专用）
+- 新增6个Websocket消息说明文档
+  - Fixture Change - 比赛变化消息
+  - Odds Change - 赔率变化消息
+  - Alive - UOF心跳消息
+  - BetStop - 停止投注消息
+  - BetCancel - 取消投注消息
+  - Bet Settlement - 结算消息
 
 ### v1.1 (2025-12-07)
 
