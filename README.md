@@ -25,6 +25,7 @@ DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 
 - **[Figma 命名规范](./docs/standards/01-figma-naming-convention.md)** - 设计师必读的命名规则
 - **[自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)** - 从 Figma 到文档的自动化流程
 - **[整合方案说明](./docs/standards/03-integration-plan.md)** - v3 和 Figma 系统的整合思路
+- **[技术规范文档](./docs/technical-specs/README.md)** - 技术集成规范和 API 使用指南
 - **[v4 交付总结](./docs/planning/delivery-summary-v4.md)** - 完整的项目交付说明
 
 ### 文档模板
@@ -53,6 +54,7 @@ DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 
 
 ## 项目文档
 
+- [文档中心](./docs/README.md) - 所有文档的索引和导航
 - [项目计划书](./docs/planning/project-plan.md) - 完整的 MVP 项目计划
 - [MVP 详细设计](./docs/planning/mvp-design.md) - MVP 版本的详细功能设计
 - [功能架构图](./docs/planning/diagrams/functional-architecture.png) - 系统功能架构

@@ -25,6 +25,12 @@ docs/
 │   ├── page-template.md                    # 页面模板
 │   ├── component-template-v4.md            # 组件模板 (v4)
 │   └── api-template.md                     # API 模板
+├── technical-specs/                        # 技术规范文档
+│   ├── README.md                           # 技术规范索引
+│   └── sportradar/                         # Sportradar 集成规范
+│       ├── 01-uof-realtime-layer.md        # UOF 实时层规范
+│       ├── 02-uof-confirmation-layer.md    # UOF 确认层规范
+│       └── 03-outcome-mapping-api.md       # Outcome Mapping API 规范
 └── research/                               # 研究和分析文档
     ├── ai-element-recognition-feasibility.md # AI 元素识别可行性分析
     └── case-studies/                       # 案例研究
@@ -62,19 +68,23 @@ docs/
    - 项目目录结构说明
    - 开发规范和最佳实践
 
-6. **[Sportradar UOF 实时层规范](./standards/05-sportradar-uof-realtime-layer.md)**
+### 技术规范
+
+详见 **[技术规范文档](./technical-specs/README.md)**，包含各类技术集成规范、API 使用指南和技术实现细节。
+
+1. **[Sportradar UOF 实时层规范](./technical-specs/sportradar/01-uof-realtime-layer.md)**
    - 实时层消息类型详解（odds_change, bet_stop, bet_cancel 等）
    - 消息字段业务含义与处理逻辑
    - 双层机制中的实时层定位
    - 高频消息处理最佳实践
 
-7. **[Sportradar UOF 确认层规范](./standards/06-sportradar-uof-confirmation-layer.md)**
+2. **[Sportradar UOF 确认层规范](./technical-specs/sportradar/02-uof-confirmation-layer.md)**
    - 确认层消息类型详解（bet_settlement, rollback_bet_settlement 等）
    - 官方确认机制与 certainty 字段
    - 结算冲正与资金安全保障
    - 确认层优先级处理规则
 
-8. **[Sportradar Outcome Mapping API 规范](./standards/07-sportradar-outcome-mapping-api.md)**
+3. **[Sportradar Outcome Mapping API 规范](./technical-specs/sportradar/03-outcome-mapping-api.md)**
    - Market Descriptions API 端点详解
    - Variant Market Descriptions API 使用指南
    - include_mappings 参数说明
@@ -182,6 +192,6 @@ docs/
 
 ---
 
-**版本**: 4.0.0  
-**最后更新**: 2025-12-07  
+**版本**: 4.1.0  
+**最后更新**: 2025-12-08  
 **维护者**: Documentation Team

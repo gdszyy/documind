@@ -65,12 +65,18 @@ docs/
 │   ├── ai-element-recognition-feasibility.md
 │   └── case-studies/     # 案例研究
 │       └── betting-platform/
-├── standards/            # 标准、规范与指南
+├── standards/            # 文档体系规范
 │   ├── 00-specification-v4.md
 │   ├── 01-figma-naming-convention.md
 │   ├── 02-automation-workflow-guide.md
 │   ├── 03-integration-plan.md
 │   └── 04-repository-structure.md  # 本文档
+├── technical-specs/      # 技术规范文档
+│   ├── README.md         # 技术规范索引
+│   └── sportradar/       # Sportradar 集成规范
+│       ├── 01-uof-realtime-layer.md
+│       ├── 02-uof-confirmation-layer.md
+│       └── 03-outcome-mapping-api.md
 └── templates/            # 标准化文档模板
     ├── api-template.md
     ├── component-template-v4.md
@@ -84,7 +90,8 @@ docs/
 | :--- | :--- | :--- |
 | `planning/` | **项目规划与管理**: 包含项目从启动到交付的各类高级设计和总结文档。 | 项目计划书、MVP 设计稿、交付总结、架构图。 |
 | `research/` | **研究与分析**: 包含技术可行性研究、竞品分析、案例研究等探索性文档。 | AI 可行性分析、博彩平台案例研究。 |
-| `standards/` | **标准与规范**: 定义项目开发和协作的规则,是团队成员必须遵守的准则。 | 文档规范、命名规范、工作流指南、目录结构规范。 |
+| `standards/` | **文档体系规范**: 定义 DocuMind 平台的文档编写标准、命名规范和工作流程。 | 文档规范、Figma 命名规范、自动化工作流指南、仓库结构规范。 |
+| `technical-specs/` | **技术规范文档**: 包含各类技术集成规范、API 使用指南和技术实现细节。 | Sportradar UOF 集成规范、数据源 API 使用指南、消息处理规范。 |
 | `templates/` | **文档模板**: 提供可复用的标准化文档模板,用于快速创建新文档。 | 模块、页面、组件、API 的 Markdown 模板。 |
 
 ### 5.2. 文档编号规范
