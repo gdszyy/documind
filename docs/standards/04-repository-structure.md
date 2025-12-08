@@ -66,22 +66,35 @@ docs/
 │   └── case-studies/     # 案例研究
 │       └── betting-platform/
 ├── standards/            # 文档体系规范
-│   ├── 00-specification-v4.md
+│   ├── 00-specification-v5.md
 │   ├── 01-figma-naming-convention.md
 │   ├── 02-automation-workflow-guide.md
 │   ├── 03-integration-plan.md
 │   └── 04-repository-structure.md  # 本文档
+├── architecture/         # 架构设计文档 (v5 新增)
+│   └── service-api-architecture.md
 ├── technical-specs/      # 技术规范文档
 │   ├── README.md         # 技术规范索引
 │   └── sportradar/       # Sportradar 集成规范
 │       ├── 01-uof-realtime-layer.md
 │       ├── 02-uof-confirmation-layer.md
 │       └── 03-outcome-mapping-api.md
-└── templates/            # 标准化文档模板
-    ├── api-template.md
-    ├── component-template-v4.md
-    ├── module-template.md
-    └── page-template.md
+├── templates/            # 标准化文档模板
+│   ├── module-template.md
+│   ├── page-template.md
+│   ├── component-template.md
+│   ├── service-template.md    # v5 新增
+│   └── api-template.md
+├── examples/             # 完整示例 (v5 新增)
+│   └── wallet-deposit/   # 充值功能示例
+└── modules/              # 业务模块文档
+    └── {module-id}/
+        ├── README.md
+        ├── pages/
+        ├── components/
+        └── backend/      # v5 新增: 后端层
+            ├── services/ # 服务层
+            └── apis/     # API 层
 ```
 
 ### 5.1. 文档分类说明
@@ -91,8 +104,10 @@ docs/
 | `planning/` | **项目规划与管理**: 包含项目从启动到交付的各类高级设计和总结文档。 | 项目计划书、MVP 设计稿、交付总结、架构图。 |
 | `research/` | **研究与分析**: 包含技术可行性研究、竞品分析、案例研究等探索性文档。 | AI 可行性分析、博彩平台案例研究。 |
 | `standards/` | **文档体系规范**: 定义 DocuMind 平台的文档编写标准、命名规范和工作流程。 | 文档规范、Figma 命名规范、自动化工作流指南、仓库结构规范。 |
+| `architecture/` | **架构设计文档** (v5 新增): 包含系统架构设计、技术决策和设计理念。 | 服务+API 架构设计、数据库设计、微服务架构。 |
 | `technical-specs/` | **技术规范文档**: 包含各类技术集成规范、API 使用指南和技术实现细节。 | Sportradar UOF 集成规范、数据源 API 使用指南、消息处理规范。 |
-| `templates/` | **文档模板**: 提供可复用的标准化文档模板,用于快速创建新文档。 | 模块、页面、组件、API 的 Markdown 模板。 |
+| `templates/` | **文档模板**: 提供可复用的标准化文档模板,用于快速创建新文档。 | 模块、页面、组件、服务、API 的 Markdown 模板。 |
+| `examples/` | **完整示例** (v5 新增): 提供完整的功能模块文档示例,展示最佳实践。 | 充值功能示例、订单模块示例。 |
 
 ### 5.2. 文档编号规范
 
