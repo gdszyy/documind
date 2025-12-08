@@ -25,11 +25,13 @@ interactiveUrl: ./bet-slip-card.html
 
 ## 2. 视觉预览
 
-![默认状态预览](https://via.placeholder.com/290x120.png/FFFFFF/2E2E2E?text=Bet+Slip+Card)
+<img width="290" height="118" alt="inputStatus=default, status=Default, marketStatus=active, inputValue=zero" src="https://github.com/user-attachments/assets/28f4a33c-7a0a-4a4e-a14d-259550864369" />
+
 
 ## 3. 组件剖析
 
-![组件剖析图](https://via.placeholder.com/400x300.png/f8f9fa/343a40?text=Bet+Slip+Card+Anatomy)
+<img width="778" height="591" alt="image" src="https://github.com/user-attachments/assets/8bca7d9a-4fb3-45e8-9848-68d54111b8a0" />
+
 
 | 序号 | 元素名称 (Figma) | 功能描述 |
 | :--- | :--- | :--- |
@@ -67,19 +69,19 @@ interactiveUrl: ./bet-slip-card.html
 
 | 状态组合 | 元素显隐说明 | 视觉预览 |
 | :--- | :--- | :--- |
-| `CardState=Normal, InputState=Default, InputValue=Zero` | 卡片正常显示，输入框为空，快捷按钮显示，赔率正常显示，无锁图标 | ![状态预览](https://via.placeholder.com/290x120.png/FFFFFF/2E2E2E?text=Normal+Empty) |
-| `CardState=Normal, InputState=Focused, InputValue=Filled` | 输入框聚焦且有值，快捷按钮隐藏，边框变红，赔率正常显示 | ![状态预览](https://via.placeholder.com/290x140.png/FFFFFF/E80104?text=Focused+Filled) |
-| `CardState=Normal, InputState=Default, InputValue=Filled` | 输入框有值但未聚焦，快捷按钮显示或预计派彩显示，赔率正常显示 | ![状态预览](https://via.placeholder.com/290x140.png/FFFFFF/2E2E2E?text=Normal+Filled) |
-| `CardState=Invalid, InputState=Default, InputValue=Zero` | 卡片失效状态，显示失效样式，输入框为空，快捷按钮隐藏 | ![状态预览](https://via.placeholder.com/290x100.png/FEE2E2/6B7280?text=Invalid) |
-| `CardState=Locked, InputState=Default, InputValue=Zero` | 卡片锁定状态，赔率显示锁图标，输入框为空，快捷按钮隐藏 | ![状态预览](https://via.placeholder.com/290x100.png/D0D0D0/8B8B8B?text=Locked) |
+| `CardState=Normal, InputState=Default, InputValue=Zero` | 卡片正常显示，输入框为空，快捷按钮显示，赔率正常显示，无锁图标 | <img width="290" height="118" alt="inputStatus=default, status=Default, marketStatus=active, inputValue=zero" src="https://github.com/user-attachments/assets/53809aeb-6263-4424-ba35-148e7ab342f9" />|
+| `CardState=Normal, InputState=Focused, InputValue=Filled` | 输入框聚焦且有值，快捷按钮隐藏，边框变红，赔率正常显示 |<img width="290" height="118" alt="inputStatus=focous, status=Default, marketStatus=active, inputValue=any" src="https://github.com/user-attachments/assets/35364c89-6f40-469f-a00c-e246b17b21a7" /> |
+| `CardState=Normal, InputState=Default, InputValue=Filled` | 输入框有值但未聚焦，快捷按钮显示或预计派彩显示，赔率正常显示 | <img width="290" height="118" alt="inputStatus=defaul, status=Default, marketStatus=active, inputValue=overZero" src="https://github.com/user-attachments/assets/84641bdb-709c-4868-9a03-55a3fec5c26a" />|
+| `CardState=Invalid, InputState=Default, InputValue=Zero` | 卡片失效状态，显示失效样式，输入框为空，快捷按钮隐藏 | <img width="290" height="78" alt="inputStatus=any, status=Default, marketStatus=invalid, inputValue=any" src="https://github.com/user-attachments/assets/83159279-3876-4970-94cb-839b01200aa9" />
+|
+| `CardState=Locked, InputState=Default, InputValue=Zero` | 卡片锁定状态，赔率显示锁图标，输入框为空，快捷按钮隐藏 |<img width="290" height="118" alt="inputStatus=any, status=Default, marketStatus=Default, inputValue=any" src="https://github.com/user-attachments/assets/adc46900-aa4b-482e-b40b-15ceee931273" />
+|
 
 ### 5.3. 交互状态
 
 | 状态 | 描述 |
 | :--- | :--- |
-| **Hover** | 待补充 |
-| **Focused** | 输入框获得焦点时，边框变为红色，快捷按钮隐藏 |
-| **Disabled** | 待补充 |
+| **Hover** | 卡片底色从card/rbg变成card/rbd |
 
 ## 6. 行为与交互
 
@@ -90,8 +92,7 @@ interactiveUrl: ./bet-slip-card.html
 | **Click** | `.remove-button` | 触发 onRemove 回调,从投注栏中移除该注单卡片 |
 | **Click** | `.quick-bet-buttons` | 将对应金额(10/50/100)累加到当前投注金额中 |
 | **Focus** | `.stake-input` | 输入框获得焦点,边框变为红色,隐藏快捷按钮 |
-| **Blur** | `.stake-input` | 输入框失去焦点,如果内容为空则自动填充为 0,显示快捷按钮或预计派彩 |
-| **Input** | `.stake-input` | 实时计算并更新预计派彩金额(投注金额 × 赔率) |
+| **Blur** | `.stake-input` | 输入框失去焦点,如果内容为空则自动填充为 0，否则计算并更新预计派彩金额(投注金额 × 赔率) ,显示快捷按钮或预计派彩 |
 
 ### 6.2. 条件逻辑规则
 
