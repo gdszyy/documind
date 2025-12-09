@@ -207,6 +207,23 @@ reference: https://docs.sportradar.com/uof/en/overview
   - 确认层发送的 `odds_change` 消息可以强制更新市场状态，覆盖实时层的任何临时状态。
   - 例如，即使实时层将一个市场置为 `Suspended`，确认层的 `odds_change` 也可以直接将其恢复为 `Active`。
 
+#### 2.7.4. 赛前 bet_stop 与市场状态的权威处理
+
+在赛前阶段，对于未订阅滚球盘的比赛，`bet_stop` 消息是停止赛前盘交易的关键信号。确认层在处理此消息时，需要遵循与实时层一致但更具权威性的解释：
+
+-   **默认暂停 (Suspended) 的权威确认**：
+    -   当系统收到一个不带 `market_status` 属性的 `bet_stop` 消息时，这被视为一个将所有 `Active` 市场转为 **`Suspended` (status = -1)** 的指令。
+    -   确认层应将此理解为官方的临时锁盘指令。后续的 `odds_change` 消息会确认这些市场的 `status="-1"` 状态。
+
+-   **停用 (Deactivated) 的权威指令**：
+    -   只有当 `bet_stop` 消息明确包含 `market_status="0"` 属性时，市场才应被权威地标记为 **`Deactivated` (status = 0)**。
+    -   此操作的优先级高于默认的“暂停”行为，表示官方已决定停用这些市场，而非临时暂停。
+
+-   **通过 `odds_change` 实现的权威停用**：
+    -   在某些特殊情况下（如 Premium Cricket），确认层可能会直接通过 `odds_change` 消息将市场 `status` 更新为 `0`，以此作为停用市场的权威指令，完全绕过 `bet_stop`。
+
+> **确认层原则**：确认层是市场状态的最终仲裁者。对于赛前 `bet_stop`，除非明确接收到 `market_status="0"` 指令，否则应将市场的状态权威地更新为 `Suspended`，并等待后续 `odds_change` 消息的进一步指示。这确保了与实时层处理逻辑的一致性，并为可能的状态变化（如比赛延迟开赛后的重新开盘）保留了灵活性。
+
 #### 2.7.3. 关键场景处理
 
 - **结算后取消 (Settled → Cancelled)**：

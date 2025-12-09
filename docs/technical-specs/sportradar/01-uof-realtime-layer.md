@@ -198,6 +198,27 @@ reference: https://docs.sportradar.com/uof/en/overview
 
 #### 2.2.3. 实时层业务处理
 
+#### 2.2.4. 赛前 bet_stop 与市场状态处理
+
+对于没有订阅滚球盘（Live Betting）的比赛，在开赛前，系统会收到一个 `bet_stop` 消息，用于停止赛前盘的投注。此场景下的市场状态处理有明确的规则：
+
+-   **默认行为：暂停 (Suspended)**
+    -   如果收到的 `bet_stop` 消息没有明确指定 `market_status` 属性（例如 `<bet_stop groups="all" ... />`），所有当前状态为 `Active` 的市场都应被标记为 **`Suspended` (status = -1)**。
+    -   这是一种临时性的“锁盘”，后续的 `odds_change` 消息会继续推送这些市场的状态，并带有 `status="-1"`。
+
+-   **明确指定：停用 (Deactivated)**
+    -   只有当 `bet_stop` 消息中明确带有 `market_status="0"` 时，相关市场才应被视为 **`Deactivated` (status = 0)**。
+    -   示例：
+        ```xml
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <bet_stop groups="all" market_status="0" product="3" event_id="sr:match:64836668" timestamp="1765164661167" request_id="1765164659"/>
+        ```
+
+-   **特殊情况：直接通过 `odds_change` 停用**
+    -   在某些特定产品中（如 Premium Cricket），可能不会使用 `bet_stop` 消息，而是直接通过 `odds_change` 消息将市场的 `status` 设置为 `0` 来停用盘口。
+
+> **核心结论**：对于“没订阅滚球的普通情况”，收到的 `bet_stop` 消息应将市场状态理解为 `Suspended`，而不是直接 `Deactivated`，除非消息中明确指定了 `market_status="0"` 或后续的 `odds_change` 消息将市场状态更新为 `0`。
+
 - **全市场暂停 (`group="all"`)**：立即暂停所有市场，更新状态为 `Suspended`，前端通过 WebSocket 收到通知后将所有盘口标记为"暂停投注"并阻止下注。
 - **特定市场组暂停**：仅暂停指定市场组，其他市场保持不变。
 
