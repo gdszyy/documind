@@ -1,0 +1,167 @@
+[
+  {
+    "table_name": "数据表",
+    "table_id": "tbltK5BtIMgT2vLG",
+    "field_count": 2,
+    "fields": [
+      "文本",
+      "单选"
+    ]
+  },
+  {
+    "table_name": "字段映射",
+    "table_id": "tblZg3MWMYbqL88v",
+    "field_count": 15,
+    "fields": [
+      "多行文本",
+      "映射ID",
+      "目标表名",
+      "目标表ID",
+      "逻辑字段名",
+      "实际字段名",
+      "字段ID",
+      "字段类型",
+      "是否必填",
+      "默认值",
+      "字段说明",
+      "环境",
+      "状态",
+      "创建时间",
+      "更新时间"
+    ]
+  },
+  {
+    "table_name": "模块",
+    "table_id": "tblCluOOEYysDthp",
+    "field_count": 11,
+    "fields": [
+      "多行文本",
+      "模块名称",
+      "模块标识",
+      "模块描述",
+      "负责人",
+      "状态",
+      "优先级",
+      "Figma链接",
+      "文档链接",
+      "创建时间",
+      "更新时间"
+    ]
+  },
+  {
+    "table_name": "服务",
+    "table_id": "tbl8h8thBybIWAGe",
+    "field_count": 13,
+    "fields": [
+      "多行文本",
+      "服务名称",
+      "服务标识",
+      "服务描述",
+      "服务类型",
+      "负责人",
+      "状态",
+      "业务规则",
+      "技术栈",
+      "代码仓库",
+      "文档链接",
+      "创建时间",
+      "更新时间"
+    ]
+  },
+  {
+    "table_name": "API",
+    "table_id": "tblnRu6Xb9BLJMPr",
+    "field_count": 15,
+    "fields": [
+      "多行文本",
+      "API名称",
+      "API标识",
+      "API路径",
+      "请求方法",
+      "API描述",
+      "负责人",
+      "状态",
+      "请求参数",
+      "响应数据",
+      "错误码",
+      "是否需要认证",
+      "接口文档",
+      "创建时间",
+      "更新时间"
+    ]
+  },
+  {
+    "table_name": "数据模型",
+    "table_id": "tblsJu3CmFGoIeP1",
+    "field_count": 12,
+    "fields": [
+      "多行文本",
+      "模型名称",
+      "模型标识",
+      "表名",
+      "模型描述",
+      "负责人",
+      "状态",
+      "字段列表",
+      "索引",
+      "数据库类型",
+      "创建时间",
+      "更新时间"
+    ]
+  },
+  {
+    "table_name": "页面",
+    "table_id": "tbl7Uvily9MeSUYd",
+    "field_count": 8,
+    "fields": [
+      "多行文本",
+      "页面名称",
+      "页面标识",
+      "页面路由",
+      "页面描述",
+      "页面类型",
+      "负责人",
+      "状态"
+    ]
+  },
+  {
+    "table_name": "组件",
+    "table_id": "tbl4RJEl0BlLHQAX",
+    "field_count": 1,
+    "fields": [
+      "多行文本"
+    ]
+  },
+  {
+    "table_name": "引用记录",
+    "table_id": "tblHODLjkNuyX7xt",
+    "field_count": 1,
+    "fields": [
+      "多行文本"
+    ]
+  },
+  {
+    "table_name": "需求池",
+    "table_id": "tblL1qU6r3uIDoka",
+    "field_count": 1,
+    "fields": [
+      "多行文本"
+    ]
+  },
+  {
+    "table_name": "迭代",
+    "table_id": "tblYeTM5idiWSqnD",
+    "field_count": 1,
+    "fields": [
+      "多行文本"
+    ]
+  },
+  {
+    "table_name": "标签",
+    "table_id": "tblR1rdM99wjIBRX",
+    "field_count": 1,
+    "fields": [
+      "多行文本"
+    ]
+  }
+]

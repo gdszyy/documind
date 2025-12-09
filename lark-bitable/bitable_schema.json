@@ -1,0 +1,1532 @@
+[
+  {
+    "table_name": "表格清单\n\nDocuMind 飞书多维",
+    "table_purpose": "统一管理所有插件的字段映射配置，实现一次配置、所有插件共享。\n\n**核心价值**：\n- ✅ 所有插件从这张表读取字段映射\n- ✅ 字段变更时只需更新一处\n- ✅ 支持字段ID和字段名称两种方式\n- ✅ 支持多环境配置",
+    "fields": [
+      {
+        "field_name": "映射ID",
+        "field_type": "自动编号",
+        "required": true,
+        "description": "自动生成的唯一ID",
+        "example": "`MAP-001`"
+      },
+      {
+        "field_name": "目标表名",
+        "field_type": "单选",
+        "required": true,
+        "description": "要映射的表名",
+        "example": "`服务表`"
+      },
+      {
+        "field_name": "目标表ID",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "表的ID（可选，优先使用）",
+        "example": "`tblXXXXXXX`"
+      },
+      {
+        "field_name": "逻辑字段名",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "插件内部使用的字段名（英文）",
+        "example": "`name`"
+      },
+      {
+        "field_name": "实际字段名",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "飞书表格中的实际字段名（中文）",
+        "example": "`服务名称`"
+      },
+      {
+        "field_name": "字段ID",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "字段的ID（可选，优先使用）",
+        "example": "`fldXXXXXXX`"
+      },
+      {
+        "field_name": "字段类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "字段的数据类型",
+        "example": "`text` / `number` / `select` / `link`"
+      },
+      {
+        "field_name": "是否必填",
+        "field_type": "复选框",
+        "required": true,
+        "description": "该字段是否必填",
+        "example": "✅ / ❌"
+      },
+      {
+        "field_name": "默认值",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "字段的默认值",
+        "example": "`设计中`"
+      },
+      {
+        "field_name": "字段说明",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "字段的用途说明",
+        "example": "`服务的中文名称，用于显示`"
+      },
+      {
+        "field_name": "环境",
+        "field_type": "单选",
+        "required": false,
+        "description": "适用环境",
+        "example": "`全部` / `开发` / `测试` / `生产`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "映射状态",
+        "example": "`启用` / `禁用`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {}
+  },
+  {
+    "table_name": "字段映射示例数据\n\n#### 服务",
+    "table_purpose": "管理系统的功能模块，是最顶层的组织单元。",
+    "fields": [
+      {
+        "field_name": "模块名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "模块的中文名称",
+        "example": "`用户管理`"
+      },
+      {
+        "field_name": "模块标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`user-management`"
+      },
+      {
+        "field_name": "模块描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "模块的功能描述",
+        "example": "`负责用户的注册、登录、权限管理等功能`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "模块负责人",
+        "example": "`@张三`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "模块状态",
+        "example": "`设计中` / `开发中` / `已上线` / `已废弃`"
+      },
+      {
+        "field_name": "优先级",
+        "field_type": "单选",
+        "required": false,
+        "description": "模块优先级",
+        "example": "`P0` / `P1` / `P2` / `P3`"
+      },
+      {
+        "field_name": "包含服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "该模块包含的后端服务",
+        "example": "关联到服务表"
+      },
+      {
+        "field_name": "包含页面",
+        "field_type": "关联（页面表）",
+        "required": false,
+        "description": "该模块包含的前端页面",
+        "example": "关联到页面表"
+      },
+      {
+        "field_name": "关联需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该模块相关的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "Figma链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "模块的设计稿链接",
+        "example": "`https://figma.com/...`"
+      },
+      {
+        "field_name": "文档链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "详细文档链接",
+        "example": "`https://docs.company.com/...`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "开发中",
+          "测试中",
+          "已上线",
+          "已废弃"
+        ]
+      },
+      "优先级": {
+        "type": "单选",
+        "options": [
+          "P0（核心）",
+          "P1（重要）",
+          "P2（一般）",
+          "P3（低优先级）"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "服务",
+    "table_purpose": "管理后端服务，是后端需求的连接点。",
+    "fields": [
+      {
+        "field_name": "服务名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "服务的中文名称",
+        "example": "`用户认证服务`"
+      },
+      {
+        "field_name": "服务标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`user-auth-service`"
+      },
+      {
+        "field_name": "服务描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "服务的功能描述",
+        "example": "`负责用户的登录、注册、Token验证`"
+      },
+      {
+        "field_name": "所属模块",
+        "field_type": "关联（模块表）",
+        "required": true,
+        "description": "所属的功能模块",
+        "example": "关联到模块表"
+      },
+      {
+        "field_name": "服务类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "服务类型",
+        "example": "`CRUD` / `业务逻辑` / `第三方集成` / `工具类`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "服务负责人",
+        "example": "`@李四`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "服务状态",
+        "example": "`设计中` / `开发中` / `已上线` / `已废弃`"
+      },
+      {
+        "field_name": "业务规则",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "核心业务规则说明",
+        "example": "`1. 密码必须8位以上\\n2. 支持手机号和邮箱登录`"
+      },
+      {
+        "field_name": "依赖服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "依赖的其他服务",
+        "example": "关联到服务表（自关联）"
+      },
+      {
+        "field_name": "被依赖服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "被哪些服务依赖（反向关联）",
+        "example": "自动生成"
+      },
+      {
+        "field_name": "提供的API",
+        "field_type": "关联（API表）",
+        "required": false,
+        "description": "该服务提供的API",
+        "example": "关联到API表"
+      },
+      {
+        "field_name": "使用的数据模型",
+        "field_type": "关联（数据模型表）",
+        "required": false,
+        "description": "该服务使用的数据模型",
+        "example": "关联到数据模型表"
+      },
+      {
+        "field_name": "关联需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该服务相关的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "技术栈",
+        "field_type": "多选",
+        "required": false,
+        "description": "使用的技术栈",
+        "example": "`Node.js` / `Python` / `Java` / `Go`"
+      },
+      {
+        "field_name": "代码仓库",
+        "field_type": "URL",
+        "required": false,
+        "description": "代码仓库地址",
+        "example": "`https://github.com/...`"
+      },
+      {
+        "field_name": "文档链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "详细文档链接",
+        "example": "`https://docs.company.com/...`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "服务类型": {
+        "type": "单选",
+        "options": [
+          "CRUD",
+          "业务逻辑",
+          "第三方集成",
+          "工具类"
+        ]
+      },
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "开发中",
+          "测试中",
+          "已上线",
+          "已废弃"
+        ]
+      },
+      "技术栈": {
+        "type": "多选",
+        "options": [
+          "Node.js",
+          "Python",
+          "Java",
+          "Go",
+          "PHP",
+          "Ruby"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "API",
+    "table_purpose": "管理后端API接口，是服务的具体实现。",
+    "fields": [
+      {
+        "field_name": "API名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "API的中文名称",
+        "example": "`用户登录`"
+      },
+      {
+        "field_name": "API标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`user-login`"
+      },
+      {
+        "field_name": "API路径",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "API的路径",
+        "example": "`/api/v1/auth/login`"
+      },
+      {
+        "field_name": "请求方法",
+        "field_type": "单选",
+        "required": true,
+        "description": "HTTP方法",
+        "example": "`GET` / `POST` / `PUT` / `DELETE` / `PATCH`"
+      },
+      {
+        "field_name": "API描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "API的功能描述",
+        "example": "`用户通过手机号或邮箱登录系统`"
+      },
+      {
+        "field_name": "所属服务",
+        "field_type": "关联（服务表）",
+        "required": true,
+        "description": "所属的服务",
+        "example": "关联到服务表"
+      },
+      {
+        "field_name": "所属模块",
+        "field_type": "关联（模块表）",
+        "required": false,
+        "description": "所属的模块（通过服务自动关联）",
+        "example": "自动生成"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "API负责人",
+        "example": "`@李四`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "API状态",
+        "example": "`设计中` / `开发中` / `已上线` / `已废弃`"
+      },
+      {
+        "field_name": "请求参数",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "请求参数说明（JSON格式）",
+        "example": "`{\"phone\": \"string\", \"password\": \"string\"}`"
+      },
+      {
+        "field_name": "响应数据",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "响应数据说明（JSON格式）",
+        "example": "`{\"token\": \"string\", \"userId\": \"number\"}`"
+      },
+      {
+        "field_name": "错误码",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "错误码说明",
+        "example": "`401: 用户名或密码错误\\n403: 账号已被禁用`"
+      },
+      {
+        "field_name": "使用的数据模型",
+        "field_type": "关联（数据模型表）",
+        "required": false,
+        "description": "该API使用的数据模型",
+        "example": "关联到数据模型表"
+      },
+      {
+        "field_name": "被调用的页面",
+        "field_type": "关联（页面表）",
+        "required": false,
+        "description": "哪些页面调用了这个API",
+        "example": "关联到页面表"
+      },
+      {
+        "field_name": "关联需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该API相关的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "是否需要认证",
+        "field_type": "复选框",
+        "required": false,
+        "description": "是否需要登录",
+        "example": "✅ / ❌"
+      },
+      {
+        "field_name": "接口文档",
+        "field_type": "URL",
+        "required": false,
+        "description": "Swagger/Apifox文档链接",
+        "example": "`https://apifox.com/...`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "请求方法": {
+        "type": "单选",
+        "options": [
+          "GET",
+          "POST",
+          "PUT",
+          "DELETE",
+          "PATCH"
+        ]
+      },
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "开发中",
+          "测试中",
+          "已上线",
+          "已废弃"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "数据模型",
+    "table_purpose": "管理数据库表结构和数据模型。",
+    "fields": [
+      {
+        "field_name": "模型名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "数据模型的中文名称",
+        "example": "`用户`"
+      },
+      {
+        "field_name": "模型标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`user`"
+      },
+      {
+        "field_name": "表名",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "数据库表名",
+        "example": "`users`"
+      },
+      {
+        "field_name": "模型描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "数据模型的描述",
+        "example": "`存储用户的基本信息和认证信息`"
+      },
+      {
+        "field_name": "所属模块",
+        "field_type": "关联（模块表）",
+        "required": true,
+        "description": "所属的功能模块",
+        "example": "关联到模块表"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "模型负责人",
+        "example": "`@李四`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "模型状态",
+        "example": "`设计中` / `已实现` / `已废弃`"
+      },
+      {
+        "field_name": "字段列表",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "字段列表（JSON格式）",
+        "example": "`{\"id\": \"number\", \"phone\": \"string\", ...}`"
+      },
+      {
+        "field_name": "索引",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "索引说明",
+        "example": "`phone: 唯一索引\\nemail: 唯一索引`"
+      },
+      {
+        "field_name": "关联模型",
+        "field_type": "关联（数据模型表）",
+        "required": false,
+        "description": "关联的其他模型",
+        "example": "关联到数据模型表（自关联）"
+      },
+      {
+        "field_name": "被使用的服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "哪些服务使用了这个模型",
+        "example": "关联到服务表"
+      },
+      {
+        "field_name": "被使用的API",
+        "field_type": "关联（API表）",
+        "required": false,
+        "description": "哪些API使用了这个模型",
+        "example": "关联到API表"
+      },
+      {
+        "field_name": "数据库类型",
+        "field_type": "单选",
+        "required": false,
+        "description": "数据库类型",
+        "example": "`MySQL` / `PostgreSQL` / `MongoDB` / `Redis`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "已实现",
+          "已废弃"
+        ]
+      },
+      "数据库类型": {
+        "type": "单选",
+        "options": [
+          "MySQL",
+          "PostgreSQL",
+          "MongoDB",
+          "Redis",
+          "Elasticsearch"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "页面",
+    "table_purpose": "管理前端页面，是前端需求的连接点。",
+    "fields": [
+      {
+        "field_name": "页面名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "页面的中文名称",
+        "example": "`用户登录页`"
+      },
+      {
+        "field_name": "页面标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`user-login-page`"
+      },
+      {
+        "field_name": "页面路由",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "页面的路由路径",
+        "example": "`/login`"
+      },
+      {
+        "field_name": "页面描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "页面的功能描述",
+        "example": "`用户通过手机号或邮箱登录系统`"
+      },
+      {
+        "field_name": "所属模块",
+        "field_type": "关联（模块表）",
+        "required": true,
+        "description": "所属的功能模块",
+        "example": "关联到模块表"
+      },
+      {
+        "field_name": "页面类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "页面类型",
+        "example": "`列表页` / `详情页` / `表单页` / `仪表盘` / `其他`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "页面负责人",
+        "example": "`@王五`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "页面状态",
+        "example": "`设计中` / `开发中` / `已上线` / `已废弃`"
+      },
+      {
+        "field_name": "使用的组件",
+        "field_type": "关联（组件表）",
+        "required": false,
+        "description": "该页面使用的组件",
+        "example": "关联到组件表"
+      },
+      {
+        "field_name": "调用的API",
+        "field_type": "关联（API表）",
+        "required": false,
+        "description": "该页面调用的API",
+        "example": "关联到API表"
+      },
+      {
+        "field_name": "调用的服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "该页面调用的服务（通过API自动关联）",
+        "example": "自动生成"
+      },
+      {
+        "field_name": "依赖页面",
+        "field_type": "关联（页面表）",
+        "required": false,
+        "description": "依赖的其他页面",
+        "example": "关联到页面表（自关联）"
+      },
+      {
+        "field_name": "关联需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该页面相关的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "页面布局",
+        "field_type": "单选",
+        "required": false,
+        "description": "页面布局类型",
+        "example": "`单栏` / `双栏` / `三栏` / `自定义`"
+      },
+      {
+        "field_name": "Figma链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "页面的设计稿链接",
+        "example": "`https://figma.com/...`"
+      },
+      {
+        "field_name": "原型链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "页面的原型链接",
+        "example": "`https://figma.com/...`"
+      },
+      {
+        "field_name": "代码路径",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "页面代码的路径",
+        "example": "`src/pages/login/index.tsx`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "页面类型": {
+        "type": "单选",
+        "options": [
+          "列表页",
+          "详情页",
+          "表单页",
+          "仪表盘",
+          "其他"
+        ]
+      },
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "开发中",
+          "测试中",
+          "已上线",
+          "已废弃"
+        ]
+      },
+      "页面布局": {
+        "type": "单选",
+        "options": [
+          "单栏",
+          "双栏",
+          "三栏",
+          "自定义"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "组件",
+    "table_purpose": "管理前端组件，支持组件复用和设计系统。",
+    "fields": [
+      {
+        "field_name": "组件名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "组件的中文名称",
+        "example": "`登录表单`"
+      },
+      {
+        "field_name": "组件标识",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "唯一标识符（kebab-case）",
+        "example": "`login-form`"
+      },
+      {
+        "field_name": "组件描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "组件的功能描述",
+        "example": "`用户登录表单，包含手机号、密码输入和登录按钮`"
+      },
+      {
+        "field_name": "组件类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "组件类型",
+        "example": "`普通组件` / `全局组件`"
+      },
+      {
+        "field_name": "组件分类",
+        "field_type": "单选",
+        "required": true,
+        "description": "组件分类",
+        "example": "`表单` / `展示` / `反馈` / `导航` / `布局` / `其他`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "组件负责人",
+        "example": "`@王五`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "组件状态",
+        "example": "`设计中` / `开发中` / `已上线` / `已废弃`"
+      },
+      {
+        "field_name": "组件属性",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "组件的Props说明（JSON格式）",
+        "example": "`{\"phone\": \"string\", \"onSubmit\": \"function\"}`"
+      },
+      {
+        "field_name": "组件变体",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "组件的变体说明",
+        "example": "`默认、禁用、加载中`"
+      },
+      {
+        "field_name": "被使用的页面",
+        "field_type": "关联（页面表）",
+        "required": false,
+        "description": "哪些页面使用了这个组件",
+        "example": "关联到页面表"
+      },
+      {
+        "field_name": "依赖组件",
+        "field_type": "关联（组件表）",
+        "required": false,
+        "description": "依赖的其他组件",
+        "example": "关联到组件表（自关联）"
+      },
+      {
+        "field_name": "被依赖组件",
+        "field_type": "关联（组件表）",
+        "required": false,
+        "description": "被哪些组件依赖（反向关联）",
+        "example": "自动生成"
+      },
+      {
+        "field_name": "关联需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该组件相关的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "Figma链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "组件的设计稿链接",
+        "example": "`https://figma.com/...`"
+      },
+      {
+        "field_name": "Storybook链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "组件的Storybook链接",
+        "example": "`https://storybook.company.com/...`"
+      },
+      {
+        "field_name": "代码路径",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "组件代码的路径",
+        "example": "`src/components/LoginForm/index.tsx`"
+      },
+      {
+        "field_name": "是否有交互预览",
+        "field_type": "复选框",
+        "required": false,
+        "description": "是否有可交互的HTML预览",
+        "example": "✅ / ❌"
+      },
+      {
+        "field_name": "交互预览链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "交互预览的链接",
+        "example": "`https://preview.company.com/...`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "组件类型": {
+        "type": "单选",
+        "options": [
+          "普通组件",
+          "全局组件"
+        ]
+      },
+      "组件分类": {
+        "type": "单选",
+        "options": [
+          "表单",
+          "展示",
+          "反馈",
+          "导航",
+          "布局",
+          "其他"
+        ]
+      },
+      "状态": {
+        "type": "单选",
+        "options": [
+          "设计中",
+          "开发中",
+          "测试中",
+          "已上线",
+          "已废弃"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "引用记录",
+    "table_purpose": "记录文档之间的引用关系，支持引用系统和影响分析。",
+    "fields": [
+      {
+        "field_name": "引用ID",
+        "field_type": "自动编号",
+        "required": true,
+        "description": "自动生成的唯一ID",
+        "example": "`REF-001`"
+      },
+      {
+        "field_name": "源文档类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "引用来源的文档类型",
+        "example": "`服务` / `API` / `页面` / `组件` / `需求`"
+      },
+      {
+        "field_name": "源文档",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "源文档的标识符",
+        "example": "`user-login-page`"
+      },
+      {
+        "field_name": "源文档名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "源文档的名称",
+        "example": "`用户登录页`"
+      },
+      {
+        "field_name": "目标文档类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "被引用的文档类型",
+        "example": "`服务` / `API` / `页面` / `组件` / `需求`"
+      },
+      {
+        "field_name": "目标文档",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "目标文档的标识符",
+        "example": "`user-login`"
+      },
+      {
+        "field_name": "目标文档名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "目标文档的名称",
+        "example": "`用户登录API`"
+      },
+      {
+        "field_name": "引用字段",
+        "field_type": "单行文本",
+        "required": false,
+        "description": "引用的具体字段（字段级引用）",
+        "example": "`response.data.token`"
+      },
+      {
+        "field_name": "引用类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "引用类型",
+        "example": "`调用` / `依赖` / `使用` / `关联`"
+      },
+      {
+        "field_name": "引用状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "引用状态",
+        "example": "`有效` / `失效` / `变更`"
+      },
+      {
+        "field_name": "变更说明",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "如果目标文档变更，记录变更说明",
+        "example": "`API响应格式变更，token字段改为accessToken`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "文档类型": {
+        "type": "单选",
+        "options": [
+          "模块",
+          "服务",
+          "API",
+          "数据模型",
+          "页面",
+          "组件",
+          "需求"
+        ]
+      },
+      "引用类型": {
+        "type": "单选",
+        "options": [
+          "调用",
+          "依赖",
+          "使用",
+          "关联"
+        ]
+      },
+      "引用状态": {
+        "type": "单选",
+        "options": [
+          "有效",
+          "失效",
+          "变更"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "需求池",
+    "table_purpose": "管理产品需求，是连接文档和业务的桥梁。",
+    "fields": [
+      {
+        "field_name": "需求编号",
+        "field_type": "自动编号",
+        "required": true,
+        "description": "自动生成的需求编号",
+        "example": "`REQ-001`"
+      },
+      {
+        "field_name": "需求标题",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "需求的简短标题",
+        "example": "`用户登录功能`"
+      },
+      {
+        "field_name": "需求描述",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "需求的详细描述",
+        "example": "`用户可以通过手机号或邮箱登录系统...`"
+      },
+      {
+        "field_name": "需求类型",
+        "field_type": "单选",
+        "required": true,
+        "description": "需求类型",
+        "example": "`后端需求` / `前端需求` / `全栈需求` / `设计需求`"
+      },
+      {
+        "field_name": "需求来源",
+        "field_type": "单选",
+        "required": true,
+        "description": "需求来源",
+        "example": "`产品规划` / `用户反馈` / `技术优化` / `Bug修复`"
+      },
+      {
+        "field_name": "优先级",
+        "field_type": "单选",
+        "required": true,
+        "description": "需求优先级",
+        "example": "`P0` / `P1` / `P2` / `P3`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "需求状态",
+        "example": "`待评估` / `待开发` / `开发中` / `已完成` / `已取消`"
+      },
+      {
+        "field_name": "提出人",
+        "field_type": "人员",
+        "required": true,
+        "description": "需求提出人",
+        "example": "`@产品经理`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": false,
+        "description": "需求负责人",
+        "example": "`@开发负责人`"
+      },
+      {
+        "field_name": "所属模块",
+        "field_type": "关联（模块表）",
+        "required": false,
+        "description": "所属的功能模块",
+        "example": "关联到模块表"
+      },
+      {
+        "field_name": "关联服务",
+        "field_type": "关联（服务表）",
+        "required": false,
+        "description": "关联的后端服务（后端需求、全栈需求）",
+        "example": "关联到服务表"
+      },
+      {
+        "field_name": "关联API",
+        "field_type": "关联（API表）",
+        "required": false,
+        "description": "关联的API（后端需求、全栈需求）",
+        "example": "关联到API表"
+      },
+      {
+        "field_name": "关联页面",
+        "field_type": "关联（页面表）",
+        "required": false,
+        "description": "关联的前端页面（前端需求、全栈需求）",
+        "example": "关联到页面表"
+      },
+      {
+        "field_name": "关联组件",
+        "field_type": "关联（组件表）",
+        "required": false,
+        "description": "关联的组件（前端需求、设计需求）",
+        "example": "关联到组件表"
+      },
+      {
+        "field_name": "所属迭代",
+        "field_type": "关联（迭代表）",
+        "required": false,
+        "description": "所属的迭代",
+        "example": "关联到迭代表"
+      },
+      {
+        "field_name": "标签",
+        "field_type": "关联（标签表）",
+        "required": false,
+        "description": "需求标签",
+        "example": "关联到标签表"
+      },
+      {
+        "field_name": "预计工时",
+        "field_type": "数字",
+        "required": false,
+        "description": "预计工时（小时）",
+        "example": "`8`"
+      },
+      {
+        "field_name": "实际工时",
+        "field_type": "数字",
+        "required": false,
+        "description": "实际工时（小时）",
+        "example": "`10`"
+      },
+      {
+        "field_name": "验收标准",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "需求的验收标准",
+        "example": "`1. 用户可以登录\\n2. 登录失败有提示`"
+      },
+      {
+        "field_name": "PRD链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "产品需求文档链接",
+        "example": "`https://docs.company.com/...`"
+      },
+      {
+        "field_name": "设计稿链接",
+        "field_type": "URL",
+        "required": false,
+        "description": "Figma设计稿链接",
+        "example": "`https://figma.com/...`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      },
+      {
+        "field_name": "完成时间",
+        "field_type": "日期",
+        "required": false,
+        "description": "需求完成时间",
+        "example": "`2025-01-25`"
+      }
+    ],
+    "field_options": {
+      "需求类型": {
+        "type": "单选",
+        "options": [
+          "后端需求",
+          "前端需求",
+          "全栈需求",
+          "设计需求"
+        ]
+      },
+      "需求来源": {
+        "type": "单选",
+        "options": [
+          "产品规划",
+          "用户反馈",
+          "技术优化",
+          "Bug修复"
+        ]
+      },
+      "优先级": {
+        "type": "单选",
+        "options": [
+          "P0（紧急）",
+          "P1（重要）",
+          "P2（一般）",
+          "P3（低优先级）"
+        ]
+      },
+      "状态": {
+        "type": "单选",
+        "options": [
+          "待评估",
+          "待开发",
+          "开发中",
+          "测试中",
+          "已完成",
+          "已取消"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "迭代",
+    "table_purpose": "管理开发迭代，组织需求的开发节奏。",
+    "fields": [
+      {
+        "field_name": "迭代名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "迭代的名称",
+        "example": "`Sprint 1`"
+      },
+      {
+        "field_name": "迭代目标",
+        "field_type": "多行文本",
+        "required": true,
+        "description": "迭代的目标",
+        "example": "`完成用户管理模块的核心功能`"
+      },
+      {
+        "field_name": "开始日期",
+        "field_type": "日期",
+        "required": true,
+        "description": "迭代开始日期",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "结束日期",
+        "field_type": "日期",
+        "required": true,
+        "description": "迭代结束日期",
+        "example": "`2025-01-29`"
+      },
+      {
+        "field_name": "状态",
+        "field_type": "单选",
+        "required": true,
+        "description": "迭代状态",
+        "example": "`未开始` / `进行中` / `已完成`"
+      },
+      {
+        "field_name": "负责人",
+        "field_type": "人员",
+        "required": true,
+        "description": "迭代负责人",
+        "example": "`@项目经理`"
+      },
+      {
+        "field_name": "包含需求",
+        "field_type": "关联（需求池表）",
+        "required": false,
+        "description": "该迭代包含的需求",
+        "example": "关联到需求池表"
+      },
+      {
+        "field_name": "总工时",
+        "field_type": "数字",
+        "required": false,
+        "description": "总工时（小时）",
+        "example": "`160`"
+      },
+      {
+        "field_name": "已完成工时",
+        "field_type": "数字",
+        "required": false,
+        "description": "已完成工时（小时）",
+        "example": "`120`"
+      },
+      {
+        "field_name": "完成率",
+        "field_type": "数字",
+        "required": false,
+        "description": "完成率（%）",
+        "example": "`75`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "状态": {
+        "type": "单选",
+        "options": [
+          "未开始",
+          "进行中",
+          "已完成",
+          "已取消"
+        ]
+      }
+    }
+  },
+  {
+    "table_name": "标签",
+    "table_purpose": "管理需求标签，方便需求分类和筛选。",
+    "fields": [
+      {
+        "field_name": "标签名称",
+        "field_type": "单行文本",
+        "required": true,
+        "description": "标签的名称",
+        "example": "`核心功能`"
+      },
+      {
+        "field_name": "标签颜色",
+        "field_type": "单选",
+        "required": false,
+        "description": "标签的颜色",
+        "example": "`红色` / `蓝色` / `绿色` / `黄色`"
+      },
+      {
+        "field_name": "标签描述",
+        "field_type": "多行文本",
+        "required": false,
+        "description": "标签的描述",
+        "example": "`系统的核心功能，优先级最高`"
+      },
+      {
+        "field_name": "使用次数",
+        "field_type": "数字",
+        "required": false,
+        "description": "被使用的次数",
+        "example": "`15`"
+      },
+      {
+        "field_name": "创建时间",
+        "field_type": "创建时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-15`"
+      },
+      {
+        "field_name": "更新时间",
+        "field_type": "最后编辑时间",
+        "required": true,
+        "description": "自动记录",
+        "example": "`2025-01-20`"
+      }
+    ],
+    "field_options": {
+      "标签颜色": {
+        "type": "单选",
+        "options": [
+          "红色",
+          "蓝色",
+          "绿色",
+          "黄色",
+          "紫色",
+          "橙色",
+          "灰色"
+        ]
+      }
+    }
+  }
+]
