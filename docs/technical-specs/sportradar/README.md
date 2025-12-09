@@ -19,9 +19,9 @@
 | 03   | `03-outcome-mapping-api.md`                | Outcome Mapping API 规范                     |
 | 04   | `04-odds-change-market-mapping.md`         | Odds Change 的市场映射与处理分析             |
 | 05   | `05-market-handling-verification.md`       | 市场处理方法与官方文档对比验证               |
-| 07   | `07-message-processing-market-state.md`    | 消息处理与 Market 状态流转分析               |
-| 08   | `08-sport-event-status-guide.md`           | `<sport_event_status>` 元素完整指南          |
-| 09   | `09-event-status-diagrams.md`              | `sport_event_status` Mermaid 图表集合        |
+| 06   | `06-message-processing-market-state.md`    | 消息处理与 Market 状态流转分析               |
+| 07   | `07-sport-event-status-guide.md`           | `<sport_event_status>` 元素完整指南          |
+| 08   | `08-event-status-diagrams.md`              | `sport_event_status` Mermaid 图表集合        |
 
 ### 参考文档
 
@@ -38,16 +38,3 @@
 | 前缀  | 文件名                      | 标题                                         |
 | :---- | :-------------------------- | :------------------------------------------- |
 | guide | `guide-diagram-placement.md`  | 图表在文档中的放置指南                       |
-
-### 架构与流程图
-
-以下是使用 Mermaid.js 绘制的流程图和架构图源文件，用于直观展示核心业务逻辑和数据流。
-
-| 文件名                                       | 描述                                         |
-| :------------------------------------------- | :------------------------------------------- |
-| `diagram-betting-availability-hierarchy.mmd` | 投注可用性层级关系图                         |
-| `diagram-event-lifecycle.mmd`                | 体育赛事生命周期图                           |
-| `diagram-goal-handling-sequence.mmd`         | 进球事件处理序列图                           |
-| `diagram-handover-sequence.mmd`              | 数据源交接序列图                             |
-| `diagram-market-state.mmd`                   | 市场状态流转图                               |
-| `diagram-message-processing-flow.mmd`        | UOF 消息处理全流程图                         |
