@@ -21,6 +21,7 @@
 | 05   | `05-market-handling-verification.md`       | 市场处理方法与官方文档对比验证               |
 | 06   | `06-message-processing-market-state.md`    | 消息处理与 Market 状态流转分析               |
 | 07   | `07-sport-event-status-guide.md`           | `<sport_event_status>` 元素完整指南          |
+| 08   | `08-popularity-scoring-algorithm.md`       | 比赛与联赛热门度评分算法规范                 |
 
 ### 参考文档
 
