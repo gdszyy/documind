@@ -115,7 +115,8 @@ Market（盘口）的生命周期由其状态（Status）定义。状态的转�
 
 下图清晰地展示了 Market 各状态之间的转换路径及其触发条件：
 
-> <img width="2768" height="2993" alt="Untitled diagram-2025-12-09-042646" src="https://github.com/user-attachments/assets/d2258551-082b-40b0-974e-362572727fc4" />
+> <img width="2857" height="2994" alt="Untitled diagram-2025-12-09-054452" src="https://github.com/user-attachments/assets/824565fd-b4c0-4c61-828d-1d593f9fc712" />
+
 
 > 
 > 该图应放在本位置，展示：
