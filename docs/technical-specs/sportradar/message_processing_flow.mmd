@@ -1,0 +1,45 @@
+graph TD
+    A["接收消息"] --> B{消息类型?}
+    
+    B -->|fixture_change| C["高优先级处理"]
+    B -->|odds_change| C
+    B -->|bet_stop| C
+    B -->|bet_cancel| C
+    
+    B -->|bet_settlement| D["低优先级处理"]
+    B -->|rollback_bet_settlement| D
+    B -->|rollback_bet_cancel| D
+    B -->|alive| D
+    
+    C --> E{具体消息类型?}
+    
+    E -->|fixture_change| F["调用API获取<br/>完整赛事信息"]
+    E -->|odds_change| G["更新Market状态<br/>更新赔率<br/>更新赛事状态"]
+    E -->|bet_stop| H["暂停指定Market<br/>等待后续odds_change"]
+    E -->|bet_cancel| I["触发退款流程<br/>标记Market为已取消"]
+    
+    D --> J{具体消息类型?}
+    
+    J -->|bet_settlement| K["结算投注<br/>更新Market为Settled"]
+    J -->|rollback_bet_settlement| L["撤销结算<br/>恢复Market为Active"]
+    J -->|rollback_bet_cancel| M["恢复被取消的投注"]
+    J -->|alive| N["更新系统心跳<br/>检查连接状态"]
+    
+    F --> O["更新本地数据库"]
+    G --> O
+    H --> O
+    I --> O
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+    
+    O --> P["完成处理"]
+    P --> Q["等待下一条消息"]
+    Q --> A
+    
+    style C fill:#ff9999
+    style D fill:#99ccff
+    style E fill:#ff9999
+    style J fill:#99ccff
+    style O fill:#99ff99

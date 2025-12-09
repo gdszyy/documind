@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant Betradar as Betradar系统
+    participant Client as 客户端系统
+    participant DB as 本地数据库
+
+    Note over Betradar,DB: 进球发生
+
+    Betradar->>Client: odds_change(status=-1)<br/>进球确认前暂停
+    Client->>DB: 更新Market状态为Suspended
+    Client->>Client: 灰显相关Market
+    Note over Client: 投注暂停
+
+    Betradar->>Client: odds_change(status=1)<br/>进球确认
+    Client->>DB: 更新Market状态为Active
+    Client->>Client: 恢复Market显示
+    Note over Client: 投注恢复
+
+    Betradar->>Client: odds_change(status=0)<br/>某些Market停用<br/>赔率不再平衡
+    Client->>DB: 更新Market状态为Deactivated
+    Client->>Client: 灰显停用的Market
+    Note over Client: 新赔率线条<br/>不再提供
+
+    Betradar->>Client: odds_change(status=1)<br/>新赔率线条<br/>重新平衡
+    Client->>DB: 更新新Market为Active
+    Client->>Client: 显示新Market线条
+    Note over Client: 新投注线条<br/>可用

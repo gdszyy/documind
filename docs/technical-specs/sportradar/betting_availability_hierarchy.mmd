@@ -1,0 +1,30 @@
+graph TD
+    A["检查投注可用性"] --> B{系统连接<br/>正常?<br/>20秒内<br/>收到消息}
+    
+    B -->|否| C["❌ 投注停止<br/>系统故障"]
+    B -->|是| D{数据生产者<br/>正常?<br/>未被标记<br/>为宕机}
+    
+    D -->|否| E["❌ 投注停止<br/>生产者故障"]
+    D -->|是| F{Market状态<br/>为Active?<br/>status=1}
+    
+    F -->|否| G["❌ 投注停止<br/>Market状态"]
+    G --> G1["可能原因:<br/>Suspended(-1)<br/>Deactivated(0)<br/>Settled(-3)<br/>Cancelled(-4)<br/>Handed Over(-2)"]
+    
+    F -->|是| H{投注项<br/>为Active?<br/>outcome.active<br/>=true}
+    
+    H -->|否| I["❌ 投注停止<br/>投注项非活跃"]
+    H -->|是| J["✅ 投注可用<br/>接受投注"]
+    
+    C --> K["投注状态: STOPPED"]
+    E --> K
+    G --> K
+    I --> K
+    J --> L["投注状态: OPEN"]
+    
+    style J fill:#99ff99
+    style L fill:#99ff99
+    style C fill:#ff9999
+    style E fill:#ff9999
+    style G fill:#ff9999
+    style I fill:#ff9999
+    style K fill:#ff9999
