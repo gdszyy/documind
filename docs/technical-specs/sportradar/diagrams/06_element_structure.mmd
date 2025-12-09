@@ -1,0 +1,47 @@
+graph TD
+    Root["&lt;sport_event_status&gt;<br/>元素结构"]
+    
+    Root --> Attrs["📋 属性 Attributes"]
+    Root --> Children["📦 子元素 Children"]
+    
+    Attrs --> A1["status<br/>类型: 枚举字符串<br/>必需: ✓ 是<br/>例: 'closed', 'live'"]
+    Attrs --> A2["home_score<br/>类型: 整数<br/>必需: ✗ 否<br/>例: 130"]
+    Attrs --> A3["away_score<br/>类型: 整数<br/>必需: ✗ 否<br/>例: 122"]
+    Attrs --> A4["winner_id<br/>类型: 字符串<br/>必需: ✗ 否<br/>例: 'sr:competitor:3433'"]
+    Attrs --> A5["status_code<br/>类型: 整数<br/>必需: ✗ 否<br/>例: 4"]
+    Attrs --> A6["match_status_code<br/>类型: 整数<br/>必需: ✗ 否<br/>例: 110<br/>因体育项目而异"]
+    
+    Children --> C1["&lt;period_scores&gt;<br/>各阶段得分"]
+    Children --> C2["&lt;results&gt;<br/>比赛结果"]
+    
+    C1 --> C1a["&lt;period_score&gt;<br/>单个阶段<br/>属性:<br/>- home_score<br/>- away_score<br/>- type<br/>- number<br/>- match_status_code"]
+    
+    C1a --> C1a1["type 可能值:<br/>- regular_period<br/>- overtime<br/>- penalty_shootout"]
+    
+    C1a --> C1a2["number 含义:<br/>- 足球: 1-2<br/>- 篮球: 1-5<br/>- 网球: 盘数"]
+    
+    C2 --> C2a["&lt;result&gt;<br/>单个结果<br/>属性:<br/>- home_score<br/>- away_score<br/>- match_status_code"]
+    
+    C2a --> C2a1["多个result元素<br/>表示不同阶段结果<br/>例: 常规赛+加时赛"]
+    
+    A1 --> States["12种可能的状态值"]
+    States --> S1["初始状态<br/>- not_started (0)<br/>- match_about_to_start (22)"]
+    States --> S2["延迟状态<br/>- postponed (60)<br/>- delayed (61)"]
+    States --> S3["中断状态<br/>- interrupted (80)<br/>- suspended (81)"]
+    States --> S4["终止状态<br/>- cancelled (70)<br/>- retired (92)<br/>- abandoned (90)"]
+    States --> S5["完成状态<br/>- ended (100)<br/>- aet (110)<br/>- match_after_penalties (120)"]
+    States --> S6["最终状态<br/>- closed"]
+    
+    A6 --> MatchCodes["match_status_code 映射<br/>因体育项目而异"]
+    MatchCodes --> MC1["篮球<br/>13-16: 常规期各节<br/>40: 加时赛<br/>110: 加时赛后"]
+    MatchCodes --> MC2["足球<br/>0: 未开始<br/>1: 上半场<br/>2: 下半场<br/>3: 加时赛<br/>4: 点球"]
+    MatchCodes --> MC3["网球<br/>不同盘数和局数<br/>详见官方文件"]
+    
+    style Root fill:#fff4e6
+    style Attrs fill:#e6f3ff
+    style Children fill:#f0e6ff
+    style A1 fill:#e6ffe6
+    style States fill:#e6ffe6
+    style C1 fill:#e6ffe6
+    style C2 fill:#e6ffe6
+    style MatchCodes fill:#ffe6e6

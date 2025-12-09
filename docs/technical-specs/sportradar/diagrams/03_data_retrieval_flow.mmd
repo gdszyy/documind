@@ -1,0 +1,46 @@
+graph TD
+    Start([需要获取sport_event_status]) --> Check1{需要实时<br/>赔率信息?}
+    
+    Check1 -->|是| AMQP["使用AMQP Feed<br/>odds_change message"]
+    Check1 -->|否| Check2{需要扩展<br/>状态信息?}
+    
+    AMQP --> Parse1["解析状态代码<br/>0-not_started<br/>1-live<br/>2-ended<br/>3-closed"]
+    Parse1 --> Cache1["缓存状态<br/>TTL: 5分钟"]
+    Cache1 --> Display1["显示当前状态<br/>和赔率"]
+    
+    Check2 -->|是| API["查询API Endpoint"]
+    Check2 -->|否| API
+    
+    API --> Choose{选择端点}
+    
+    Choose -->|汇总信息| Summary["Summary Endpoint<br/>获取完整比赛信息"]
+    Choose -->|历史事件| Timeline["Timeline Endpoint<br/>获取事件时间线"]
+    
+    Summary --> Parse2["解析sport_event_status<br/>- status<br/>- home_score<br/>- away_score<br/>- winner_id<br/>- match_status_code"]
+    Timeline --> Parse2
+    
+    Parse2 --> CheckStatus{检查状态}
+    
+    CheckStatus -->|not_started| Cache2["缓存5分钟"]
+    CheckStatus -->|live/suspended| Cache3["不缓存<br/>实时查询"]
+    CheckStatus -->|ended| Cache4["缓存30分钟"]
+    CheckStatus -->|closed| Cache5["缓存24小时"]
+    
+    Cache2 --> Handle1["显示计划信息<br/>倒计时"]
+    Cache3 --> Handle2["实时更新<br/>高频刷新"]
+    Cache4 --> Handle3["显示最终得分<br/>等待确认"]
+    Cache5 --> Handle4["锁定结果<br/>存储数据库"]
+    
+    Handle1 --> End([完成])
+    Handle2 --> End
+    Handle3 --> End
+    Handle4 --> End
+    
+    style AMQP fill:#e6f3ff
+    style API fill:#fff4e6
+    style Summary fill:#f0e6ff
+    style Timeline fill:#f0e6ff
+    style Handle1 fill:#e6ffe6
+    style Handle2 fill:#e6ffe6
+    style Handle3 fill:#e6ffe6
+    style Handle4 fill:#e6ffe6

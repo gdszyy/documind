@@ -1,0 +1,78 @@
+graph TD
+    Root["sport_event_status<br/>状态处理决策树"]
+    
+    Root --> S{当前状态}
+    
+    S -->|not_started| N1["显示计划时间<br/>显示队伍信息<br/>不处理实时数据"]
+    S -->|match_about_to_start| N2["更新倒计时<br/>准备实时数据接收<br/>订阅实时更新"]
+    S -->|delayed| N3["更新计划时间<br/>显示延迟原因<br/>继续等待"]
+    S -->|postponed| N4{推迟时间}
+    
+    N4 -->|>3天| N4a["创建新事件ID<br/>取消原事件<br/>查询新事件"]
+    N4 -->|1-2天| N4b["同ID转换<br/>更新计划时间<br/>等待赛前"]
+    
+    S -->|cancelled| N5["清除比赛数据<br/>通知用户<br/>处理已下注"]
+    S -->|abandoned| N6["记录覆盖丢失<br/>保留已有数据<br/>查询最新状态"]
+    S -->|retired| N7["标记运动员退赛<br/>更新比赛结果<br/>清理相关数据"]
+    
+    S -->|live| N8["开始实时更新<br/>高频刷新显示<br/>接收odds_change"]
+    N8 --> N8a{比赛中发生}
+    N8a -->|得分| N8a1["更新得分<br/>更新统计数据"]
+    N8a -->|中断| N8a2["暂停更新<br/>显示中断提示<br/>保持连接"]
+    N8a -->|结束| N8a3["停止实时更新<br/>显示最终得分<br/>等待确认"]
+    
+    S -->|interrupted| N9["显示中断信息<br/>暂停更新<br/>预期几分钟"]
+    N9 --> N9a{恢复?}
+    N9a -->|是| N9a1["恢复实时更新<br/>继续比赛"]
+    N9a -->|否| N9a2["转为suspended<br/>更新UI提示"]
+    
+    S -->|suspended| N10["显示长期中断<br/>保持连接<br/>等待恢复或推迟"]
+    N10 --> N10a{后续}
+    N10a -->|恢复| N10a1["恢复实时更新"]
+    N10a -->|推迟| N10a2["转为postponed<br/>检查新时间"]
+    
+    S -->|ended| N11{检查覆盖范围}
+    N11 -->|赛前覆盖| N11a["等待closed状态<br/>超时30分钟<br/>自动视为最终"]
+    N11 -->|仅直播覆盖| N11b["视为最终结果<br/>存储数据库<br/>不再等待"]
+    
+    S -->|aet| N12["标记加时赛结束<br/>显示最终得分<br/>等待closed"]
+    S -->|match_after_penalties| N13["标记点球结束<br/>显示最终得分<br/>等待closed"]
+    
+    S -->|closed| N14["锁定最终结果<br/>存储数据库<br/>清理临时数据"]
+    
+    N1 --> End([处理完成])
+    N2 --> End
+    N3 --> End
+    N4a --> End
+    N4b --> End
+    N5 --> End
+    N6 --> End
+    N7 --> End
+    N8a1 --> End
+    N8a2 --> End
+    N8a3 --> End
+    N9a1 --> End
+    N9a2 --> End
+    N10a1 --> End
+    N10a2 --> End
+    N11a --> End
+    N11b --> End
+    N12 --> End
+    N13 --> End
+    N14 --> End
+    
+    style Root fill:#fff4e6
+    style N1 fill:#fff4e6
+    style N2 fill:#fff4e6
+    style N8 fill:#e6f3ff
+    style N8a1 fill:#e6f3ff
+    style N8a2 fill:#e6f3ff
+    style N8a3 fill:#e6f3ff
+    style N11a fill:#f0e6ff
+    style N11b fill:#f0e6ff
+    style N12 fill:#f0e6ff
+    style N13 fill:#f0e6ff
+    style N14 fill:#e6ffe6
+    style N5 fill:#ffcccc
+    style N6 fill:#ffcccc
+    style N7 fill:#ffcccc
