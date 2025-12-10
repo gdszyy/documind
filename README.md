@@ -1,121 +1,164 @@
-# DocuMind
+# DocuMind - 飞书体系项目
 
-**新一代 AI 驱动的智能产品文档协作平台**
+**基于飞书多维表格的新一代 AI 驱动智能产品文档协作平台**
 
-## 项目简介
+## 📋 仓库说明
 
-DocuMind 是一个革命性的产品文档创作平台,旨在通过深度集成 AI 能力和外部"事实源"(如 Figma),彻底改变产品文档的撰写和维护流程。
+本仓库已完成重构，专注于 **DocuMind 飞书体系项目**的文档和飞书多维表格集成代码。原有的完整项目代码已备份至 `backup/full-original-project` 分支。
 
-### 核心特性
+### 仓库结构
 
-- **四层文档结构**: 模块 → 页面 → 组件 → API,完整覆盖产品知识体系
-- **Figma 集成**: 自动同步设计稿中的组件信息,生成或更新文档草稿
-- **标准化文档体系**: 基于 v4 规范,支持手动编写和自动化生成两种工作方式
-- **全功能编辑器**: 交互式示例、API 测试器、完整的上下文侧边栏
-- **AI 深度融合**: 文本生成、润色、影响分析、聊天助手
-- **一键发布**: 生成包含完整交互体验的只读静态网站
+```
+documind/
+├── docs/              # 完整的项目文档体系
+│   ├── standards/     # 文档标准和规范
+│   ├── templates/     # 文档模板（模块、页面、组件、API）
+│   ├── planning/      # 项目规划和设计文档
+│   ├── technical-specs/ # 技术规范和集成指南
+│   ├── research/      # 研究和案例分析
+│   └── examples/      # 示例文档
+└── lark-bitable/      # 飞书多维表格集成代码和文档
+    ├── bitable_agent.py              # 飞书多维表格操作脚本
+    ├── bitable_schema.json           # 数据表结构定义
+    ├── existing_tables.json          # 现有表格清单
+    ├── table_verification_report.json # 表格验证报告
+    ├── README.md                     # 飞书多维表格集成说明
+    ├── FEISHU_BITABLE_COMPLETE_GUIDE.md # 完整操作指南
+    ├── AGENT_BITABLE_OPERATIONS_GUIDE.md # Agent 操作指南
+    └── BITABLE_CREATION_REPORT.md    # 表格创建报告
+```
 
-## 📚 文档体系 (v4)
+### 备份分支
 
-本项目采用 **DocuMind v4** 标准化文档体系,支持从 Figma 设计稿自动化生成产品文档。
+原项目的完整代码（包括前端、后端、Web 等所有模块）已完整备份至：
+
+**分支名称**: `backup/full-original-project`
+
+如需访问原项目代码，请切换至该分支：
+
+```bash
+git checkout backup/full-original-project
+```
+
+或在 GitHub 上查看：[https://github.com/gdszyy/documind/tree/backup/full-original-project](https://github.com/gdszyy/documind/tree/backup/full-original-project)
+
+## 🚀 新项目架构
+
+DocuMind 飞书体系项目采用基于 **Railway 平台**的现代化基础设施架构：
+
+### 基础设施组件
+
+- **Neo4j**: 图数据库，用于存储文档关系和知识图谱
+- **Qdrant**: 向量数据库，用于语义搜索和 AI 检索
+- **Redis**: 缓存和会话管理
+- **后端 API 服务**: 基于 Node.js/Python 的 RESTful API 服务
+
+### 技术栈
+
+- **基础设施平台**: Railway
+- **图数据库**: Neo4j
+- **向量数据库**: Qdrant
+- **缓存**: Redis
+- **后端**: Node.js (Express) 或 Python (FastAPI)
+- **飞书集成**: 飞书开放平台 API + 多维表格 API
+- **AI 集成**: OpenAI API 或兼容服务
+
+## 📚 文档体系
+
+本项目继承了 **DocuMind v4** 标准化文档体系，支持从 Figma 设计稿和飞书多维表格自动化生成产品文档。
 
 ### 核心文档
 
 - **[v4 规范文档](./docs/standards/00-specification-v4.md)** - 完整的文档标准和规范
+- **[v5 规范文档](./docs/standards/00-specification-v5.md)** - 最新版本规范
 - **[Figma 命名规范](./docs/standards/01-figma-naming-convention.md)** - 设计师必读的命名规则
-- **[自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)** - 从 Figma 到文档的自动化流程
-- **[整合方案说明](./docs/standards/03-integration-plan.md)** - v3 和 Figma 系统的整合思路
-- **[技术规范文档](./docs/technical-specs/README.md)** - 技术集成规范和 API 使用指南
-- **[v4 交付总结](./docs/planning/delivery-summary-v4.md)** - 完整的项目交付说明
+- **[自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)** - 自动化流程说明
+- **[整合方案说明](./docs/standards/03-integration-plan.md)** - 系统整合思路
+- **[仓库结构规范](./docs/standards/04-repository-structure.md)** - 代码组织规范
+
+### 飞书多维表格集成
+
+- **[飞书多维表格完整指南](./lark-bitable/FEISHU_BITABLE_COMPLETE_GUIDE.md)** - 飞书多维表格操作完整指南
+- **[Agent 操作指南](./lark-bitable/AGENT_BITABLE_OPERATIONS_GUIDE.md)** - AI Agent 操作飞书多维表格的指南
+- **[表格创建报告](./lark-bitable/BITABLE_CREATION_REPORT.md)** - 多维表格创建和配置报告
 
 ### 文档模板
 
-在 `docs/templates/` 目录下提供了四种标准化模板:
+在 `docs/templates/` 目录下提供了标准化模板：
 
 - **[模块模板](./docs/templates/module-template.md)** - 用于定义业务功能模块
 - **[页面模板](./docs/templates/page-template.md)** - 用于描述用户交互页面
-- **[组件模板 v4](./docs/templates/component-template-v4.md)** - 用于定义 UI 组件(支持 Figma 自动化)
+- **[组件模板 v6](./docs/templates/component-template-v6.md)** - 用于定义 UI 组件
 - **[API 模板](./docs/templates/api-template.md)** - 用于描述后端接口
+- **[服务模板](./docs/templates/service-template.md)** - 用于描述后端服务
 
-### 工作方式
+## 🛠️ 基础设施部署
 
-**方式 A: 手动编写**
-1. 复制相应的模板文件
-2. 填写 Front Matter 和各个章节
-3. 遵循规范中定义的格式
+基础设施部署在 Railway 平台上，具体部署文档请参考：
 
-**方式 B: 从 Figma 自动生成**
-1. 设计师在 Figma 中遵循命名规范
-2. 运行脚本从 Figma API 提取数据
-3. 使用 AI (如 Manus) 生成 Markdown 文档
-4. 人工审核和补充内容
+- **基础设施文档**: `docs/infrastructure/railway-setup.md`（部署完成后生成）
+- **环境变量配置**: 参考各服务的环境变量配置文档
+- **服务连接**: 所有服务通过 Railway 内部网络互联
 
-详见 [自动化工作流指南](./docs/standards/02-automation-workflow-guide.md)。
+## 📖 快速开始
 
-## 项目文档
+### 查看文档
 
-- [文档中心](./docs/README.md) - 所有文档的索引和导航
-- [项目计划书](./docs/planning/project-plan.md) - 完整的 MVP 项目计划
-- [MVP 详细设计](./docs/planning/mvp-design.md) - MVP 版本的详细功能设计
-- [功能架构图](./docs/planning/diagrams/functional-architecture.png) - 系统功能架构
-- [页面信息架构图](./docs/planning/diagrams/page-information-architecture.png) - 页面流程和跳转关系
+1. 浏览 [文档中心](./docs/README.md) 了解完整文档体系
+2. 阅读 [v4 规范文档](./docs/standards/00-specification-v4.md) 或 [v5 规范文档](./docs/standards/00-specification-v5.md)
+3. 查看 [飞书多维表格完整指南](./lark-bitable/FEISHU_BITABLE_COMPLETE_GUIDE.md)
 
-## 技术栈
+### 使用飞书多维表格
 
-- **前端**: React + TypeScript + TailwindCSS
-- **后端**: Node.js (Express) 或 Python (FastAPI)
-- **数据库**: PostgreSQL
-- **对象存储**: AWS S3 或其他云存储
-- **LLM 集成**: OpenAI API 或其他兼容 API
-- **编辑器核心**: Monaco Editor 或 CodeMirror
-- **Figma 集成**: Figma REST API
+1. 参考 [飞书多维表格完整指南](./lark-bitable/FEISHU_BITABLE_COMPLETE_GUIDE.md)
+2. 使用 `lark-bitable/bitable_agent.py` 脚本操作多维表格
+3. 查看 `lark-bitable/bitable_schema.json` 了解数据结构
 
-## 项目状态
+### 访问原项目代码
 
-🚀 **当前状态**: 文档体系 v4 已完成,MVP 开发准备就绪
+如需查看原项目的前端、后端、Web 等完整代码：
 
-## 开发计划
+```bash
+git checkout backup/full-original-project
+```
 
-| 阶段 | 主要任务 | 预计工时 | 状态 |
-| :--- | :--- | :--- | :--- |
-| 第零阶段 | **文档体系标准化 (v4)** | 已完成 | ✅ 已完成 |
-| 第一阶段 | 密码保护、项目管理、编辑器基础框架 | 1-2 周 | 📋 待开始 |
-| 第二阶段 | 四层文档结构、模板系统、手动关联 | 2 周 | 📋 待开始 |
-| 第三阶段 | 交互式示例、API 测试器 | 2 周 | 📋 待开始 |
-| 第四阶段 | **Figma 集成** | 2-3 周 | 📋 待开始 |
-| 第五阶段 | AI 功能集成 | 2-3 周 | 📋 待开始 |
-| 第六阶段 | 发布服务、静态网站生成 | 1-2 周 | 📋 待开始 |
-| 第七阶段 | 集成测试、优化与部署 | 1-2 周 | 📋 待开始 |
+## 🔗 相关链接
 
-## 快速开始
+- **GitHub 仓库**: [https://github.com/gdszyy/documind](https://github.com/gdszyy/documind)
+- **备份分支**: [https://github.com/gdszyy/documind/tree/backup/full-original-project](https://github.com/gdszyy/documind/tree/backup/full-original-project)
+- **Railway 项目**: （部署完成后添加）
+- **后端 API 服务**: （部署完成后添加）
 
-### 使用文档模板
+## 📝 项目状态
 
-1. 阅读 [v4 规范文档](./docs/standards/00-specification-v4.md)
-2. 选择合适的模板: [模块](./docs/templates/module-template.md) | [页面](./docs/templates/page-template.md) | [组件](./docs/templates/component-template-v4.md) | [API](./docs/templates/api-template.md)
-3. 复制模板并按照规范填写内容
+🚀 **当前状态**: 仓库重构完成，Railway 基础设施部署中
 
-### 从 Figma 自动生成文档
+### 已完成
 
-1. 确保设计师遵循 [Figma 命名规范](./docs/standards/01-figma-naming-convention.md)
-2. 参考 [自动化工作流指南](./docs/standards/02-automation-workflow-guide.md) 实施自动化流程
+- ✅ 原项目代码备份至 `backup/full-original-project` 分支
+- ✅ 主分支清理，仅保留 `docs/` 和 `lark-bitable/`
+- ✅ README 重写，说明新项目结构
 
-### 开发平台 (待完成)
+### 进行中
 
-(开发完成后将在此处添加安装和运行说明)
+- 🔄 Railway 平台基础设施部署（Neo4j, Qdrant, Redis）
+- 🔄 后端 API 服务框架搭建
 
-## 贡献指南
+### 待完成
 
-本项目目前处于 MVP 开发阶段,暂不接受外部贡献。
+- 📋 后端 API 开发
+- 📋 飞书多维表格深度集成
+- 📋 AI 功能集成
+- 📋 前端界面开发
 
-## 许可证
+## 📄 许可证
 
-(待定)
+（待定）
 
-## 联系方式
+## 📧 联系方式
 
-如有任何问题或建议,请通过 GitHub Issues 联系我们。
+如有任何问题或建议，请通过 GitHub Issues 联系我们。
 
 ---
 
-**由 Manus AI 设计和规划**
+**由 Manus AI 设计、规划和重构**
