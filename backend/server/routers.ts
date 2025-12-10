@@ -124,6 +124,18 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return db.getEntityRelationships(input.id);
       }),
+
+    // RAG语义搜索
+    search: publicProcedure
+      .input(
+        z.object({
+          query: z.string().min(1),
+          limit: z.number().min(1).max(50).default(10),
+        })
+      )
+      .query(async ({ input }) => {
+        return db.searchEntitiesByVector(input.query, input.limit);
+      }),
   }),
 
   graph: router({

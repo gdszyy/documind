@@ -2,11 +2,107 @@ import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
-import { sdk } from "./sdk";
+import axios from "axios";
+import { SignJWT } from "jose";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
   return typeof value === "string" ? value : undefined;
+}
+
+// 飞书OAuth配置
+const FEISHU_APP_ID = process.env.FEISHU_APP_ID || "";
+const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || "";
+const FEISHU_REDIRECT_URI = process.env.FEISHU_REDIRECT_URI || "";
+
+// 飞书API端点
+const FEISHU_AUTH_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize";
+const FEISHU_TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v1/access_token";
+const FEISHU_USERINFO_URL = "https://open.feishu.cn/open-apis/authen/v1/user_info";
+
+// 生成飞书授权URL
+export function getFeishuAuthUrl(state: string): string {
+  const params = new URLSearchParams({
+    app_id: FEISHU_APP_ID,
+    redirect_uri: FEISHU_REDIRECT_URI,
+    state: state,
+  });
+  return `${FEISHU_AUTH_URL}?${params.toString()}`;
+}
+
+// 用code换取access_token
+async function exchangeCodeForToken(code: string): Promise<string> {
+  try {
+    const response = await axios.post(
+      FEISHU_TOKEN_URL,
+      {
+        grant_type: "authorization_code",
+        code: code,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${FEISHU_APP_ID}:${FEISHU_APP_SECRET}`,
+        },
+      }
+    );
+
+    if (response.data.code !== 0) {
+      throw new Error(`Feishu token exchange failed: ${response.data.msg}`);
+    }
+
+    return response.data.data.access_token;
+  } catch (error) {
+    console.error("[Feishu OAuth] Token exchange failed:", error);
+    throw error;
+  }
+}
+
+// 获取用户信息
+async function getUserInfo(accessToken: string): Promise<{
+  openId: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+}> {
+  try {
+    const response = await axios.get(FEISHU_USERINFO_URL, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.data.code !== 0) {
+      throw new Error(`Feishu get user info failed: ${response.data.msg}`);
+    }
+
+    const userData = response.data.data;
+    return {
+      openId: userData.open_id,
+      name: userData.name,
+      email: userData.email,
+      mobile: userData.mobile,
+    };
+  } catch (error) {
+    console.error("[Feishu OAuth] Get user info failed:", error);
+    throw error;
+  }
+}
+
+// 创建session token
+async function createSessionToken(
+  openId: string,
+  options: { name: string; expiresInMs: number }
+): Promise<string> {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET || "default-secret-change-in-production");
+  
+  const token = await new SignJWT({ openId, name: options.name })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + options.expiresInMs / 1000)
+    .sign(secret);
+
+  return token;
 }
 
 export function registerOAuthRoutes(app: Express) {
@@ -20,34 +116,48 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
-      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
-      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      // 1. 用code换取access_token
+      const accessToken = await exchangeCodeForToken(code);
+
+      // 2. 用access_token获取用户信息
+      const userInfo = await getUserInfo(accessToken);
 
       if (!userInfo.openId) {
         res.status(400).json({ error: "openId missing from user info" });
         return;
       }
 
+      // 3. 存储用户信息到数据库
       await db.upsertUser({
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        loginMethod: "feishu",
         lastSignedIn: new Date(),
       });
 
-      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
+      // 4. 创建session token
+      const sessionToken = await createSessionToken(userInfo.openId, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
       });
 
+      // 5. 设置cookie
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
+      // 6. 重定向到首页
       res.redirect(302, "/");
     } catch (error) {
-      console.error("[OAuth] Callback failed", error);
+      console.error("[Feishu OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
     }
+  });
+
+  // 添加登录端点，用于生成授权URL
+  app.get("/api/oauth/login", (req: Request, res: Response) => {
+    const state = Math.random().toString(36).substring(2, 15);
+    const authUrl = getFeishuAuthUrl(state);
+    res.redirect(302, authUrl);
   });
 }

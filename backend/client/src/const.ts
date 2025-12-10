@@ -1,17 +1,23 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
-// Generate login URL at runtime so redirect URI reflects the current origin.
+// Generate Feishu OAuth login URL
 export const getLoginUrl = () => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
+  const feishuAppId = import.meta.env.VITE_FEISHU_APP_ID || "cli_a98e2f05eff89e1a";
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
-  const state = btoa(redirectUri);
+  
+  // Generate random state for CSRF protection
+  const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  
+  // Store state in sessionStorage for verification (optional)
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('oauth_state', state);
+  }
 
-  const url = new URL(`${oauthPortalUrl}/app-auth`);
-  url.searchParams.set("appId", appId);
-  url.searchParams.set("redirectUri", redirectUri);
+  // Construct Feishu OAuth URL
+  const url = new URL("https://open.feishu.cn/open-apis/authen/v1/authorize");
+  url.searchParams.set("app_id", feishuAppId);
+  url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
 
   return url.toString();
 };
