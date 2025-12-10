@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import healthRouter from './routes/health.js';
+import entityRoutes from './routes/entities.js';
+import graphRoutes from './routes/graph.js';
 import { connectNeo4j, disconnectNeo4j } from './config/neo4j.js';
 import { connectQdrant } from './config/qdrant.js';
 import { connectRedis, disconnectRedis } from './config/redis.js';
@@ -19,6 +21,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // 路由
 app.use('/health', healthRouter);
+app.use('/api/entities', entityRoutes);
+app.use('/api/graph', graphRoutes);
 
 // 根路由
 app.get('/', (req, res) => {

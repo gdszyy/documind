@@ -112,3 +112,66 @@ Once you push these new files to your GitHub repository, Railway will trigger a 
 
 **Written by Manus AI**
 _
+
+### Entity Management
+
+- **Endpoint**: `GET /api/entities`
+- **Description**: Retrieves a list of all entities, sorted by last updated time.
+- **Success Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": "...",
+      "name": "User Service",
+      "type": "Service",
+      "lark_doc_url": "https://fake-feishu.cn/docs/..."
+    }
+  ]
+  ```
+
+- **Endpoint**: `POST /api/entities`
+- **Description**: Creates a new entity and a corresponding (mock) Lark document.
+- **Request Body**:
+  ```json
+  {
+    "name": "Login API",
+    "type": "API",
+    "owner": "John Doe",
+    "description": "Handles user authentication.",
+    "status": "Development"
+  }
+  ```
+- **Success Response (201 Created)**:
+  ```json
+  {
+    "id": "...",
+    "name": "Login API",
+    "type": "API",
+    "lark_doc_url": "https://fake-feishu.cn/docs/..."
+  }
+  ```
+
+- **Endpoint**: `GET /api/entities/:id`
+- **Description**: Retrieves a single entity by its ID.
+
+- **Endpoint**: `PUT /api/entities/:id`
+- **Description**: Updates an existing entity.
+
+- **Endpoint**: `DELETE /api/entities/:id`
+- **Description**: Deletes an entity.
+
+### Knowledge Graph
+
+- **Endpoint**: `GET /api/graph`
+- **Description**: Retrieves the data needed to render the knowledge graph.
+- **Success Response (200 OK)**:
+  ```json
+  {
+    "nodes": [
+      { "id": "...", "label": "User Service" }
+    ],
+    "edges": [
+      { "source": "...", "target": "...", "label": "EXPOSES_API" }
+    ]
+  }
+  ```
