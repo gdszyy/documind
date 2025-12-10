@@ -37,17 +37,20 @@ async function exchangeCodeForToken(code: string): Promise<string> {
       FEISHU_TOKEN_URL,
       {
         grant_type: "authorization_code",
+        client_id: FEISHU_APP_ID,
+        client_secret: FEISHU_APP_SECRET,
         code: code,
+        redirect_uri: FEISHU_REDIRECT_URI,
       },
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${FEISHU_APP_ID}:${FEISHU_APP_SECRET}`,
         },
       }
     );
 
     if (response.data.code !== 0) {
+      console.error("[Feishu OAuth] Token exchange failed:", response.data);
       throw new Error(`Feishu token exchange failed: ${response.data.msg}`);
     }
 
