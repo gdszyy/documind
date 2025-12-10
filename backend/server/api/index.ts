@@ -6,7 +6,7 @@ import searchRouter from "./routes/search";
 import statsRouter from "./routes/stats";
 import healthRouter from "./routes/health";
 import importRouter from "./routes/import";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { errorHandler } from "./middleware/errorHandler";
 
 /**
  * 创建 REST API 路由器
@@ -44,10 +44,7 @@ export function createApiRouter() {
   router.use("/api/stats", statsRouter);
   router.use("/api/health", healthRouter);
 
-  // 404 处理
-  router.use(notFoundHandler);
-
-  // 错误处理
+  // 错误处理（只处理API路由的错误，不拦截其他路由）
   router.use(errorHandler);
 
   return router;
