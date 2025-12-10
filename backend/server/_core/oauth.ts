@@ -15,6 +15,12 @@ const FEISHU_APP_ID = process.env.FEISHU_APP_ID || "";
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || "";
 const FEISHU_REDIRECT_URI = process.env.FEISHU_REDIRECT_URI || "";
 
+// 启动时打印配置状态（隐藏敏感信息）
+console.log("[Feishu OAuth] Configuration loaded:");
+console.log(`  - FEISHU_APP_ID: ${FEISHU_APP_ID ? `${FEISHU_APP_ID.substring(0, 8)}...` : 'NOT SET'}`);
+console.log(`  - FEISHU_APP_SECRET: ${FEISHU_APP_SECRET ? '***SET***' : 'NOT SET'}`);
+console.log(`  - FEISHU_REDIRECT_URI: ${FEISHU_REDIRECT_URI || 'NOT SET'}`);
+
 // 飞书API端点
 const FEISHU_AUTH_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize";
 const FEISHU_TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v1/access_token";
@@ -33,6 +39,12 @@ export function getFeishuAuthUrl(state: string): string {
 // 用code换取access_token
 async function exchangeCodeForToken(code: string): Promise<string> {
   try {
+    console.log("[Feishu OAuth] Exchanging code for token...");
+    console.log(`  - client_id: ${FEISHU_APP_ID ? `${FEISHU_APP_ID.substring(0, 8)}...` : 'EMPTY'}`);
+    console.log(`  - client_secret: ${FEISHU_APP_SECRET ? '***SET***' : 'EMPTY'}`);
+    console.log(`  - redirect_uri: ${FEISHU_REDIRECT_URI || 'EMPTY'}`);
+    console.log(`  - code: ${code.substring(0, 10)}...`);
+
     const response = await axios.post(
       FEISHU_TOKEN_URL,
       {
