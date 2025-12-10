@@ -21,10 +21,13 @@ console.log(`  - FEISHU_APP_ID: ${FEISHU_APP_ID ? `${FEISHU_APP_ID.substring(0, 
 console.log(`  - FEISHU_APP_SECRET: ${FEISHU_APP_SECRET ? '***SET***' : 'NOT SET'}`);
 console.log(`  - FEISHU_REDIRECT_URI: ${FEISHU_REDIRECT_URI || 'NOT SET'}`);
 
-// 飞书API端点
-const FEISHU_AUTH_URL = "https://open.feishu.cn/open-apis/authen/v1/authorize";
-const FEISHU_TOKEN_URL = "https://open.feishu.cn/open-apis/authen/v1/access_token";
-const FEISHU_USERINFO_URL = "https://open.feishu.cn/open-apis/authen/v1/user_info";
+// Lark/飞书API端点（支持国际版和中国版）
+const API_BASE = process.env.LARK_API_BASE || "https://open.larksuite.com";
+const FEISHU_AUTH_URL = `${API_BASE}/open-apis/authen/v1/authorize`;
+const FEISHU_TOKEN_URL = `${API_BASE}/open-apis/authen/v1/access_token`;
+const FEISHU_USERINFO_URL = `${API_BASE}/open-apis/authen/v1/user_info`;
+
+console.log(`[OAuth] Using API base: ${API_BASE}`);
 
 // 生成飞书授权URL
 export function getFeishuAuthUrl(state: string): string {
