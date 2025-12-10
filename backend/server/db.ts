@@ -9,15 +9,40 @@ import * as qdrant from "./config/qdrant";
 import * as redis from "./config/redis";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _dbInitialized = false;
+
+// 初始化数据库连接并输出状态
+export async function initDatabase() {
+  if (_dbInitialized) {
+    return;
+  }
+  _dbInitialized = true;
+
+  console.log("[Database] Initializing database connection...");
+  
+  if (!process.env.DATABASE_URL) {
+    console.warn("[Database] DATABASE_URL not configured - running without database");
+    console.warn("[Database] User data will not be persisted");
+    console.warn("[Database] To enable database, set DATABASE_URL environment variable");
+    return;
+  }
+
+  try {
+    console.log("[Database] DATABASE_URL found, attempting connection...");
+    _db = drizzle(process.env.DATABASE_URL);
+    // 尝试执行一个简单查询来验证连接
+    await _db.select().from(users).limit(1);
+    console.log("[Database] ✅ Database connected successfully");
+  } catch (error) {
+    console.error("[Database] ❌ Failed to connect:", error);
+    console.warn("[Database] Running without database - user data will not be persisted");
+    _db = null;
+  }
+}
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (!_db && process.env.DATABASE_URL && !_dbInitialized) {
+    await initDatabase();
   }
   return _db;
 }
