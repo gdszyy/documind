@@ -24,7 +24,8 @@ console.log(`  - FEISHU_REDIRECT_URI: ${FEISHU_REDIRECT_URI || 'NOT SET'}`);
 // Lark/飞书API端点（支持国际版和中国版）
 const API_BASE = process.env.LARK_API_BASE || "https://open.larksuite.com";
 const FEISHU_AUTH_URL = `${API_BASE}/open-apis/authen/v1/authorize`;
-const FEISHU_TOKEN_URL = `${API_BASE}/open-apis/authen/v1/access_token`;
+// 注意：token端点使用v2版本
+const FEISHU_TOKEN_URL = `${API_BASE}/open-apis/authen/v2/oauth/token`;
 const FEISHU_USERINFO_URL = `${API_BASE}/open-apis/authen/v1/user_info`;
 
 console.log(`[OAuth] Using API base: ${API_BASE}`);
