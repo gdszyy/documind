@@ -67,14 +67,16 @@ async function exchangeCodeForToken(code: string): Promise<string> {
 
     console.log("[Feishu OAuth] Token response:", JSON.stringify(response.data, null, 2));
 
-    if (response.data.code !== 0) {
-      console.error("[Feishu OAuth] Token exchange failed:", response.data);
-      throw new Error(`Feishu token exchange failed: ${response.data.msg}`);
-    }
-
-    // 安全访问 access_token，添加详细的错误检查
-    const accessToken = response.data?.data?.access_token;
+    // 飞书 OAuth v2 API 返回扁平结构,直接在根级别包含 access_token
+    // 响应格式: { code: 0, access_token: "...", token_type: "Bearer", expires_in: 7200 }
+    const accessToken = response.data?.access_token;
+    
     if (!accessToken) {
+      // 检查是否有错误信息
+      if (response.data.code && response.data.code !== 0) {
+        console.error("[Feishu OAuth] Token exchange failed:", response.data);
+        throw new Error(`Feishu token exchange failed: ${response.data.msg || 'Unknown error'}`);
+      }
       console.error("[Feishu OAuth] access_token not found in response:", response.data);
       throw new Error("access_token not found in Feishu API response");
     }
