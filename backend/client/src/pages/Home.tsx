@@ -5,8 +5,8 @@ import { Link } from "wouter";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto py-16">
+    <div className="w-full">
+      <div className="container mx-auto py-8">
         {/* 页面标题 */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
