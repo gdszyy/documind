@@ -29,10 +29,6 @@ export function createApiRouter() {
     next();
   });
 
-  // JSON 解析
-  router.use(express.json());
-  router.use(express.urlencoded({ extended: true }));
-
   // 健康检查（独立路由，不在 /api 下）
   router.use("/health", healthRouter);
 
