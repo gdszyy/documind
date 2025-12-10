@@ -105,33 +105,75 @@ export async function batchCreateEntities(entities: Array<{
   documentUrl?: string;
   metadata?: Record<string, any>;
 }>) {
+  const db = await getDb();
   const results: Array<{ id: string; status: string; error?: string }> = [];
-  let successCount = 0;
-  let failedCount = 0;
+  const insertData: InsertDocumindEntity[] = [];
+  const entityIds: string[] = [];
 
+  // 预处理数据
   for (const entityData of entities) {
-    try {
-      const entity = await createEntity(entityData);
-      results.push({
-        id: entity!.entityId,
-        status: "created",
-      });
-      successCount++;
-    } catch (error: any) {
-      results.push({
-        id: entityData.id || "unknown",
-        status: "failed",
-        error: error.message,
-      });
-      failedCount++;
-    }
+    const entityId = entityData.id || `entity-${nanoid()}`;
+    entityIds.push(entityId);
+    
+    insertData.push({
+      entityId,
+      type: entityData.type,
+      title: entityData.title,
+      status: entityData.status || "active",
+      documentUrl: entityData.documentUrl || null,
+      metadata: serializeMetadata(entityData.metadata),
+    });
   }
 
-  return {
-    success_count: successCount,
-    failed_count: failedCount,
-    results,
-  };
+  try {
+    // 批量插入
+    await db.insert(documindEntities).values(insertData);
+    
+    // 所有插入成功
+    for (const entityId of entityIds) {
+      results.push({
+        id: entityId,
+        status: "created",
+      });
+    }
+
+    return {
+      success_count: entityIds.length,
+      failed_count: 0,
+      results,
+    };
+  } catch (error: any) {
+    // 如果批量插入失败，回退到逐个插入
+    console.error("Batch insert failed, falling back to individual inserts:", error.message);
+    
+    const fallbackResults: Array<{ id: string; status: string; error?: string }> = [];
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const entityData of entities) {
+      try {
+        const entity = await createEntity(entityData);
+        fallbackResults.push({
+          id: entity!.entityId,
+          status: "created",
+        });
+        successCount++;
+      } catch (error: any) {
+        fallbackResults.push({
+          id: entityData.id || "unknown",
+          status: "failed",
+          error: error.message,
+        });
+        failedCount++;
+      }
+    }
+
+    return {
+      success_count: successCount,
+      failed_count: failedCount,
+      results: fallbackResults,
+    };
+  }
 }
 
 /**

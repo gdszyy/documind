@@ -19,14 +19,12 @@ router.get("/", async (req, res, next) => {
       page_size: z.coerce.number().min(1).max(50).optional().default(10),
     });
 
-    const params = schema.parse(req.query);
-
-    if (!params.q) {
-      return badRequestResponse(res, "Search query is required", {
-        field: "q",
-        reason: "Query parameter 'q' is required",
-      });
+    const parseResult = schema.safeParse(req.query);
+    if (!parseResult.success) {
+      return badRequestResponse(res, "Invalid search parameters", parseResult.error.issues);
     }
+    
+    const params = parseResult.data;
 
     const result = await entityService.searchEntities(params);
 
