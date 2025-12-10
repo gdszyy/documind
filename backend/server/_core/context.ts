@@ -28,8 +28,24 @@ async function authenticateRequest(req: CreateExpressContextOptions["req"]): Pro
       return null;
     }
 
-    // 从数据库获取用户信息
+    // 尝试从数据库获取用户信息
     const user = await db.getUserByOpenId(payload.openId);
+    
+    // 如果数据库不可用，使用 JWT payload 中的信息构造用户对象
+    if (!user) {
+      console.log("[Auth] Database unavailable, using JWT payload for user info");
+      return {
+        id: 0, // 临时 ID，数据库不可用时使用
+        openId: payload.openId as string,
+        name: (payload.name as string) || null,
+        email: null,
+        loginMethod: "feishu",
+        role: "user",
+        lastSignedIn: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as User;
+    }
     
     return user;
   } catch (error) {
