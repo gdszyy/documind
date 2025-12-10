@@ -65,12 +65,22 @@ async function exchangeCodeForToken(code: string): Promise<string> {
       }
     );
 
+    console.log("[Feishu OAuth] Token response:", JSON.stringify(response.data, null, 2));
+
     if (response.data.code !== 0) {
       console.error("[Feishu OAuth] Token exchange failed:", response.data);
       throw new Error(`Feishu token exchange failed: ${response.data.msg}`);
     }
 
-    return response.data.data.access_token;
+    // 安全访问 access_token，添加详细的错误检查
+    const accessToken = response.data?.data?.access_token;
+    if (!accessToken) {
+      console.error("[Feishu OAuth] access_token not found in response:", response.data);
+      throw new Error("access_token not found in Feishu API response");
+    }
+
+    console.log("[Feishu OAuth] Token exchange successful");
+    return accessToken;
   } catch (error) {
     console.error("[Feishu OAuth] Token exchange failed:", error);
     throw error;
@@ -91,11 +101,19 @@ async function getUserInfo(accessToken: string): Promise<{
       },
     });
 
+    console.log("[Feishu OAuth] User info response:", JSON.stringify(response.data, null, 2));
+
     if (response.data.code !== 0) {
+      console.error("[Feishu OAuth] Get user info failed:", response.data);
       throw new Error(`Feishu get user info failed: ${response.data.msg}`);
     }
 
-    const userData = response.data.data;
+    const userData = response.data?.data;
+    if (!userData || !userData.open_id) {
+      console.error("[Feishu OAuth] Invalid user data in response:", response.data);
+      throw new Error("Invalid user data in Feishu API response");
+    }
+
     return {
       openId: userData.open_id,
       name: userData.name,
