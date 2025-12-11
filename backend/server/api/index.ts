@@ -7,6 +7,7 @@ import statsRouter from "./routes/stats";
 import healthRouter from "./routes/health";
 import importRouter from "./routes/import";
 import migrateRouter from "./routes/migrate";
+import linkerRouter from "./routes/linker";
 import { errorHandler } from "./middleware/errorHandler";
 
 /**
@@ -41,6 +42,7 @@ export function createApiRouter() {
   router.use("/api/stats", statsRouter);
   router.use("/api/health", healthRouter);
   router.use("/api/migrate", migrateRouter);
+  router.use("/api/linker", linkerRouter);
 
   // 错误处理（只处理API路由的错误，不拦截其他路由）
   router.use(errorHandler);
