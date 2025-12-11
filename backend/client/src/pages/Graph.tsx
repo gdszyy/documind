@@ -104,7 +104,14 @@ export default function Graph() {
       // 创建 Dagre 图实例
       const dagreGraph = new dagre.graphlib.Graph();
       dagreGraph.setDefaultEdgeLabel(() => ({}));
-      dagreGraph.setGraph({ rankdir: "TB", ranksep: 100, nodesep: 80 });
+      // 设置布局参数：增加节点间距和层间距以避免重叠
+      dagreGraph.setGraph({ 
+        rankdir: "TB",      // 从上到下布局
+        ranksep: 150,       // 层间距（增加到 150）
+        nodesep: 120,       // 节点间距（增加到 120）
+        marginx: 50,        // 水平边距
+        marginy: 50         // 垂直边距
+      });
 
       // 先创建节点数组
       const flowNodes: Node[] = data.nodes.map((entity) => ({
@@ -141,9 +148,9 @@ export default function Graph() {
         },
       }));
 
-      // 将节点添加到 Dagre 图中
+      // 将节点添加到 Dagre 图中，设置更大的节点尺寸以预留空间
       flowNodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: 150, height: 50 });
+        dagreGraph.setNode(node.id, { width: 200, height: 80 });
       });
 
       // 将边添加到 Dagre 图中
@@ -154,14 +161,14 @@ export default function Graph() {
       // 执行布局计算
       dagre.layout(dagreGraph);
 
-      // 更新节点位置
+      // 更新节点位置（根据新的节点尺寸调整偏移）
       const layoutedNodes = flowNodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         return {
           ...node,
           position: {
-            x: nodeWithPosition.x - 75, // 居中节点
-            y: nodeWithPosition.y - 25,
+            x: nodeWithPosition.x - 100, // 居中节点（200/2）
+            y: nodeWithPosition.y - 40,  // 居中节点（80/2）
           },
         };
       });
