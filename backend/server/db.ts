@@ -128,6 +128,7 @@ function mapTypeToDatabase(frontendType: string): string {
     'Component': 'component',
     'Page': 'page',
     'Document': 'document',
+    'Module': 'module',
   };
   
   return typeMapping[frontendType] || frontendType.toLowerCase();
@@ -272,7 +273,7 @@ function mapTypeToFrontend(dbType: string): string {
     'api': 'API',
     'component': 'Component',
     'page': 'Page',
-    'module': 'Component',  // module 映射为 Component
+    'module': 'Module',  // module 映射为 Module
   };
   
   const lowerType = dbType.toLowerCase();
