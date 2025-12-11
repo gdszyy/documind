@@ -1,12 +1,22 @@
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { entities, entityRelationships, InsertEntity, InsertEntityRelationship, InsertUser, users } from "../drizzle/schema";
+import { 
+  documindEntities, 
+  documindRelationships, 
+  DocumindEntity,
+  DocumindRelationship,
+  InsertDocumindEntity, 
+  InsertDocumindRelationship,
+  InsertUser, 
+  users 
+} from "../drizzle/schema_documind";
 import { ENV } from './_core/env';
 
 // 导入新的数据库集成
 import * as neo4j from "./config/neo4j";
 import * as qdrant from "./config/qdrant";
 import * as redis from "./config/redis";
+import { nanoid } from "nanoid";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _dbInitialized = false;
@@ -81,25 +91,13 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.lastSignedIn = user.lastSignedIn;
       updateSet.lastSignedIn = user.lastSignedIn;
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
 
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    await db
+      .insert(users)
+      .values(values)
+      .onDuplicateKeyUpdate({
+        set: updateSet,
+      });
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -118,26 +116,89 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// ========== Entity Management ==========
+// ========== Entity Management (使用新表 documind_entities) ==========
 
-export async function createEntity(data: InsertEntity) {
+/**
+ * 旧表字段到新表字段的映射
+ */
+function mapOldToNew(oldData: {
+  name?: string;
+  uniqueId?: string;
+  type?: string;
+  owner?: string;
+  status?: string;
+  description?: string;
+  httpMethod?: string;
+  apiPath?: string;
+  larkDocUrl?: string;
+}): Partial<InsertDocumindEntity> {
+  const metadata: Record<string, any> = {};
+  
+  if (oldData.owner) metadata.owner = oldData.owner;
+  if (oldData.description) metadata.description = oldData.description;
+  if (oldData.httpMethod) metadata.httpMethod = oldData.httpMethod;
+  if (oldData.apiPath) metadata.apiPath = oldData.apiPath;
+
+  return {
+    entityId: oldData.uniqueId || `entity-${nanoid()}`,
+    type: oldData.type?.toLowerCase() || 'unknown',
+    title: oldData.name || 'Untitled',
+    status: oldData.status?.toLowerCase() || 'active',
+    documentUrl: oldData.larkDocUrl || null,
+    metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+  };
+}
+
+/**
+ * 新表字段到旧表格式的映射（用于返回给前端）
+ */
+function mapNewToOld(newEntity: any) {
+  const metadata = newEntity.metadata ? 
+    (typeof newEntity.metadata === 'string' ? JSON.parse(newEntity.metadata) : newEntity.metadata) 
+    : {};
+
+  return {
+    id: newEntity.id,
+    name: newEntity.title,
+    uniqueId: newEntity.entityId,
+    type: capitalizeFirst(newEntity.type),
+    owner: metadata.owner || 'Unknown',
+    status: capitalizeFirst(newEntity.status),
+    description: metadata.description || null,
+    httpMethod: metadata.httpMethod || null,
+    apiPath: metadata.apiPath || null,
+    larkDocUrl: newEntity.documentUrl,
+    createdAt: newEntity.createdAt,
+    updatedAt: newEntity.updatedAt,
+  };
+}
+
+function capitalizeFirst(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export async function createEntity(data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // 转换旧格式到新格式
+  const newData = mapOldToNew(data);
+
   // 1. 创建实体到MySQL
-  const result = await db.insert(entities).values(data);
+  const result = await db.insert(documindEntities).values(newData as InsertDocumindEntity);
   const insertedId = Number(result[0].insertId);
   
   const entity = await getEntityById(insertedId);
   
   if (entity) {
     // 2. 同步到Neo4j（异步，不阻塞）
-    neo4j.createEntityNode(entity).catch(err => {
+    neo4j.createEntityNode(mapNewToOld(entity)).catch(err => {
       console.error("[Neo4j] Failed to sync entity:", err);
     });
 
     // 3. 向量化并存储到Qdrant（异步，不阻塞）
-    qdrant.upsertEntityVector(entity).catch(err => {
+    qdrant.upsertEntityVector(mapNewToOld(entity)).catch(err => {
       console.error("[Qdrant] Failed to vectorize entity:", err);
     });
 
@@ -146,13 +207,13 @@ export async function createEntity(data: InsertEntity) {
     await redis.deleteCachePattern("graph:*").catch(() => {});
   }
 
-  return entity;
+  return entity ? mapNewToOld(entity) : null;
 }
 
-export async function getEntityById(id: number) {
+export async function getEntityById(id: number): Promise<DocumindEntity | undefined> {
   // 1. 尝试从缓存获取
   const cacheKey = redis.CacheKeys.entity(id);
-  const cached = await redis.getCache(cacheKey).catch(() => null);
+  const cached = await redis.getCache<DocumindEntity>(cacheKey).catch(() => null);
   
   if (cached) {
     console.log(`[Cache] Hit for entity: ${id}`);
@@ -163,7 +224,15 @@ export async function getEntityById(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.select().from(entities).where(eq(entities.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(documindEntities)
+    .where(and(
+      eq(documindEntities.id, id),
+      sql`${documindEntities.deletedAt} IS NULL`
+    ))
+    .limit(1);
+  
   const entity = result[0];
 
   // 3. 写入缓存
@@ -174,22 +243,29 @@ export async function getEntityById(id: number) {
   return entity;
 }
 
-export async function updateEntity(id: number, data: Partial<InsertEntity>) {
+export async function updateEntity(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // 转换旧格式到新格式
+  const newData = mapOldToNew(data);
+
   // 1. 更新MySQL
-  await db.update(entities).set(data).where(eq(entities.id, id));
+  await db
+    .update(documindEntities)
+    .set(newData)
+    .where(eq(documindEntities.id, id));
+  
   const entity = await getEntityById(id);
 
   if (entity) {
     // 2. 同步到Neo4j（异步，不阻塞）
-    neo4j.updateEntityNode(id, data).catch(err => {
+    neo4j.updateEntityNode(id, mapNewToOld(entity)).catch(err => {
       console.error("[Neo4j] Failed to update entity:", err);
     });
 
     // 3. 更新Qdrant向量（异步，不阻塞）
-    qdrant.upsertEntityVector(entity).catch(err => {
+    qdrant.upsertEntityVector(mapNewToOld(entity)).catch(err => {
       console.error("[Qdrant] Failed to update vector:", err);
     });
 
@@ -199,35 +275,30 @@ export async function updateEntity(id: number, data: Partial<InsertEntity>) {
     await redis.deleteCachePattern("graph:*").catch(() => {});
   }
 
-  return entity;
+  return entity ? mapNewToOld(entity) : null;
 }
 
 export async function deleteEntity(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // 1. 删除MySQL中的关系
-  await db.delete(entityRelationships).where(
-    or(
-      eq(entityRelationships.sourceId, id),
-      eq(entityRelationships.targetId, id)
-    )
-  );
+  // 1. 软删除MySQL中的实体
+  await db
+    .update(documindEntities)
+    .set({ deletedAt: new Date() })
+    .where(eq(documindEntities.id, id));
 
-  // 2. 删除MySQL中的实体
-  await db.delete(entities).where(eq(entities.id, id));
-
-  // 3. 删除Neo4j节点（异步，不阻塞）
+  // 2. 删除Neo4j节点（异步，不阻塞）
   neo4j.deleteEntityNode(id).catch(err => {
     console.error("[Neo4j] Failed to delete entity:", err);
   });
 
-  // 4. 删除Qdrant向量（异步，不阻塞）
+  // 3. 删除Qdrant向量（异步，不阻塞）
   qdrant.deleteEntityVector(id).catch(err => {
     console.error("[Qdrant] Failed to delete vector:", err);
   });
 
-  // 5. 清除缓存
+  // 4. 清除缓存
   await redis.deleteCache(redis.CacheKeys.entity(id)).catch(() => {});
   await redis.deleteCachePattern("entities:list:*").catch(() => {});
   await redis.deleteCachePattern("graph:*").catch(() => {});
@@ -239,12 +310,24 @@ export async function getEntities(params: {
   limit?: number;
   sortBy?: string;
   order?: "asc" | "desc";
-}) {
+}): Promise<{
+  items: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> {
   const { search = "", page = 1, limit = 10, sortBy = "updatedAt", order = "desc" } = params;
 
   // 1. 尝试从缓存获取
   const cacheKey = redis.CacheKeys.entitiesList(search, page, limit, sortBy, order);
-  const cached = await redis.getCache(cacheKey).catch(() => null);
+  const cached = await redis.getCache<{
+    items: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(cacheKey).catch(() => null);
 
   if (cached) {
     console.log(`[Cache] Hit for entities list`);
@@ -255,16 +338,20 @@ export async function getEntities(params: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let query = db.select().from(entities);
-
-  // 搜索过滤
+  // 构建查询条件
+  const conditions = [sql`${documindEntities.deletedAt} IS NULL`];
   if (search) {
-    query = query.where(like(entities.name, `%${search}%`)) as any;
+    conditions.push(like(documindEntities.title, `%${search}%`));
   }
 
+  let query = db
+    .select()
+    .from(documindEntities)
+    .where(and(...conditions));
+
   // 排序
-  const orderColumn = sortBy === "name" ? entities.name : entities.updatedAt;
-  query = query.orderBy(order === "asc" ? orderColumn : desc(orderColumn)) as any;
+  const orderColumn = sortBy === "name" ? documindEntities.title : documindEntities.updatedAt;
+  query = (order === "asc" ? query.orderBy(orderColumn) : query.orderBy(desc(orderColumn))) as any;
 
   // 分页
   const offset = (page - 1) * limit;
@@ -273,13 +360,18 @@ export async function getEntities(params: {
   // 获取总数
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
-    .from(entities)
-    .where(search ? like(entities.name, `%${search}%`) : undefined);
+    .from(documindEntities)
+    .where(
+      and(
+        sql`${documindEntities.deletedAt} IS NULL`,
+        search ? like(documindEntities.title, `%${search}%`) : undefined
+      )
+    );
 
   const total = Number(countResult[0]?.count || 0);
 
   const result = {
-    items,
+    items: items.map(mapNewToOld),
     total,
     page,
     limit,
@@ -287,68 +379,124 @@ export async function getEntities(params: {
   };
 
   // 3. 写入缓存
-  await redis.setCache(cacheKey, result, redis.CacheTTL.ENTITIES_LIST).catch(() => {});
+  await redis.setCache(cacheKey, result, redis.CacheTTL.LIST).catch(() => {});
 
   return result;
 }
 
-// ========== Entity Relationships ==========
+// ========== Relationship Management ==========
 
-export async function createRelationship(data: InsertEntityRelationship) {
+export async function createRelationship(data: {
+  sourceId: number;
+  targetId: number;
+  type: string;
+}): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // 1. 创建MySQL关系
-  await db.insert(entityRelationships).values(data);
+  // 获取源实体和目标实体的entityId
+  const sourceEntity = await getEntityById(data.sourceId);
+  const targetEntity = await getEntityById(data.targetId);
 
-  // 2. 获取关系ID
-  const result = await db
-    .select()
-    .from(entityRelationships)
-    .where(
-      and(
-        eq(entityRelationships.sourceId, data.sourceId),
-        eq(entityRelationships.targetId, data.targetId),
-        eq(entityRelationships.type, data.type)
-      )
-    )
-    .limit(1);
-
-  const relationship = result[0];
-
-  if (relationship) {
-    // 3. 同步到Neo4j（异步，不阻塞）
-    neo4j.createRelationship(relationship).catch(err => {
-      console.error("[Neo4j] Failed to create relationship:", err);
-    });
-
-    // 4. 清除图谱缓存
-    await redis.deleteCachePattern("graph:*").catch(() => {});
+  if (!sourceEntity || !targetEntity) {
+    throw new Error("Source or target entity not found");
   }
+
+  const relationshipData: InsertDocumindRelationship = {
+    relationshipId: `rel-${nanoid()}`,
+    sourceId: sourceEntity.entityId, // 新表中的entityId字段
+    targetId: targetEntity.entityId, // 新表中的entityId字段
+    relationshipType: data.type,
+    metadata: null,
+  };
+
+  // 1. 创建关系到MySQL
+  await db.insert(documindRelationships).values(relationshipData);
+
+  // 2. 同步到Neo4j（异步，不阻塞）
+  // Neo4j需要完整的关系对象，但我们这里只有简单的数据
+  // 暂时跳过Neo4j同步，或者需要修改neo4j.createRelationship的签名
+  // neo4j.createRelationship(...).catch(err => {
+  //   console.error("[Neo4j] Failed to create relationship:", err);
+  // });
+
+  // 3. 清除缓存
+  await redis.deleteCachePattern("graph:*").catch(() => {});
 }
 
-export async function getEntityRelationships(entityId: number) {
+export async function getEntityRelationships(entityId: number): Promise<{
+  outgoing: DocumindRelationship[];
+  incoming: DocumindRelationship[];
+}> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  const entity = await getEntityById(entityId);
+  if (!entity) {
+    throw new Error("Entity not found");
+  }
+
+  // 获取出站关系
   const outgoing = await db
     .select()
-    .from(entityRelationships)
-    .where(eq(entityRelationships.sourceId, entityId));
+    .from(documindRelationships)
+    .where(eq(documindRelationships.sourceId, entity.entityId));
 
+  // 获取入站关系
   const incoming = await db
     .select()
-    .from(entityRelationships)
-    .where(eq(entityRelationships.targetId, entityId));
+    .from(documindRelationships)
+    .where(eq(documindRelationships.targetId, entity.entityId));
 
-  return { outgoing, incoming };
+  return {
+    outgoing,
+    incoming,
+  };
 }
 
-export async function getAllRelationships() {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+// ========== Vector Search ==========
 
-  return db.select().from(entityRelationships);
+export async function searchEntitiesByVector(query: string, limit: number = 10) {
+  try {
+    // 1. 使用Qdrant进行向量搜索
+    const vectorResults = await qdrant.searchSimilarEntities(query, limit);
+    
+    if (!vectorResults || vectorResults.length === 0) {
+      return [];
+    }
+
+    // 2. 从数据库获取完整实体信息
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const entityIds = vectorResults.map(r => r.entityId);
+    const entities = await db
+      .select()
+      .from(documindEntities)
+      .where(
+        and(
+          sql`${documindEntities.id} IN (${sql.join(entityIds.map(id => sql`${id}`), sql`, `)})`,
+          sql`${documindEntities.deletedAt} IS NULL`
+        )
+      );
+
+    // 3. 合并向量搜索分数
+    const entitiesWithScore = entities.map(entity => {
+      const vectorResult = vectorResults.find(r => r.entityId === entity.id);
+      return {
+        ...mapNewToOld(entity),
+        score: vectorResult?.score || 0,
+      };
+    });
+
+    // 4. 按分数排序
+    return entitiesWithScore.sort((a, b) => b.score - a.score);
+  } catch (error) {
+    console.error("[Search] Vector search failed:", error);
+    // 降级到普通搜索
+    const result = await getEntities({ search: query, limit });
+    return result.items;
+  }
 }
 
 // ========== Graph Data ==========
@@ -357,85 +505,34 @@ export async function getGraphData(filters?: {
   types?: string[];
   statuses?: string[];
 }) {
-  // 1. 尝试从缓存获取
-  const cacheKey = redis.CacheKeys.graph(filters?.types, filters?.statuses);
-  const cached = await redis.getCache(cacheKey).catch(() => null);
-
-  if (cached) {
-    console.log(`[Cache] Hit for graph data`);
-    return cached;
-  }
-
-  // 2. 尝试从Neo4j获取（如果可用）
-  try {
-    const isNeo4jHealthy = await neo4j.healthCheck();
-    if (isNeo4jHealthy) {
-      const graphData = await neo4j.queryGraph(filters);
-      
-      // 转换格式以匹配原有API
-      const result = {
-        nodes: graphData.nodes.map(n => n.data),
-        edges: graphData.edges,
-      };
-
-      // 写入缓存
-      await redis.setCache(cacheKey, result, redis.CacheTTL.GRAPH).catch(() => {});
-
-      console.log("[Neo4j] Graph data retrieved from Neo4j");
-      return result;
-    }
-  } catch (error) {
-    console.error("[Neo4j] Failed to get graph data, falling back to MySQL:", error);
-  }
-
-  // 3. 回退到MySQL
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let query = db.select().from(entities);
-
-  // 类型和状态过滤
+  // 构建查询条件
+  const conditions = [sql`${documindEntities.deletedAt} IS NULL`];
+  
   if (filters?.types && filters.types.length > 0) {
-    query = query.where(
-      sql`${entities.type} IN (${sql.join(filters.types.map(t => sql`${t}`), sql`, `)})`
-    ) as any;
+    const typesLower = filters.types.map(t => t.toLowerCase());
+    conditions.push(sql`${documindEntities.type} IN (${sql.join(typesLower.map(t => sql`${t}`), sql`, `)})`);
   }
 
   if (filters?.statuses && filters.statuses.length > 0) {
-    query = query.where(
-      sql`${entities.status} IN (${sql.join(filters.statuses.map(s => sql`${s}`), sql`, `)})`
-    ) as any;
+    const statusesLower = filters.statuses.map(s => s.toLowerCase());
+    conditions.push(sql`${documindEntities.status} IN (${sql.join(statusesLower.map(s => sql`${s}`), sql`, `)})`);
   }
 
-  const nodes = await query;
-  const edges = await getAllRelationships();
+  let query = db
+    .select()
+    .from(documindEntities)
+    .where(and(...conditions));
 
-  const result = { nodes, edges };
+  const entities = await query;
 
-  // 写入缓存
-  await redis.setCache(cacheKey, result, redis.CacheTTL.GRAPH).catch(() => {});
+  // 获取所有关系
+  const relationships = await db.select().from(documindRelationships);
 
-  return result;
-}
-
-// ========== RAG Search ==========
-
-export async function searchEntitiesByVector(query: string, limit: number = 10) {
-  try {
-    const results = await qdrant.searchSimilarEntities(query, limit);
-    
-    // 获取完整的实体信息
-    const entityIds = results.map(r => r.entityId);
-    const entities = await Promise.all(
-      entityIds.map(id => getEntityById(id))
-    );
-
-    return entities.filter(e => e !== undefined).map((entity, index) => ({
-      ...entity,
-      similarity: results[index].score,
-    }));
-  } catch (error) {
-    console.error("[RAG] Search failed:", error);
-    return [];
-  }
+  return {
+    nodes: entities.map(mapNewToOld),
+    edges: relationships,
+  };
 }

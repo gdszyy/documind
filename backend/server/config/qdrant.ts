@@ -1,6 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
-import type { Entity } from "../../../drizzle/schema";
+// 使用any类型，因为Entity类型已经在db.ts中转换
+type Entity = any;
 
 let qdrantClient: QdrantClient | null = null;
 let openaiClient: OpenAI | null = null;

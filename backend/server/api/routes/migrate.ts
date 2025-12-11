@@ -18,6 +18,10 @@ router.post("/", async (req, res) => {
 
     const connection = await mysql.createConnection(process.env.DATABASE_URL);
 
+    // 删除旧表（如果存在）
+    await connection.execute("DROP TABLE IF EXISTS `entity_relationships`").catch(() => {});
+    await connection.execute("DROP TABLE IF EXISTS `entities`").catch(() => {});
+
     // 创建 documind_entities 表
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS \`documind_entities\` (

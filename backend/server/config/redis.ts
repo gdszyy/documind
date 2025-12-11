@@ -138,6 +138,7 @@ export const CacheKeys = {
 // 缓存TTL配置（秒）
 export const CacheTTL = {
   ENTITIES_LIST: 300, // 5分钟
+  LIST: 300, // 5分钟 (别名)
   ENTITY: 600, // 10分钟
   GRAPH: 180, // 3分钟
   RELATIONSHIPS: 300, // 5分钟

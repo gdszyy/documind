@@ -1,5 +1,7 @@
 import neo4j, { Driver, Session } from "neo4j-driver";
-import type { Entity, EntityRelationship } from "../../../drizzle/schema";
+// 使用any类型，因为Entity类型已经在db.ts中转换
+type Entity = any;
+type EntityRelationship = any;
 
 let driver: Driver | null = null;
 
