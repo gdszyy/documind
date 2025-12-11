@@ -2,23 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import {
-  Background,
-  Controls,
-  MarkerType,
-  ReactFlow,
-  useEdgesState,
-  useNodesState,
-  type Edge,
-  type Node,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-import { ExternalLink, Loader2, Plus, X, Trash2 } from "lucide-react";
-import dagre from "dagre";
-import { useCallback, useEffect, useState } from "react";
+import { ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -37,6 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import * as echarts from "echarts";
+import type { EChartsOption } from "echarts";
 
 const typeColors = {
   Service: "#9333ea",
@@ -60,11 +50,10 @@ export default function Graph() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  const { data, isLoading, refetch } = trpc.graph.getData.useQuery({
+  const { data, isLoading } = trpc.graph.getData.useQuery({
     types: selectedTypes as any,
     statuses: selectedStatuses as any,
   });
@@ -98,88 +87,125 @@ export default function Graph() {
     }
   };
 
-  // 转换数据为 ReactFlow 格式并使用 Dagre 布局
+  // 初始化和更新 ECharts
   useEffect(() => {
-    if (data) {
-      // 创建 Dagre 图实例
-      const dagreGraph = new dagre.graphlib.Graph();
-      dagreGraph.setDefaultEdgeLabel(() => ({}));
-      // 设置布局参数：增加节点间距和层间距以避免重叠
-      dagreGraph.setGraph({ 
-        rankdir: "TB",      // 从上到下布局
-        ranksep: 150,       // 层间距（增加到 150）
-        nodesep: 120,       // 节点间距（增加到 120）
-        marginx: 50,        // 水平边距
-        marginy: 50         // 垂直边距
+    if (!chartRef.current || !data) return;
+
+    // 初始化 ECharts 实例
+    if (!chartInstanceRef.current) {
+      chartInstanceRef.current = echarts.init(chartRef.current);
+      
+      // 添加点击事件
+      chartInstanceRef.current.on("click", (params: any) => {
+        if (params.dataType === "node") {
+          setSelectedEntityId(parseInt(params.data.id));
+        }
       });
-
-      // 先创建节点数组
-      const flowNodes: Node[] = data.nodes.map((entity) => ({
-        id: entity.id.toString(),
-        type: "default",
-        data: {
-          label: (
-            <div className="flex items-center gap-2">
-              <span>{typeIcons[entity.type]}</span>
-              <span className="font-medium">{entity.name}</span>
-            </div>
-          ),
-        },
-        position: { x: 0, y: 0 }, // 初始位置，稍后由 Dagre 计算
-        style: {
-          background: typeColors[entity.type],
-          color: "white",
-          border: "2px solid white",
-          borderRadius: "8px",
-          padding: "10px",
-          minWidth: "150px",
-        },
-      }));
-
-      const flowEdges: Edge[] = data.edges.map((edge) => ({
-        id: `${edge.sourceId}-${edge.targetId}`,
-        source: edge.sourceId.toString(),
-        target: edge.targetId.toString(),
-        label: edge.type,
-        type: "smoothstep",
-        animated: true,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
-      }));
-
-      // 将节点添加到 Dagre 图中，设置更大的节点尺寸以预留空间
-      flowNodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: 200, height: 80 });
-      });
-
-      // 将边添加到 Dagre 图中
-      flowEdges.forEach((edge) => {
-        dagreGraph.setEdge(edge.source, edge.target);
-      });
-
-      // 执行布局计算
-      dagre.layout(dagreGraph);
-
-      // 更新节点位置（根据新的节点尺寸调整偏移）
-      const layoutedNodes = flowNodes.map((node) => {
-        const nodeWithPosition = dagreGraph.node(node.id);
-        return {
-          ...node,
-          position: {
-            x: nodeWithPosition.x - 100, // 居中节点（200/2）
-            y: nodeWithPosition.y - 40,  // 居中节点（80/2）
-          },
-        };
-      });
-
-      setNodes(layoutedNodes as any);
-      setEdges(flowEdges as any);
     }
-  }, [data, setNodes, setEdges]);
 
-  const handleNodeClick = useCallback((_: any, node: Node) => {
-    setSelectedEntityId(parseInt(node.id));
+    // 转换数据为 ECharts 格式
+    const nodes = data.nodes.map((entity) => ({
+      id: entity.id.toString(),
+      name: `${typeIcons[entity.type]} ${entity.name}`,
+      symbolSize: 60,
+      itemStyle: {
+        color: typeColors[entity.type],
+      },
+      label: {
+        show: true,
+        color: "#fff",
+        fontSize: 12,
+      },
+      // 存储原始数据用于点击事件
+      entityData: entity,
+    }));
+
+    const links = data.edges.map((edge) => ({
+      source: edge.sourceId.toString(),
+      target: edge.targetId.toString(),
+      label: {
+        show: true,
+        formatter: edge.type,
+        fontSize: 10,
+      },
+      lineStyle: {
+        curveness: 0.2,
+      },
+    }));
+
+    // 配置 ECharts 选项
+    const option: EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        formatter: (params: any) => {
+          if (params.dataType === "node") {
+            const entity = params.data.entityData;
+            return `
+              <div style="padding: 8px;">
+                <strong>${entity.name}</strong><br/>
+                类型: ${entity.type}<br/>
+                负责人: ${entity.owner}<br/>
+                状态: ${entity.status}
+              </div>
+            `;
+          }
+          return "";
+        },
+      },
+      series: [
+        {
+          type: "graph",
+          layout: "force",
+          data: nodes,
+          links: links,
+          roam: true, // 允许缩放和拖拽
+          draggable: true, // 允许拖拽节点
+          force: {
+            repulsion: 300, // 节点之间的斥力，值越大节点越分散
+            gravity: 0.1, // 节点受到的向中心的引力
+            edgeLength: 150, // 边的长度
+            layoutAnimation: true,
+          },
+          emphasis: {
+            focus: "adjacency", // 高亮相邻节点
+            lineStyle: {
+              width: 3,
+            },
+          },
+          lineStyle: {
+            color: "source",
+            curveness: 0.2,
+            width: 2,
+          },
+          edgeSymbol: ["none", "arrow"],
+          edgeSymbolSize: 8,
+          label: {
+            position: "inside",
+            fontSize: 12,
+          },
+        },
+      ],
+    };
+
+    chartInstanceRef.current.setOption(option);
+
+    // 窗口大小变化时重新调整图表
+    const handleResize = () => {
+      chartInstanceRef.current?.resize();
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [data]);
+
+  // 清理 ECharts 实例
+  useEffect(() => {
+    return () => {
+      chartInstanceRef.current?.dispose();
+      chartInstanceRef.current = null;
+    };
   }, []);
 
   const handleTypeToggle = (type: string) => {
@@ -269,17 +295,7 @@ export default function Graph() {
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         ) : (
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={handleNodeClick}
-            fitView
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+          <div ref={chartRef} className="w-full h-full" />
         )}
       </div>
 
