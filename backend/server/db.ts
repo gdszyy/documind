@@ -120,6 +120,7 @@ export async function getUserByOpenId(openId: string) {
 
 /**
  * 旧表字段到新表字段的映射
+ * 将前端/tRPC使用的旧格式转换为新的数据库格式
  */
 function mapOldToNew(oldData: {
   name?: string;
@@ -132,14 +133,23 @@ function mapOldToNew(oldData: {
   apiPath?: string;
   larkDocUrl?: string;
 }): Partial<InsertDocumindEntity> {
+  // 验证必需字段
+  if (!oldData.name) {
+    console.warn('[mapOldToNew] Missing required field: name');
+  }
+  if (!oldData.type) {
+    console.warn('[mapOldToNew] Missing required field: type');
+  }
+  
   const metadata: Record<string, any> = {};
   
-  if (oldData.owner) metadata.owner = oldData.owner;
-  if (oldData.description) metadata.description = oldData.description;
-  if (oldData.httpMethod) metadata.httpMethod = oldData.httpMethod;
-  if (oldData.apiPath) metadata.apiPath = oldData.apiPath;
+  // 将扩展字段放入metadata（只添加有值的字段）
+  if (oldData.owner !== undefined) metadata.owner = oldData.owner;
+  if (oldData.description !== undefined) metadata.description = oldData.description;
+  if (oldData.httpMethod !== undefined) metadata.httpMethod = oldData.httpMethod;
+  if (oldData.apiPath !== undefined) metadata.apiPath = oldData.apiPath;
 
-  return {
+  const result = {
     entityId: oldData.uniqueId || `entity-${nanoid()}`,
     type: oldData.type?.toLowerCase() || 'unknown',
     title: oldData.name || 'Untitled',
@@ -147,17 +157,37 @@ function mapOldToNew(oldData: {
     documentUrl: oldData.larkDocUrl || null,
     metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
   };
+  
+  console.log('[mapOldToNew] Mapping:', {
+    input: { name: oldData.name, uniqueId: oldData.uniqueId, type: oldData.type },
+    output: { title: result.title, entityId: result.entityId, type: result.type },
+    metadataFields: Object.keys(metadata),
+  });
+  
+  return result;
 }
 
 /**
- * 新表字段到旧表格式的映射（用于返回给前端）
+ * 新表字段到旧表格式的映射（用于返回给前端和同步到Neo4j/Qdrant）
+ * 将数据库的新格式转换回前端期望的旧格式
  */
 function mapNewToOld(newEntity: any) {
-  const metadata = newEntity.metadata ? 
-    (typeof newEntity.metadata === 'string' ? JSON.parse(newEntity.metadata) : newEntity.metadata) 
-    : {};
+  let metadata: Record<string, any> = {};
+  
+  // 安全解析metadata
+  if (newEntity.metadata) {
+    try {
+      metadata = typeof newEntity.metadata === 'string' 
+        ? JSON.parse(newEntity.metadata) 
+        : newEntity.metadata;
+    } catch (error) {
+      console.error('[mapNewToOld] Failed to parse metadata:', error);
+      console.error('[mapNewToOld] Raw metadata:', newEntity.metadata);
+      metadata = {};
+    }
+  }
 
-  return {
+  const result = {
     id: newEntity.id,
     name: newEntity.title,
     uniqueId: newEntity.entityId,
@@ -171,40 +201,99 @@ function mapNewToOld(newEntity: any) {
     createdAt: newEntity.createdAt,
     updatedAt: newEntity.updatedAt,
   };
+  
+  // 验证关键字段
+  if (!result.name || !result.uniqueId || !result.type) {
+    console.error('[mapNewToOld] Missing critical fields:', {
+      name: result.name,
+      uniqueId: result.uniqueId,
+      type: result.type,
+    });
+  }
+  
+  return result;
 }
 
 function capitalizeFirst(str: string): string {
   if (!str) return str;
+  
+  // 特殊类型处理：全大写的类型
+  const specialTypes: Record<string, string> = {
+    'api': 'API',
+    'ui': 'UI',
+    'id': 'ID',
+  };
+  
+  const lowerStr = str.toLowerCase();
+  if (specialTypes[lowerStr]) {
+    return specialTypes[lowerStr];
+  }
+  
+  // 默认：首字母大写
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export async function createEntity(data: any) {
+  console.log('[createEntity] Starting entity creation:', {
+    name: data.name,
+    uniqueId: data.uniqueId,
+    type: data.type,
+  });
+  
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   // 转换旧格式到新格式
   const newData = mapOldToNew(data);
+  console.log('[createEntity] Converted to new format:', newData);
 
   // 1. 创建实体到MySQL
   const result = await db.insert(documindEntities).values(newData as InsertDocumindEntity);
   const insertedId = Number(result[0].insertId);
+  console.log('[createEntity] Inserted into MySQL with ID:', insertedId);
   
   const entity = await getEntityById(insertedId);
   
   if (entity) {
+    // 转换为旧格式用于同步
+    const oldFormatEntity = mapNewToOld(entity);
+    console.log('[createEntity] Converted back to old format for sync:', {
+      id: oldFormatEntity.id,
+      name: oldFormatEntity.name,
+      uniqueId: oldFormatEntity.uniqueId,
+      type: oldFormatEntity.type,
+      owner: oldFormatEntity.owner,
+    });
+    
+    // 验证必需字段
+    if (!oldFormatEntity.name || !oldFormatEntity.uniqueId || !oldFormatEntity.type) {
+      console.error('[createEntity] Invalid entity format for sync:', oldFormatEntity);
+      throw new Error('Entity missing required fields for sync');
+    }
+    
     // 2. 同步到Neo4j（异步，不阻塞）
-    neo4j.createEntityNode(mapNewToOld(entity)).catch(err => {
-      console.error("[Neo4j] Failed to sync entity:", err);
+    console.log('[createEntity] Syncing to Neo4j...');
+    neo4j.createEntityNode(oldFormatEntity).then(() => {
+      console.log('[createEntity] ✓ Neo4j sync successful for entity:', oldFormatEntity.id);
+    }).catch(err => {
+      console.error("[createEntity] ✗ Neo4j sync failed:", err);
+      // TODO: 添加到失败队列进行重试
     });
 
     // 3. 向量化并存储到Qdrant（异步，不阻塞）
-    qdrant.upsertEntityVector(mapNewToOld(entity)).catch(err => {
-      console.error("[Qdrant] Failed to vectorize entity:", err);
+    console.log('[createEntity] Syncing to Qdrant...');
+    qdrant.upsertEntityVector(oldFormatEntity).then(() => {
+      console.log('[createEntity] ✓ Qdrant sync successful for entity:', oldFormatEntity.id);
+    }).catch(err => {
+      console.error("[createEntity] ✗ Qdrant sync failed:", err);
+      // TODO: 添加到失败队列进行重试
     });
 
     // 4. 清除相关缓存
     await redis.deleteCachePattern("entities:list:*").catch(() => {});
     await redis.deleteCachePattern("graph:*").catch(() => {});
+    
+    console.log('[createEntity] Entity creation completed:', oldFormatEntity.id);
   }
 
   return entity ? mapNewToOld(entity) : null;
@@ -244,35 +333,57 @@ export async function getEntityById(id: number): Promise<DocumindEntity | undefi
 }
 
 export async function updateEntity(id: number, data: any) {
+  console.log('[updateEntity] Starting entity update:', {
+    id,
+    fields: Object.keys(data),
+  });
+  
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   // 转换旧格式到新格式
   const newData = mapOldToNew(data);
+  console.log('[updateEntity] Converted to new format:', newData);
 
   // 1. 更新MySQL
   await db
     .update(documindEntities)
     .set(newData)
     .where(eq(documindEntities.id, id));
+  console.log('[updateEntity] Updated in MySQL');
   
   const entity = await getEntityById(id);
 
   if (entity) {
+    const oldFormatEntity = mapNewToOld(entity);
+    console.log('[updateEntity] Converted back to old format:', {
+      id: oldFormatEntity.id,
+      name: oldFormatEntity.name,
+      uniqueId: oldFormatEntity.uniqueId,
+    });
+    
     // 2. 同步到Neo4j（异步，不阻塞）
-    neo4j.updateEntityNode(id, mapNewToOld(entity)).catch(err => {
-      console.error("[Neo4j] Failed to update entity:", err);
+    console.log('[updateEntity] Syncing to Neo4j...');
+    neo4j.updateEntityNode(id, oldFormatEntity).then(() => {
+      console.log('[updateEntity] ✓ Neo4j sync successful');
+    }).catch(err => {
+      console.error("[updateEntity] ✗ Neo4j sync failed:", err);
     });
 
     // 3. 更新Qdrant向量（异步，不阻塞）
-    qdrant.upsertEntityVector(mapNewToOld(entity)).catch(err => {
-      console.error("[Qdrant] Failed to update vector:", err);
+    console.log('[updateEntity] Syncing to Qdrant...');
+    qdrant.upsertEntityVector(oldFormatEntity).then(() => {
+      console.log('[updateEntity] ✓ Qdrant sync successful');
+    }).catch(err => {
+      console.error("[updateEntity] ✗ Qdrant sync failed:", err);
     });
 
     // 4. 清除缓存
     await redis.deleteCache(redis.CacheKeys.entity(id)).catch(() => {});
     await redis.deleteCachePattern("entities:list:*").catch(() => {});
     await redis.deleteCachePattern("graph:*").catch(() => {});
+    
+    console.log('[updateEntity] Entity update completed:', id);
   }
 
   return entity ? mapNewToOld(entity) : null;
