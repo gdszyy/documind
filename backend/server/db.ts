@@ -756,15 +756,21 @@ export async function getGraphData(filters?: {
   const entities = await query;
   const entitiesOldFormat = entities.map(mapNewToOld);
 
+  // 获取所有实体（不应用过滤条件），用于关系映射
+  // 这样可以确保关系的源和目标实体都能被找到
+  const allEntities = await db.select().from(documindEntities)
+    .where(sql`${documindEntities.deletedAt} IS NULL`);
+  const allEntitiesOldFormat = allEntities.map(mapNewToOld);
+
   // 获取所有关系
   const relationships = await db.select().from(documindRelationships);
 
   // 将关系数据转换为前端期望的格式
   // 数据库存储的是 entityId (字符串)，前端期望的是数字 id
   const edgesWithNumericIds = relationships.map(rel => {
-    // 从 entityId 找到对应的数字 id
-    const sourceEntity = entitiesOldFormat.find(e => e.uniqueId === rel.sourceId);
-    const targetEntity = entitiesOldFormat.find(e => e.uniqueId === rel.targetId);
+    // 从所有实体中查找，而不是只从过滤后的实体中查找
+    const sourceEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.sourceId);
+    const targetEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.targetId);
     
     return {
       sourceId: sourceEntity?.id,
@@ -773,8 +779,14 @@ export async function getGraphData(filters?: {
     };
   }).filter(edge => edge.sourceId && edge.targetId);
 
+  // 只返回与当前过滤实体相关的边（源或目标在过滤结果中）
+  const filteredEntityIds = new Set(entitiesOldFormat.map(e => e.id));
+  const filteredEdges = edgesWithNumericIds.filter(edge => 
+    filteredEntityIds.has(edge.sourceId) || filteredEntityIds.has(edge.targetId)
+  );
+
   return {
     nodes: entitiesOldFormat,
-    edges: edgesWithNumericIds,
+    edges: filteredEdges,
   };
 }
