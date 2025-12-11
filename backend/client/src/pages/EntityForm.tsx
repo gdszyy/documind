@@ -24,14 +24,14 @@ export default function EntityForm() {
 
   // 从 URL 参数获取预填充信息
   const searchParams = new URLSearchParams(window.location.search);
-  const prefilledType = searchParams.get("type") as "Service" | "API" | "Component" | "Page" | null;
+  const prefilledType = searchParams.get("type") as "Service" | "API" | "Component" | "Page" | "Document" | null;
   const relatedToId = searchParams.get("relatedTo") ? parseInt(searchParams.get("relatedTo")!) : undefined;
   const relationshipType = searchParams.get("relationshipType") as "EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS" | null;
 
   const [formData, setFormData] = useState({
     name: "",
     uniqueId: "",
-    type: prefilledType || ("Service" as "Service" | "API" | "Component" | "Page"),
+    type: prefilledType || ("Service" as "Service" | "API" | "Component" | "Page" | "Document"),
     owner: "",
     status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
     description: "",
@@ -188,6 +188,7 @@ export default function EntityForm() {
                       <SelectItem value="API">API</SelectItem>
                       <SelectItem value="Component">组件</SelectItem>
                       <SelectItem value="Page">页面</SelectItem>
+                      <SelectItem value="Document">说明文档</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

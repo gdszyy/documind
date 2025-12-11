@@ -26,6 +26,7 @@ const typeColors = {
   API: "bg-orange-100 text-orange-800",
   Component: "bg-cyan-100 text-cyan-800",
   Page: "bg-pink-100 text-pink-800",
+  Document: "bg-blue-100 text-blue-800",
 };
 
 export default function Entities() {

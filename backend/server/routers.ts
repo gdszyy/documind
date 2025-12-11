@@ -52,7 +52,7 @@ export const appRouter = router({
         z.object({
           name: z.string().min(1),
           uniqueId: z.string().min(1),
-          type: z.enum(["Service", "API", "Component", "Page"]),
+          type: z.enum(["Service", "API", "Component", "Page", "Document"]),
           owner: z.string().min(1),
           status: z.enum(["Development", "Testing", "Production", "Deprecated"]),
           description: z.string().optional(),
@@ -97,7 +97,7 @@ export const appRouter = router({
           id: z.number(),
           name: z.string().min(1).optional(),
           uniqueId: z.string().min(1).optional(),
-          type: z.enum(["Service", "API", "Component", "Page"]).optional(),
+          type: z.enum(["Service", "API", "Component", "Page", "Document"]).optional(),
           owner: z.string().min(1).optional(),
           status: z.enum(["Development", "Testing", "Production", "Deprecated"]).optional(),
           description: z.string().optional(),
@@ -143,7 +143,7 @@ export const appRouter = router({
     getData: publicProcedure
       .input(
         z.object({
-          types: z.array(z.enum(["Service", "API", "Component", "Page"])).optional(),
+          types: z.array(z.enum(["Service", "API", "Component", "Page", "Document"])).optional(),
           statuses: z.array(z.enum(["Development", "Testing", "Production", "Deprecated"])).optional(),
         })
       )
