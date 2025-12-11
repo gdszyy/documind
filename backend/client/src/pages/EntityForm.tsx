@@ -176,6 +176,7 @@ export default function EntityForm() {
                     类型 <span className="text-red-500">*</span>
                   </Label>
                   <Select
+                    key={`type-${formData.type}`}
                     value={formData.type}
                     onValueChange={(value: any) => setFormData({ ...formData, type: value })}
                   >
@@ -215,6 +216,7 @@ export default function EntityForm() {
                         HTTP 方法 <span className="text-red-500">*</span>
                       </Label>
                       <Select
+                        key={`httpMethod-${formData.httpMethod}`}
                         value={formData.httpMethod}
                         onValueChange={(value: any) => setFormData({ ...formData, httpMethod: value })}
                       >
@@ -253,6 +255,7 @@ export default function EntityForm() {
                   状态 <span className="text-red-500">*</span>
                 </Label>
                 <Select
+                  key={`status-${formData.status}`}
                   value={formData.status}
                   onValueChange={(value: any) => setFormData({ ...formData, status: value })}
                 >
