@@ -242,9 +242,21 @@ export async function getUserSettings(userId: string): Promise<LinkerUserSetting
 
   const settingsData = settings[0];
 
+  // settings 字段是 text 类型，Drizzle 会自动返回字符串
+  let parsedSettings = {};
+  if (settingsData.settings) {
+    try {
+      parsedSettings = typeof settingsData.settings === 'string' 
+        ? JSON.parse(settingsData.settings)
+        : settingsData.settings;
+    } catch (error) {
+      console.error('[getUserSettings] Failed to parse settings:', error);
+    }
+  }
+  
   return {
     userId: settingsData.userId,
-    settings: settingsData.settings ? JSON.parse(settingsData.settings) : {},
+    settings: parsedSettings,
     updatedAt: settingsData.updatedAt,
   };
 }
