@@ -143,7 +143,7 @@ export const appRouter = router({
     getData: publicProcedure
       .input(
         z.object({
-          types: z.array(z.enum(["Service", "API", "Component", "Page", "Document"])).optional(),
+          types: z.array(z.enum(["Service", "API", "Component", "Page", "Document", "Module"])).optional(),
           statuses: z.array(z.enum(["Development", "Testing", "Production", "Deprecated"])).optional(),
         })
       )
