@@ -255,8 +255,8 @@ export async function createEntity(data: any) {
   const entity = await getEntityById(insertedId);
   
   if (entity) {
-    // 转换为旧格式用于同步
-    const oldFormatEntity = mapNewToOld(entity);
+    // entity 已经是转换后的旧格式，直接使用
+    const oldFormatEntity = entity;
     console.log('[createEntity] Converted back to old format for sync:', {
       id: oldFormatEntity.id,
       name: oldFormatEntity.name,
@@ -320,13 +320,13 @@ export async function createEntity(data: any) {
     console.log('[createEntity] Entity creation completed:', oldFormatEntity.id);
   }
 
-  return entity ? mapNewToOld(entity) : null;
+  return entity; // entity 已经是转换后的旧格式
 }
 
-export async function getEntityById(id: number): Promise<DocumindEntity | undefined> {
+export async function getEntityById(id: number): Promise<any | undefined> {
   // 1. 尝试从缓存获取
   const cacheKey = redis.CacheKeys.entity(id);
-  const cached = await redis.getCache<DocumindEntity>(cacheKey).catch(() => null);
+  const cached = await redis.getCache<any>(cacheKey).catch(() => null);
   
   if (cached) {
     console.log(`[Cache] Hit for entity: ${id}`);
@@ -348,12 +348,15 @@ export async function getEntityById(id: number): Promise<DocumindEntity | undefi
   
   const entity = result[0];
 
-  // 3. 写入缓存
-  if (entity) {
-    await redis.setCache(cacheKey, entity, redis.CacheTTL.ENTITY).catch(() => {});
+  // 转换为前端期望的旧格式
+  const oldFormatEntity = entity ? mapNewToOld(entity) : undefined;
+
+  // 3. 写入缓存（缓存转换后的格式）
+  if (oldFormatEntity) {
+    await redis.setCache(cacheKey, oldFormatEntity, redis.CacheTTL.ENTITY).catch(() => {});
   }
 
-  return entity;
+  return oldFormatEntity;
 }
 
 export async function updateEntity(id: number, data: any) {
@@ -379,7 +382,8 @@ export async function updateEntity(id: number, data: any) {
   const entity = await getEntityById(id);
 
   if (entity) {
-    const oldFormatEntity = mapNewToOld(entity);
+    // entity 已经是转换后的旧格式，直接使用
+    const oldFormatEntity = entity;
     console.log('[updateEntity] Converted back to old format:', {
       id: oldFormatEntity.id,
       name: oldFormatEntity.name,
@@ -432,7 +436,7 @@ export async function updateEntity(id: number, data: any) {
     console.log('[updateEntity] Entity update completed:', id);
   }
 
-  return entity ? mapNewToOld(entity) : null;
+  return entity; // entity 已经是转换后的旧格式
 }
 
 export async function deleteEntity(id: number) {
@@ -561,8 +565,8 @@ export async function createRelationship(data: {
 
   const relationshipData: InsertDocumindRelationship = {
     relationshipId: `rel-${nanoid()}`,
-    sourceId: sourceEntity.entityId, // 新表中的entityId字段
-    targetId: targetEntity.entityId, // 新表中的entityId字段
+    sourceId: sourceEntity.uniqueId, // 使用转换后的uniqueId字段
+    targetId: targetEntity.uniqueId, // 使用转换后的uniqueId字段
     relationshipType: data.type,
     metadata: null,
   };
