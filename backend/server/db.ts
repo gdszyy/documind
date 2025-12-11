@@ -736,13 +736,15 @@ export async function getGraphData(filters?: {
   const conditions = [sql`${documindEntities.deletedAt} IS NULL`];
   
   if (filters?.types && filters.types.length > 0) {
-    const typesLower = filters.types.map(t => t.toLowerCase());
-    conditions.push(sql`${documindEntities.type} IN (${sql.join(typesLower.map(t => sql`${t}`), sql`, `)})`);
+    // 使用正确的类型映射
+    const typesDb = filters.types.map(t => mapTypeToDatabase(t));
+    conditions.push(sql`${documindEntities.type} IN (${sql.join(typesDb.map(t => sql`${t}`), sql`, `)})`);
   }
 
   if (filters?.statuses && filters.statuses.length > 0) {
-    const statusesLower = filters.statuses.map(s => s.toLowerCase());
-    conditions.push(sql`${documindEntities.status} IN (${sql.join(statusesLower.map(s => sql`${s}`), sql`, `)})`);
+    // 使用正确的状态映射
+    const statusesDb = filters.statuses.map(s => mapStatusToDatabase(s));
+    conditions.push(sql`${documindEntities.status} IN (${sql.join(statusesDb.map(s => sql`${s}`), sql`, `)})`);
   }
 
   let query = db
@@ -751,12 +753,27 @@ export async function getGraphData(filters?: {
     .where(and(...conditions));
 
   const entities = await query;
+  const entitiesOldFormat = entities.map(mapNewToOld);
 
   // 获取所有关系
   const relationships = await db.select().from(documindRelationships);
 
+  // 将关系数据转换为前端期望的格式
+  // 数据库存储的是 entityId (字符串)，前端期望的是数字 id
+  const edgesWithNumericIds = relationships.map(rel => {
+    // 从 entityId 找到对应的数字 id
+    const sourceEntity = entitiesOldFormat.find(e => e.uniqueId === rel.sourceId);
+    const targetEntity = entitiesOldFormat.find(e => e.uniqueId === rel.targetId);
+    
+    return {
+      sourceId: sourceEntity?.id,
+      targetId: targetEntity?.id,
+      type: rel.relationshipType,
+    };
+  }).filter(edge => edge.sourceId && edge.targetId);
+
   return {
-    nodes: entities.map(mapNewToOld),
-    edges: relationships,
+    nodes: entitiesOldFormat,
+    edges: edgesWithNumericIds,
   };
 }
