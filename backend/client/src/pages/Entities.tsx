@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Plus, Search, Trash2, Network, FileText, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,7 @@ export default function Entities() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
+  const [viewDocUrl, setViewDocUrl] = useState<string | null>(null);
   const limit = 10;
 
   const { data, isLoading } = trpc.entities.list.useQuery({
@@ -78,7 +79,30 @@ export default function Entities() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* 内嵌文档查看器 */}
+      {viewDocUrl && (
+        <div className="w-1/2 border-r bg-white flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-semibold">文档预览</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewDocUrl(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <iframe
+            src={viewDocUrl}
+            className="flex-1 w-full"
+            title="飞书文档"
+          />
+        </div>
+      )}
+
+      {/* 主内容区域 */}
+      <div className={`min-h-screen bg-gray-50 ${viewDocUrl ? 'w-1/2' : 'flex-1'}`}>
       <div className="container mx-auto py-8">
         {/* 页面标题 */}
         <div className="mb-8">
@@ -98,12 +122,20 @@ export default function Entities() {
                 className="pl-10"
               />
             </div>
-            <Link href="/entities/new">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                创建新实体
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/graph">
+                <Button variant="outline">
+                  <Network className="h-4 w-4 mr-2" />
+                  知识图谱
+                </Button>
+              </Link>
+              <Link href="/entities/new">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  创建新实体
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -146,6 +178,16 @@ export default function Entities() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {entity.larkDocUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setViewDocUrl(entity.larkDocUrl!)}
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              查看文档
+                            </Button>
+                          )}
                           <Link href={`/entities/${entity.id}/edit`}>
                             <Button variant="ghost" size="sm">
                               编辑
@@ -202,6 +244,7 @@ export default function Entities() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* 删除确认对话框 */}

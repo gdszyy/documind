@@ -14,6 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ExternalLink, Loader2, Plus, X, Trash2 } from "lucide-react";
+import dagre from "dagre";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -97,10 +98,16 @@ export default function Graph() {
     }
   };
 
-  // 转换数据为 ReactFlow 格式
+  // 转换数据为 ReactFlow 格式并使用 Dagre 布局
   useEffect(() => {
     if (data) {
-      const flowNodes: Node[] = data.nodes.map((entity, index) => ({
+      // 创建 Dagre 图实例
+      const dagreGraph = new dagre.graphlib.Graph();
+      dagreGraph.setDefaultEdgeLabel(() => ({}));
+      dagreGraph.setGraph({ rankdir: "TB", ranksep: 100, nodesep: 80 });
+
+      // 先创建节点数组
+      const flowNodes: Node[] = data.nodes.map((entity) => ({
         id: entity.id.toString(),
         type: "default",
         data: {
@@ -111,7 +118,7 @@ export default function Graph() {
             </div>
           ),
         },
-        position: { x: (index % 5) * 250, y: Math.floor(index / 5) * 150 },
+        position: { x: 0, y: 0 }, // 初始位置，稍后由 Dagre 计算
         style: {
           background: typeColors[entity.type],
           color: "white",
@@ -134,7 +141,32 @@ export default function Graph() {
         },
       }));
 
-      setNodes(flowNodes as any);
+      // 将节点添加到 Dagre 图中
+      flowNodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { width: 150, height: 50 });
+      });
+
+      // 将边添加到 Dagre 图中
+      flowEdges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target);
+      });
+
+      // 执行布局计算
+      dagre.layout(dagreGraph);
+
+      // 更新节点位置
+      const layoutedNodes = flowNodes.map((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        return {
+          ...node,
+          position: {
+            x: nodeWithPosition.x - 75, // 居中节点
+            y: nodeWithPosition.y - 25,
+          },
+        };
+      });
+
+      setNodes(layoutedNodes as any);
       setEdges(flowEdges as any);
     }
   }, [data, setNodes, setEdges]);
@@ -245,24 +277,15 @@ export default function Graph() {
       </div>
 
       {/* 侧边信息面板 */}
-      <Sheet open={!!selectedEntityId} onOpenChange={(open) => !open && setSelectedEntityId(null)}>
-        <SheetContent className="w-[400px] overflow-y-auto">
+      <Sheet modal={false} open={!!selectedEntityId} onOpenChange={(open) => !open && setSelectedEntityId(null)}>
+        <SheetContent className="w-[400px] overflow-y-auto" hideCloseButton showOverlay={false}>
           {selectedEntity && (
             <>
               <SheetHeader>
-                <div className="flex items-center justify-between">
-                  <SheetTitle className="flex items-center gap-2">
-                    <span className="text-2xl">{typeIcons[selectedEntity.type]}</span>
-                    {selectedEntity.name}
-                  </SheetTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSelectedEntityId(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                <SheetTitle className="flex items-center gap-2">
+                  <span className="text-2xl">{typeIcons[selectedEntity.type]}</span>
+                  {selectedEntity.name}
+                </SheetTitle>
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
@@ -320,10 +343,24 @@ export default function Graph() {
                       <>
                         {relationships.outgoing.length > 0 && (
                           <div>
-                            <Label className="text-sm text-gray-500">关联实体</Label>
+                            <Label className="text-sm text-gray-500">依赖的实体（传出）</Label>
                             <ul className="mt-1 text-sm space-y-1">
                               {relationships.outgoing.map((rel) => (
-                                <li key={rel.id}>• {rel.type}</li>
+                                <li key={rel.id} className="text-gray-700">
+                                  • {rel.type} → 目标ID: {rel.targetId}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {relationships.incoming.length > 0 && (
+                          <div>
+                            <Label className="text-sm text-gray-500">被依赖的实体（传入）</Label>
+                            <ul className="mt-1 text-sm space-y-1">
+                              {relationships.incoming.map((rel) => (
+                                <li key={rel.id} className="text-gray-700">
+                                  • {rel.type} ← 来源ID: {rel.sourceId}
+                                </li>
                               ))}
                             </ul>
                           </div>

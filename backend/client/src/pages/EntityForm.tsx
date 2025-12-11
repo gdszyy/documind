@@ -57,6 +57,12 @@ export default function EntityForm() {
     { enabled: isEdit && !!entityId }
   );
 
+  // 获取实体关系
+  const { data: relationships } = trpc.entities.getRelationships.useQuery(
+    { id: entityId! },
+    { enabled: isEdit && !!entityId }
+  );
+
   // 填充表单数据
   useEffect(() => {
     if (entity) {
@@ -314,21 +320,51 @@ export default function EntityForm() {
               </div>
 
               {/* 关联信息（仅编辑模式） */}
-              {isEdit && entity?.larkDocUrl && (
-                <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              {isEdit && (entity?.larkDocUrl || relationships) && (
+                <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <Label>关联信息</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-700">飞书文档:</span>
-                    <a
-                      href={entity.larkDocUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      在飞书中查看
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
+                  {entity?.larkDocUrl && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700">飞书文档:</span>
+                      <a
+                        href={entity.larkDocUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        在飞书中查看
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                  {relationships && (
+                    <div className="space-y-3 pt-3 border-t border-blue-300">
+                      {relationships.outgoing.length > 0 && (
+                        <div>
+                          <Label className="text-sm text-gray-600">依赖的实体（传出）</Label>
+                          <ul className="mt-1 text-sm space-y-1">
+                            {relationships.outgoing.map((rel) => (
+                              <li key={rel.id} className="text-gray-700">
+                                • {rel.type} → 目标ID: {rel.targetId}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {relationships.incoming.length > 0 && (
+                        <div>
+                          <Label className="text-sm text-gray-600">被依赖的实体（传入）</Label>
+                          <ul className="mt-1 text-sm space-y-1">
+                            {relationships.incoming.map((rel) => (
+                              <li key={rel.id} className="text-gray-700">
+                                • {rel.type} ← 来源ID: {rel.sourceId}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
