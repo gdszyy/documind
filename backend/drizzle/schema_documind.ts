@@ -84,3 +84,54 @@ export const documindRelationships = mysqlTable("documind_relationships", {
 
 export type DocumindRelationship = typeof documindRelationships.$inferSelect;
 export type InsertDocumindRelationship = typeof documindRelationships.$inferInsert;
+
+/**
+ * Linker 引用记录表 - 记录实体在外部文档中的引用行为
+ */
+export const linkerReferences = mysqlTable("linker_references", {
+  // 自增主键
+  id: int("id").autoincrement().primaryKey(),
+  
+  // 引用记录ID
+  referenceId: varchar("referenceId", { length: 255 }).notNull().unique(),
+  
+  // 被引用的实体ID（关联 documind_entities.entityId）
+  entityId: varchar("entityId", { length: 255 }).notNull(),
+  
+  // 外部文档信息
+  documentId: varchar("documentId", { length: 255 }).notNull(),
+  documentUrl: varchar("documentUrl", { length: 1000 }),
+  documentTitle: varchar("documentTitle", { length: 500 }),
+  
+  // 引用上下文片段
+  contextSnippet: text("contextSnippet"),
+  
+  // 用户信息（关联 users.openId）
+  userId: varchar("userId", { length: 255 }),
+  
+  // 时间戳
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type LinkerReference = typeof linkerReferences.$inferSelect;
+export type InsertLinkerReference = typeof linkerReferences.$inferInsert;
+
+/**
+ * Linker 用户配置表 - 存储用户个性化设置
+ */
+export const linkerUserSettings = mysqlTable("linker_user_settings", {
+  // 自增主键
+  id: int("id").autoincrement().primaryKey(),
+  
+  // 用户ID（关联 users.openId）
+  userId: varchar("userId", { length: 255 }).notNull().unique(),
+  
+  // JSON格式的配置数据
+  settings: text("settings"),
+  
+  // 时间戳
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type LinkerUserSettings = typeof linkerUserSettings.$inferSelect;
+export type InsertLinkerUserSettings = typeof linkerUserSettings.$inferInsert;

@@ -42,3 +42,34 @@ CREATE TABLE IF NOT EXISTS `documind_relationships` (
 
 -- 3. 验证表结构
 SHOW TABLES LIKE 'documind%';
+
+-- 4. 创建 Linker 表
+CREATE TABLE IF NOT EXISTS `linker_references` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `referenceId` varchar(255) NOT NULL,
+  `entityId` varchar(255) NOT NULL,
+  `documentId` varchar(255) NOT NULL,
+  `documentUrl` varchar(1000),
+  `documentTitle` varchar(500),
+  `contextSnippet` text,
+  `userId` varchar(255),
+  `createdAt` timestamp NOT NULL DEFAULT (now()),
+  CONSTRAINT `linker_references_id` PRIMARY KEY(`id`),
+  CONSTRAINT `linker_references_referenceId_unique` UNIQUE(`referenceId`),
+  INDEX `idx_ref_entityId` (`entityId`),
+  INDEX `idx_ref_documentId` (`documentId`),
+  INDEX `idx_ref_userId` (`userId`)
+);
+
+CREATE TABLE IF NOT EXISTS `linker_user_settings` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `userId` varchar(255) NOT NULL,
+  `settings` text,
+  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `linker_user_settings_id` PRIMARY KEY(`id`),
+  CONSTRAINT `linker_user_settings_userId_unique` UNIQUE(`userId`),
+  INDEX `idx_setting_userId` (`userId`)
+);
+
+-- 5. 验证所有表
+SHOW TABLES;
