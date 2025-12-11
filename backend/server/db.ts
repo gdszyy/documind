@@ -119,6 +119,34 @@ export async function getUserByOpenId(openId: string) {
 // ========== Entity Management (使用新表 documind_entities) ==========
 
 /**
+ * 将前端的type值映射为数据库存储的值
+ */
+function mapTypeToDatabase(frontendType: string): string {
+  const typeMapping: Record<string, string> = {
+    'Service': 'service',
+    'API': 'api',
+    'Component': 'component',
+    'Page': 'page',
+  };
+  
+  return typeMapping[frontendType] || frontendType.toLowerCase();
+}
+
+/**
+ * 将前端的status值映射为数据库存储的值
+ */
+function mapStatusToDatabase(frontendStatus: string): string {
+  const statusMapping: Record<string, string> = {
+    'Development': 'draft',
+    'Testing': 'testing',
+    'Production': 'active',
+    'Deprecated': 'archived',
+  };
+  
+  return statusMapping[frontendStatus] || frontendStatus.toLowerCase();
+}
+
+/**
  * 旧表字段到新表字段的映射
  * 将前端/tRPC使用的旧格式转换为新的数据库格式
  */
@@ -151,9 +179,9 @@ function mapOldToNew(oldData: {
 
   const result = {
     entityId: oldData.uniqueId || `entity-${nanoid()}`,
-    type: oldData.type?.toLowerCase() || 'unknown',
+    type: oldData.type ? mapTypeToDatabase(oldData.type) : 'service',
     title: oldData.name || 'Untitled',
-    status: oldData.status?.toLowerCase() || 'active',
+    status: oldData.status ? mapStatusToDatabase(oldData.status) : 'active',
     documentUrl: oldData.larkDocUrl || null,
     metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
   };
@@ -191,9 +219,9 @@ function mapNewToOld(newEntity: any) {
     id: newEntity.id,
     name: newEntity.title,
     uniqueId: newEntity.entityId,
-    type: capitalizeFirst(newEntity.type),
+    type: mapTypeToFrontend(newEntity.type),
     owner: metadata.owner || 'Unknown',
-    status: capitalizeFirst(newEntity.status),
+    status: mapStatusToFrontend(newEntity.status),
     description: metadata.description || null,
     httpMethod: metadata.httpMethod || null,
     apiPath: metadata.apiPath || null,
@@ -231,6 +259,41 @@ function capitalizeFirst(str: string): string {
   
   // 默认：首字母大写
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * 将数据库的type值映射为前端期望的枚举值
+ */
+function mapTypeToFrontend(dbType: string): string {
+  const typeMapping: Record<string, string> = {
+    'document': 'Service',  // document 映射为 Service
+    'service': 'Service',
+    'api': 'API',
+    'component': 'Component',
+    'page': 'Page',
+    'module': 'Component',  // module 映射为 Component
+  };
+  
+  const lowerType = dbType.toLowerCase();
+  return typeMapping[lowerType] || 'Service'; // 默认为 Service
+}
+
+/**
+ * 将数据库的status值映射为前端期望的枚举值
+ */
+function mapStatusToFrontend(dbStatus: string): string {
+  const statusMapping: Record<string, string> = {
+    'active': 'Production',      // active 映射为 Production
+    'draft': 'Development',      // draft 映射为 Development
+    'archived': 'Deprecated',    // archived 映射为 Deprecated
+    'development': 'Development',
+    'testing': 'Testing',
+    'production': 'Production',
+    'deprecated': 'Deprecated',
+  };
+  
+  const lowerStatus = dbStatus.toLowerCase();
+  return statusMapping[lowerStatus] || 'Development'; // 默认为 Development
 }
 
 export async function createEntity(data: any) {
