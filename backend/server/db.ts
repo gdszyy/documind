@@ -779,10 +779,11 @@ export async function getGraphData(filters?: {
     };
   }).filter(edge => edge.sourceId && edge.targetId);
 
-  // 只返回与当前过滤实体相关的边（源或目标在过滤结果中）
+  // 只返回源和目标都在当前过滤实体中的边
+  // ReactFlow要求边的源和目标节点都必须存在才能显示连线
   const filteredEntityIds = new Set(entitiesOldFormat.map(e => e.id));
   const filteredEdges = edgesWithNumericIds.filter(edge => 
-    filteredEntityIds.has(edge.sourceId) || filteredEntityIds.has(edge.targetId)
+    filteredEntityIds.has(edge.sourceId) && filteredEntityIds.has(edge.targetId)
   );
 
   return {
