@@ -50,15 +50,45 @@ async function checkEntitySync(entityId: number): Promise<SyncCheckResult> {
     issues.push(`MySQL error: ${error.message}`);
   }
 
-  // 检查Neo4j (需要实现getEntityNode函数)
-  // TODO: 在neo4j.ts中添加getEntityNode函数
-  neo4jExists = false; // 暂时标记为false
-  issues.push('Neo4j: Check not implemented yet');
+  // 检查Neo4j
+  try {
+    neo4jExists = await neo4j.entityNodeExists(entityId);
+    
+    if (!neo4jExists) {
+      issues.push('Neo4j: Entity node not found');
+    } else {
+      // 验证Neo4j中的数据完整性
+      const neo4jEntity = await neo4j.getEntityNode(entityId);
+      if (neo4jEntity) {
+        if (!neo4jEntity.name) issues.push('Neo4j: Missing name');
+        if (!neo4jEntity.uniqueId) issues.push('Neo4j: Missing uniqueId');
+        if (!neo4jEntity.type) issues.push('Neo4j: Missing type');
+      }
+    }
+  } catch (error: any) {
+    issues.push(`Neo4j error: ${error.message}`);
+    neo4jExists = false;
+  }
 
-  // 检查Qdrant (需要实现getEntityVector函数)
-  // TODO: 在qdrant.ts中添加getEntityVector函数
-  qdrantExists = false; // 暂时标记为false
-  issues.push('Qdrant: Check not implemented yet');
+  // 检查Qdrant
+  try {
+    qdrantExists = await qdrant.entityVectorExists(entityId);
+    
+    if (!qdrantExists) {
+      issues.push('Qdrant: Entity vector not found');
+    } else {
+      // 验证Qdrant中的数据完整性
+      const qdrantVector = await qdrant.getEntityVector(entityId);
+      if (qdrantVector && qdrantVector.payload) {
+        if (!qdrantVector.payload.name) issues.push('Qdrant: Missing name in payload');
+        if (!qdrantVector.payload.uniqueId) issues.push('Qdrant: Missing uniqueId in payload');
+        if (!qdrantVector.payload.type) issues.push('Qdrant: Missing type in payload');
+      }
+    }
+  } catch (error: any) {
+    issues.push(`Qdrant error: ${error.message}`);
+    qdrantExists = false;
+  }
 
   const consistent = mysqlExists && neo4jExists && qdrantExists;
 

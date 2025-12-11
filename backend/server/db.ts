@@ -276,7 +276,19 @@ export async function createEntity(data: any) {
     neo4j.createEntityNode(oldFormatEntity).then(() => {
       console.log('[createEntity] ✓ Neo4j sync successful for entity:', oldFormatEntity.id);
     }).catch(err => {
-      console.error("[createEntity] ✗ Neo4j sync failed:", err);
+      console.error('[createEntity] ✗ Neo4j sync failed for entity:', oldFormatEntity.id);
+      console.error('[createEntity] Neo4j error details:', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        stack: err.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      console.error('[createEntity] Entity data:', {
+        id: oldFormatEntity.id,
+        name: oldFormatEntity.name,
+        uniqueId: oldFormatEntity.uniqueId,
+        type: oldFormatEntity.type,
+      });
       // TODO: 添加到失败队列进行重试
     });
 
@@ -285,7 +297,19 @@ export async function createEntity(data: any) {
     qdrant.upsertEntityVector(oldFormatEntity).then(() => {
       console.log('[createEntity] ✓ Qdrant sync successful for entity:', oldFormatEntity.id);
     }).catch(err => {
-      console.error("[createEntity] ✗ Qdrant sync failed:", err);
+      console.error('[createEntity] ✗ Qdrant sync failed for entity:', oldFormatEntity.id);
+      console.error('[createEntity] Qdrant error details:', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        stack: err.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      console.error('[createEntity] Entity data:', {
+        id: oldFormatEntity.id,
+        name: oldFormatEntity.name,
+        uniqueId: oldFormatEntity.uniqueId,
+        type: oldFormatEntity.type,
+      });
       // TODO: 添加到失败队列进行重试
     });
 
@@ -365,17 +389,39 @@ export async function updateEntity(id: number, data: any) {
     // 2. 同步到Neo4j（异步，不阻塞）
     console.log('[updateEntity] Syncing to Neo4j...');
     neo4j.updateEntityNode(id, oldFormatEntity).then(() => {
-      console.log('[updateEntity] ✓ Neo4j sync successful');
+      console.log('[updateEntity] ✓ Neo4j sync successful for entity:', id);
     }).catch(err => {
-      console.error("[updateEntity] ✗ Neo4j sync failed:", err);
+      console.error('[updateEntity] ✗ Neo4j sync failed for entity:', id);
+      console.error('[updateEntity] Neo4j error details:', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        stack: err.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      console.error('[updateEntity] Entity data:', {
+        id: oldFormatEntity.id,
+        name: oldFormatEntity.name,
+        uniqueId: oldFormatEntity.uniqueId,
+      });
     });
 
     // 3. 更新Qdrant向量（异步，不阻塞）
     console.log('[updateEntity] Syncing to Qdrant...');
     qdrant.upsertEntityVector(oldFormatEntity).then(() => {
-      console.log('[updateEntity] ✓ Qdrant sync successful');
+      console.log('[updateEntity] ✓ Qdrant sync successful for entity:', id);
     }).catch(err => {
-      console.error("[updateEntity] ✗ Qdrant sync failed:", err);
+      console.error('[updateEntity] ✗ Qdrant sync failed for entity:', id);
+      console.error('[updateEntity] Qdrant error details:', {
+        message: err.message,
+        code: err.code,
+        name: err.name,
+        stack: err.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      console.error('[updateEntity] Entity data:', {
+        id: oldFormatEntity.id,
+        name: oldFormatEntity.name,
+        uniqueId: oldFormatEntity.uniqueId,
+      });
     });
 
     // 4. 清除缓存

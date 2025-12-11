@@ -250,6 +250,62 @@ export async function queryGraph(filters?: {
   }
 }
 
+// 获取实体节点（用于数据一致性检查）
+export async function getEntityNode(id: number): Promise<Entity | null> {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `
+      MATCH (e:Entity {id: $id})
+      RETURN e
+      `,
+      { id }
+    );
+
+    if (result.records.length === 0) {
+      console.log(`[Neo4j] Entity node not found: ID ${id}`);
+      return null;
+    }
+
+    const entityNode = result.records[0].get("e");
+    const entity = entityNode.properties;
+    
+    console.log(`[Neo4j] Retrieved entity node: ${entity.name} (ID: ${entity.id})`);
+    return {
+      ...entity,
+      createdAt: new Date(entity.createdAt),
+      updatedAt: new Date(entity.updatedAt),
+    };
+  } catch (error) {
+    console.error(`[Neo4j] Failed to get entity node ${id}:`, error);
+    throw error;
+  } finally {
+    await session.close();
+  }
+}
+
+// 检查实体节点是否存在
+export async function entityNodeExists(id: number): Promise<boolean> {
+  const session = getSession();
+  try {
+    const result = await session.run(
+      `
+      MATCH (e:Entity {id: $id})
+      RETURN count(e) as count
+      `,
+      { id }
+    );
+
+    const count = result.records[0].get("count").toNumber();
+    return count > 0;
+  } catch (error) {
+    console.error(`[Neo4j] Failed to check entity node existence ${id}:`, error);
+    return false;
+  } finally {
+    await session.close();
+  }
+}
+
 // 健康检查
 export async function healthCheck(): Promise<boolean> {
   try {

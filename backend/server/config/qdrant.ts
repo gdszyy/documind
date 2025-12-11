@@ -181,6 +181,53 @@ export async function searchSimilarEntities(
   }
 }
 
+// 获取实体向量（用于数据一致性检查）
+export async function getEntityVector(id: number): Promise<any | null> {
+  const client = initQdrantClient();
+
+  try {
+    const result = await client.retrieve(COLLECTION_NAME, {
+      ids: [id],
+      with_payload: true,
+      with_vector: true,
+    });
+
+    if (result.length === 0) {
+      console.log(`[Qdrant] Entity vector not found: ID ${id}`);
+      return null;
+    }
+
+    const point = result[0];
+    console.log(`[Qdrant] Retrieved entity vector: ${point.payload?.name} (ID: ${id})`);
+    return {
+      id: point.id,
+      vector: point.vector,
+      payload: point.payload,
+    };
+  } catch (error) {
+    console.error(`[Qdrant] Failed to get entity vector ${id}:`, error);
+    throw error;
+  }
+}
+
+// 检查实体向量是否存在
+export async function entityVectorExists(id: number): Promise<boolean> {
+  const client = initQdrantClient();
+
+  try {
+    const result = await client.retrieve(COLLECTION_NAME, {
+      ids: [id],
+      with_payload: false,
+      with_vector: false,
+    });
+
+    return result.length > 0;
+  } catch (error) {
+    console.error(`[Qdrant] Failed to check entity vector existence ${id}:`, error);
+    return false;
+  }
+}
+
 // 健康检查
 export async function healthCheck(): Promise<boolean> {
   try {
