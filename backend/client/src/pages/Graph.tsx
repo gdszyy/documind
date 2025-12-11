@@ -13,7 +13,7 @@ import {
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { ExternalLink, Loader2, Plus, X } from "lucide-react";
+import { ExternalLink, Loader2, Plus, X, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const typeColors = {
   Service: "#9333ea",
@@ -47,6 +58,7 @@ export default function Graph() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
+  const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -65,6 +77,25 @@ export default function Graph() {
     { id: selectedEntityId! },
     { enabled: !!selectedEntityId }
   );
+
+  const utils = trpc.useUtils();
+  const deleteMutation = trpc.entities.delete.useMutation({
+    onSuccess: () => {
+      toast.success("实体删除成功");
+      utils.graph.getData.invalidate();
+      setSelectedEntityId(null);
+      setDeleteEntityId(null);
+    },
+    onError: (error) => {
+      toast.error(`删除失败: ${error.message}`);
+    },
+  });
+
+  const handleDelete = () => {
+    if (deleteEntityId) {
+      deleteMutation.mutate({ id: deleteEntityId });
+    }
+  };
 
   // 转换数据为 ReactFlow 格式
   useEffect(() => {
@@ -310,6 +341,15 @@ export default function Graph() {
                     </Button>
                   </Link>
 
+                  <Button
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                    variant="outline"
+                    onClick={() => setDeleteEntityId(selectedEntity.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    删除实体
+                  </Button>
+
                   {selectedEntity.type === "Service" && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -334,6 +374,31 @@ export default function Graph() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={!!deleteEntityId} onOpenChange={(open) => !open && setDeleteEntityId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除这个实体吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

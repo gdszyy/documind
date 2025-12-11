@@ -9,10 +9,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusColors = {
   Development: "bg-blue-100 text-blue-800",
@@ -32,6 +43,7 @@ const typeColors = {
 export default function Entities() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const limit = 10;
 
   const { data, isLoading } = trpc.entities.list.useQuery({
@@ -41,6 +53,24 @@ export default function Entities() {
     sortBy: "updatedAt",
     order: "desc",
   });
+
+  const utils = trpc.useUtils();
+  const deleteMutation = trpc.entities.delete.useMutation({
+    onSuccess: () => {
+      toast.success("实体删除成功");
+      utils.entities.list.invalidate();
+      setDeleteEntityId(null);
+    },
+    onError: (error) => {
+      toast.error(`删除失败: ${error.message}`);
+    },
+  });
+
+  const handleDelete = () => {
+    if (deleteEntityId) {
+      deleteMutation.mutate({ id: deleteEntityId });
+    }
+  };
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -115,11 +145,21 @@ export default function Entities() {
                         {new Date(entity.updatedAt).toLocaleString("zh-CN")}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href={`/entities/${entity.id}/edit`}>
-                          <Button variant="ghost" size="sm">
-                            编辑
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/entities/${entity.id}/edit`}>
+                            <Button variant="ghost" size="sm">
+                              编辑
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteEntityId(entity.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -163,6 +203,31 @@ export default function Entities() {
           )}
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      <AlertDialog open={!!deleteEntityId} onOpenChange={(open) => !open && setDeleteEntityId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除这个实体吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

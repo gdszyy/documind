@@ -10,17 +10,29 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function EntityForm() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/entities/:id/edit");
   const isEdit = !!params?.id;
   const entityId = params?.id ? parseInt(params.id) : undefined;
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // 从 URL 参数获取预填充信息
   const searchParams = new URLSearchParams(window.location.search);
@@ -83,6 +95,23 @@ export default function EntityForm() {
       toast.error(`更新失败: ${error.message}`);
     },
   });
+
+  const deleteMutation = trpc.entities.delete.useMutation({
+    onSuccess: () => {
+      toast.success("实体删除成功");
+      utils.entities.list.invalidate();
+      navigate("/entities");
+    },
+    onError: (error) => {
+      toast.error(`删除失败: ${error.message}`);
+    },
+  });
+
+  const handleDelete = () => {
+    if (entityId) {
+      deleteMutation.mutate({ id: entityId });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,23 +335,62 @@ export default function EntityForm() {
           </Card>
 
           {/* 操作按钮 */}
-          <div className="flex items-center justify-end gap-4 mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/entities")}
-            >
-              取消
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {(createMutation.isPending || updateMutation.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {isEdit ? "保存更改" : "创建实体"}
-            </Button>
+          <div className="flex items-center justify-between mt-6">
+            {isEdit ? (
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    删除实体
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>确认删除</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      确定要删除这个实体吗？此操作无法撤销。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      删除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/entities")}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                {isEdit ? "保存更改" : "创建实体"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>
