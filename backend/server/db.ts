@@ -766,6 +766,9 @@ export async function getGraphData(filters?: {
   console.log('[getGraphData] Total entities:', allEntitiesOldFormat.length);
   if (allEntitiesOldFormat.length > 0) {
     console.log('[getGraphData] Sample entity uniqueIds:', allEntitiesOldFormat.slice(0, 3).map(e => e.uniqueId));
+    // 输出所有uniqueId以便调试
+    const allUniqueIds = allEntitiesOldFormat.map(e => e.uniqueId);
+    console.log('[getGraphData] All uniqueIds:', JSON.stringify(allUniqueIds));
   }
 
   // 获取所有关系
@@ -781,6 +784,8 @@ export async function getGraphData(filters?: {
   // 数据库存储的是 entityId (字符串)，前端期望的是数字 id
   const edgesWithNumericIds = relationships.map(rel => {
     // 从所有实体中查找，而不是只从过滤后的实体中查找
+    // 注意：数据库中的entityId格式不一致，有些是'entity-xxx'，有些是短名称
+    // 所以直接用uniqueId匹配即可
     const sourceEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.sourceId);
     const targetEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.targetId);
     
