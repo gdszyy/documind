@@ -764,6 +764,12 @@ export async function getGraphData(filters?: {
 
   // 获取所有关系
   const relationships = await db.select().from(documindRelationships);
+  console.log('[getGraphData] Total relationships from DB:', relationships.length);
+  
+  // 调试：输出前几个关系数据
+  if (relationships.length > 0) {
+    console.log('[getGraphData] Sample relationship:', relationships[0]);
+  }
 
   // 将关系数据转换为前端期望的格式
   // 数据库存储的是 entityId (字符串)，前端期望的是数字 id
@@ -772,12 +778,22 @@ export async function getGraphData(filters?: {
     const sourceEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.sourceId);
     const targetEntity = allEntitiesOldFormat.find(e => e.uniqueId === rel.targetId);
     
+    // 调试：记录找不到的实体
+    if (!sourceEntity) {
+      console.warn('[getGraphData] Source entity not found for sourceId:', rel.sourceId);
+    }
+    if (!targetEntity) {
+      console.warn('[getGraphData] Target entity not found for targetId:', rel.targetId);
+    }
+    
     return {
       sourceId: sourceEntity?.id,
       targetId: targetEntity?.id,
       type: rel.relationshipType,
     };
   }).filter(edge => edge.sourceId && edge.targetId);
+  
+  console.log('[getGraphData] Edges after numeric ID conversion:', edgesWithNumericIds.length);
 
   // 只返回源和目标都在当前过滤实体中的边
   // ReactFlow要求边的源和目标节点都必须存在才能显示连线
@@ -785,6 +801,13 @@ export async function getGraphData(filters?: {
   const filteredEdges = edgesWithNumericIds.filter(edge => 
     filteredEntityIds.has(edge.sourceId) && filteredEntityIds.has(edge.targetId)
   );
+  
+  console.log('[getGraphData] Filtered nodes count:', entitiesOldFormat.length);
+  console.log('[getGraphData] Filtered edges count:', filteredEdges.length);
+  console.log('[getGraphData] Sample filtered node IDs:', Array.from(filteredEntityIds).slice(0, 5));
+  if (filteredEdges.length > 0) {
+    console.log('[getGraphData] Sample filtered edge:', filteredEdges[0]);
+  }
 
   return {
     nodes: entitiesOldFormat,
