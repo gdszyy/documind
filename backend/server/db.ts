@@ -761,6 +761,12 @@ export async function getGraphData(filters?: {
   const allEntities = await db.select().from(documindEntities)
     .where(sql`${documindEntities.deletedAt} IS NULL`);
   const allEntitiesOldFormat = allEntities.map(mapNewToOld);
+  
+  // 调试：输出实体的uniqueId格式
+  console.log('[getGraphData] Total entities:', allEntitiesOldFormat.length);
+  if (allEntitiesOldFormat.length > 0) {
+    console.log('[getGraphData] Sample entity uniqueIds:', allEntitiesOldFormat.slice(0, 3).map(e => e.uniqueId));
+  }
 
   // 获取所有关系
   const relationships = await db.select().from(documindRelationships);
