@@ -31,6 +31,7 @@ const typeColors = {
   API: "#ea580c",
   Component: "#0891b2",
   Page: "#db2777",
+  Module: "#16a34a",
 };
 
 const typeIcons = {
@@ -38,11 +39,12 @@ const typeIcons = {
   API: "📡",
   Component: "🧩",
   Page: "📄",
+  Module: "📦",
 };
 
 export default function Graph() {
   const [, navigate] = useLocation();
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page"]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
 
@@ -158,7 +160,7 @@ export default function Graph() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <Label className="text-sm font-medium">类型:</Label>
-            {["Service", "API", "Component", "Page"].map((type) => (
+            {["Service", "API", "Component", "Page", "Module"].map((type) => (
               <div key={type} className="flex items-center gap-2">
                 <Checkbox
                   id={`type-${type}`}
