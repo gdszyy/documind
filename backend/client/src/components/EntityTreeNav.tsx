@@ -97,9 +97,16 @@ export function EntityTreeNav({
         return { entity, children };
       };
 
-      // 找到所有根节点（Module类型）
+      // 找到所有根节点（没有被其他节点包含的节点）
+      const containedNodeIds = new Set<number>();
+      edges.forEach((edge: any) => {
+        if (edge.type === "CONTAINS") {
+          containedNodeIds.add(edge.targetId);
+        }
+      });
+      
       const rootNodes = nodes
-        .filter((node: any) => node.type === "Module")
+        .filter((node: any) => !containedNodeIds.has(node.id))
         .map((node: any) => buildTreeNode(node.id))
         .filter((node): node is TreeNode => node !== null);
 
@@ -109,11 +116,17 @@ export function EntityTreeNav({
     const tree = buildTree();
     setTreeData(tree);
 
-    // 默认展开所有模块节点
-    const moduleIds = graphData.nodes
-      .filter((node: any) => node.type === "Module")
+    // 默认展开所有顶级节点
+    const containedNodeIds = new Set<number>();
+    graphData.edges.forEach((edge: any) => {
+      if (edge.type === "CONTAINS") {
+        containedNodeIds.add(edge.targetId);
+      }
+    });
+    const rootNodeIds = graphData.nodes
+      .filter((node: any) => !containedNodeIds.has(node.id))
       .map((node: any) => node.id);
-    setExpandedNodes(new Set(moduleIds));
+    setExpandedNodes(new Set(rootNodeIds));
     
     // 保存所有实体ID
     const allIds = new Set(graphData.nodes.map((node: any) => node.id));
