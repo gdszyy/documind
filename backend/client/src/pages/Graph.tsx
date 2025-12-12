@@ -1,13 +1,31 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 
@@ -44,31 +63,81 @@ const typeIcons = {
   Module: "📦",
 };
 
+const statusColors = {
+  Development: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  Testing: "bg-blue-100 text-blue-800 border-blue-300",
+  Production: "bg-green-100 text-green-800 border-green-300",
+  Deprecated: "bg-gray-100 text-gray-800 border-gray-300",
+};
+
+const relationTypeLabels: Record<string, string> = {
+  EXPOSES_API: "暴露 API",
+  DEPENDS_ON: "依赖于",
+  USES_COMPONENT: "使用组件",
+  CONTAINS: "包含",
+};
+
+const relationTypeBadgeColors: Record<string, string> = {
+  EXPOSES_API: "bg-blue-100 text-blue-800",
+  DEPENDS_ON: "bg-purple-100 text-purple-800",
+  USES_COMPONENT: "bg-green-100 text-green-800",
+  CONTAINS: "bg-orange-100 text-orange-800",
+};
+
 export default function Graph() {
   const [, navigate] = useLocation();
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
+  const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
+  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    owner: "",
+    status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
+    description: "",
+  });
 
   const { data, isLoading } = trpc.graph.getData.useQuery({
     types: selectedTypes as any,
     statuses: selectedStatuses as any,
   });
 
-  const { data: selectedEntity } = trpc.entities.getById.useQuery(
+  const { data: selectedEntity, refetch: refetchEntity } = trpc.entities.getById.useQuery(
     { id: selectedEntityId! },
     { enabled: !!selectedEntityId }
   );
 
-  const { data: relationships } = trpc.entities.getRelationships.useQuery(
+  const { data: relationships, refetch: refetchRelationships } = trpc.entities.getRelationships.useQuery(
     { id: selectedEntityId! },
     { enabled: !!selectedEntityId }
+  );
+
+  const { data: entitiesList } = trpc.entities.list.useQuery(
+    { page: 1, limit: 100, sortBy: "name", order: "asc" },
+    { enabled: showAddRelationDialog }
   );
 
   const utils = trpc.useUtils();
+
+  const updateMutation = trpc.entities.update.useMutation({
+    onSuccess: () => {
+      toast.success("实体更新成功");
+      utils.graph.getData.invalidate();
+      refetchEntity();
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast.error(`更新失败: ${error.message}`);
+    },
+  });
+
   const deleteMutation = trpc.entities.delete.useMutation({
     onSuccess: () => {
       toast.success("实体删除成功");
@@ -81,10 +150,73 @@ export default function Graph() {
     },
   });
 
+  const createRelationMutation = trpc.relationships.create.useMutation({
+    onSuccess: () => {
+      toast.success("关系创建成功");
+      refetchRelationships();
+      utils.graph.getData.invalidate();
+      setShowAddRelationDialog(false);
+      setNewRelationTargetId(null);
+    },
+    onError: (error) => {
+      toast.error(`创建关系失败: ${error.message}`);
+    },
+  });
+
+  const deleteRelationMutation = trpc.relationships.delete.useMutation({
+    onSuccess: () => {
+      toast.success("关系删除成功");
+      refetchRelationships();
+      utils.graph.getData.invalidate();
+    },
+    onError: (error) => {
+      toast.error(`删除关系失败: ${error.message}`);
+    },
+  });
+
+  // 当选中实体变化时，更新编辑表单数据
+  useEffect(() => {
+    if (selectedEntity) {
+      setEditFormData({
+        name: selectedEntity.name,
+        owner: selectedEntity.owner,
+        status: selectedEntity.status,
+        description: selectedEntity.description || "",
+      });
+      setIsEditing(false);
+    }
+  }, [selectedEntity]);
+
   const handleDelete = () => {
     if (deleteEntityId) {
       deleteMutation.mutate({ id: deleteEntityId });
     }
+  };
+
+  const handleSave = () => {
+    if (selectedEntityId) {
+      updateMutation.mutate({
+        id: selectedEntityId,
+        ...editFormData,
+      });
+    }
+  };
+
+  const handleAddRelation = () => {
+    if (!selectedEntityId || !newRelationTargetId) {
+      toast.error("请选择目标实体");
+      return;
+    }
+
+    createRelationMutation.mutate({
+      sourceId: selectedEntityId,
+      targetId: newRelationTargetId,
+      type: newRelationType,
+    });
+  };
+
+  const handleDeleteRelation = (relationId: number) => {
+    deleteRelationMutation.mutate({ id: relationId });
   };
 
   // 初始化和更新 ECharts
@@ -301,103 +433,386 @@ export default function Graph() {
 
       {/* 侧边信息面板 */}
       <Sheet modal={false} open={!!selectedEntityId} onOpenChange={(open) => !open && setSelectedEntityId(null)}>
-        <SheetContent className="w-[400px] overflow-y-auto" hideCloseButton showOverlay={false}>
+        <SheetContent className="w-[450px] overflow-y-auto" hideCloseButton showOverlay={false}>
           {selectedEntity && (
             <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <span className="text-2xl">{typeIcons[selectedEntity.type]}</span>
-                  {selectedEntity.name}
-                </SheetTitle>
+              <SheetHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{typeIcons[selectedEntity.type]}</span>
+                    <div>
+                      <SheetTitle className="text-xl">{selectedEntity.name}</SheetTitle>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {selectedEntity.type}
+                        </Badge>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs border ${statusColors[selectedEntity.status]}`}
+                        >
+                          {selectedEntity.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="ml-2"
+                  >
+                    {isEditing ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      <Edit2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </SheetHeader>
 
-              <div className="mt-6 space-y-6">
-                {/* 基本信息 */}
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-sm text-gray-500">类型</Label>
-                    <div className="mt-1">
-                      <Badge variant="secondary">{selectedEntity.type}</Badge>
-                    </div>
-                  </div>
+              <Separator className="my-4" />
 
-                  <div>
-                    <Label className="text-sm text-gray-500">状态</Label>
-                    <div className="mt-1">
-                      <Badge variant="secondary">{selectedEntity.status}</Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm text-gray-500">负责人</Label>
-                    <p className="mt-1 text-sm">{selectedEntity.owner}</p>
-                  </div>
-
-                  {selectedEntity.description && (
-                    <div>
-                      <Label className="text-sm text-gray-500">描述</Label>
-                      <p className="mt-1 text-sm text-gray-700">{selectedEntity.description}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* 关联信息 */}
+              <div className="space-y-6">
+                {/* 基本信息编辑区 */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">关联信息</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      基本信息
+                      {isEditing && (
+                        <Badge variant="secondary" className="text-xs">
+                          编辑模式
+                        </Badge>
+                      )}
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {selectedEntity.larkDocUrl && (
-                      <div>
-                        <Label className="text-sm text-gray-500">飞书文档</Label>
-                        <a
-                          href={selectedEntity.larkDocUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 text-sm text-blue-600 hover:underline flex items-center gap-1"
-                        >
-                          在飞书中查看
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-
-                    {relationships && (
+                  <CardContent className="space-y-4">
+                    {isEditing ? (
                       <>
-                        {relationships.outgoing.length > 0 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-name" className="text-sm">名称</Label>
+                          <Input
+                            id="edit-name"
+                            value={editFormData.name}
+                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                            placeholder="实体名称"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-owner" className="text-sm">负责人</Label>
+                          <Input
+                            id="edit-owner"
+                            value={editFormData.owner}
+                            onChange={(e) => setEditFormData({ ...editFormData, owner: e.target.value })}
+                            placeholder="负责人"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-status" className="text-sm">状态</Label>
+                          <Select
+                            value={editFormData.status}
+                            onValueChange={(value: any) => setEditFormData({ ...editFormData, status: value })}
+                          >
+                            <SelectTrigger id="edit-status">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Development">开发中</SelectItem>
+                              <SelectItem value="Testing">测试中</SelectItem>
+                              <SelectItem value="Production">已上线</SelectItem>
+                              <SelectItem value="Deprecated">已废弃</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-description" className="text-sm">描述</Label>
+                          <Textarea
+                            id="edit-description"
+                            value={editFormData.description}
+                            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                            placeholder="实体描述"
+                            rows={3}
+                          />
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={handleSave}
+                            disabled={updateMutation.isPending}
+                            className="flex-1"
+                          >
+                            {updateMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4 mr-2" />
+                            )}
+                            保存
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsEditing(false);
+                              if (selectedEntity) {
+                                setEditFormData({
+                                  name: selectedEntity.name,
+                                  owner: selectedEntity.owner,
+                                  status: selectedEntity.status,
+                                  description: selectedEntity.description || "",
+                                });
+                              }
+                            }}
+                            className="flex-1"
+                          >
+                            取消
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <Label className="text-xs text-gray-500">负责人</Label>
+                          <p className="mt-1 text-sm font-medium">{selectedEntity.owner}</p>
+                        </div>
+
+                        {selectedEntity.description && (
                           <div>
-                            <Label className="text-sm text-gray-500">依赖的实体（传出）</Label>
-                            <ul className="mt-1 text-sm space-y-1">
-                              {relationships.outgoing.map((rel) => (
-                                <li key={rel.id} className="text-gray-700">
-                                  • {rel.type} → 目标ID: {rel.targetId}
-                                </li>
-                              ))}
-                            </ul>
+                            <Label className="text-xs text-gray-500">描述</Label>
+                            <p className="mt-1 text-sm text-gray-700 leading-relaxed">
+                              {selectedEntity.description}
+                            </p>
                           </div>
                         )}
-                        {relationships.incoming.length > 0 && (
-                          <div>
-                            <Label className="text-sm text-gray-500">被依赖的实体（传入）</Label>
-                            <ul className="mt-1 text-sm space-y-1">
-                              {relationships.incoming.map((rel) => (
-                                <li key={rel.id} className="text-gray-700">
-                                  • {rel.type} ← 来源ID: {rel.sourceId}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+
+                        <div>
+                          <Label className="text-xs text-gray-500">唯一标识</Label>
+                          <p className="mt-1 text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                            {selectedEntity.uniqueId}
+                          </p>
+                        </div>
                       </>
                     )}
                   </CardContent>
                 </Card>
 
+                {/* 关系管理 */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">关系管理</CardTitle>
+                      <Dialog open={showAddRelationDialog} onOpenChange={setShowAddRelationDialog}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Plus className="h-3 w-3 mr-1" />
+                            添加
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>添加新关系</DialogTitle>
+                            <DialogDescription>
+                              选择关系类型和目标实体
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="relationType">关系类型</Label>
+                              <Select
+                                value={newRelationType}
+                                onValueChange={(value: any) => setNewRelationType(value)}
+                              >
+                                <SelectTrigger id="relationType">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="DEPENDS_ON">依赖于</SelectItem>
+                                  <SelectItem value="EXPOSES_API">暴露 API</SelectItem>
+                                  <SelectItem value="USES_COMPONENT">使用组件</SelectItem>
+                                  <SelectItem value="CONTAINS">包含</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="targetEntity">目标实体</Label>
+                              <Select
+                                value={newRelationTargetId?.toString()}
+                                onValueChange={(value) => setNewRelationTargetId(parseInt(value))}
+                              >
+                                <SelectTrigger id="targetEntity">
+                                  <SelectValue placeholder="选择目标实体" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {entitiesList?.entities
+                                    ?.filter((e) => e.id !== selectedEntityId)
+                                    ?.map((e) => (
+                                      <SelectItem key={e.id} value={e.id.toString()}>
+                                        {e.name} ({e.type})
+                                      </SelectItem>
+                                    )) || (
+                                    <div className="p-2 text-sm text-gray-500 text-center">
+                                      加载中...
+                                    </div>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowAddRelationDialog(false)}
+                            >
+                              取消
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={handleAddRelation}
+                              disabled={createRelationMutation.isPending || !newRelationTargetId}
+                            >
+                              {createRelationMutation.isPending && (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              )}
+                              添加
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* 出站关系 */}
+                    {relationships && relationships.outgoing.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-gray-600">
+                          出站关系 ({relationships.outgoing.length})
+                        </Label>
+                        <div className="space-y-2">
+                          {relationships.outgoing.map((rel) => (
+                            <div
+                              key={rel.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Badge className={`text-xs ${relationTypeBadgeColors[rel.type]}`}>
+                                  {relationTypeLabels[rel.type]}
+                                </Badge>
+                                <span className="text-gray-400 text-xs">→</span>
+                                {rel.targetEntity ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedEntityId(rel.targetEntity!.id)}
+                                    className="text-sm text-blue-600 hover:underline font-medium truncate"
+                                  >
+                                    {rel.targetEntity.name}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-500 truncate">
+                                    目标不存在
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteRelation(rel.id)}
+                                disabled={deleteRelationMutation.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 入站关系 */}
+                    {relationships && relationships.incoming.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-gray-600">
+                          入站关系 ({relationships.incoming.length})
+                        </Label>
+                        <div className="space-y-2">
+                          {relationships.incoming.map((rel) => (
+                            <div
+                              key={rel.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {rel.sourceEntity ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedEntityId(rel.sourceEntity!.id)}
+                                    className="text-sm text-blue-600 hover:underline font-medium truncate"
+                                  >
+                                    {rel.sourceEntity.name}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-500 truncate">
+                                    源不存在
+                                  </span>
+                                )}
+                                <span className="text-gray-400 text-xs">→</span>
+                                <Badge className={`text-xs ${relationTypeBadgeColors[rel.type]}`}>
+                                  {relationTypeLabels[rel.type]}
+                                </Badge>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteRelation(rel.id)}
+                                disabled={deleteRelationMutation.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 无关系提示 */}
+                    {relationships && 
+                     relationships.outgoing.length === 0 && 
+                     relationships.incoming.length === 0 && (
+                      <div className="text-center py-6 text-gray-500">
+                        <p className="text-sm">暂无关系</p>
+                        <p className="text-xs mt-1">点击"添加"按钮创建新关系</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 关联信息 */}
+                {selectedEntity.larkDocUrl && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">关联文档</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <a
+                        href={selectedEntity.larkDocUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        在飞书中查看
+                      </a>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* 操作按钮 */}
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
                   <Link href={`/entities/${selectedEntity.id}/edit`}>
                     <Button className="w-full" variant="outline">
-                      在 DocuMind 中编辑
+                      在详情页编辑
                     </Button>
                   </Link>
 
