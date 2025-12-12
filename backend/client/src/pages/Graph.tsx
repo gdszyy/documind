@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useGraphVisibility } from "@/contexts/GraphVisibilityContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,6 +107,8 @@ export default function Graph() {
   // 默认选中核心类型，不包含文档类型
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
+  // 使用 Context 来共享节点可见性状态
+  const { visibleEntityIds } = useGraphVisibility();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -254,7 +257,12 @@ export default function Graph() {
     }
 
     // 转换数据为 ECharts 格式
-    const nodes = data.nodes.map((entity) => {
+    // 如果 visibleEntityIds 不为 null，则只显示选中的实体
+    const filteredNodes = visibleEntityIds === null 
+      ? data.nodes 
+      : data.nodes.filter(entity => visibleEntityIds.has(entity.id));
+
+    const nodes = filteredNodes.map((entity) => {
       const entityType = entity.type; // 不再转换为小写，直接使用大写格式
       return {
         id: entity.id.toString(),
@@ -274,7 +282,13 @@ export default function Graph() {
       };
     });
 
-    const links = data.edges.map((edge) => ({
+    // 过滤连线：只显示源和目标都在可见节点中的连线
+    const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
+    const filteredEdges = data.edges.filter(edge => 
+      visibleNodeIds.has(edge.sourceId) && visibleNodeIds.has(edge.targetId)
+    );
+
+    const links = filteredEdges.map((edge) => ({
       source: edge.sourceId.toString(),
       target: edge.targetId.toString(),
       label: {
@@ -385,7 +399,7 @@ export default function Graph() {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [data]);
+  }, [data, visibleEntityIds]);
 
   // 清理 ECharts 实例
   useEffect(() => {

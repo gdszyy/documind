@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./components/DashboardLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { GraphVisibilityProvider } from "./contexts/GraphVisibilityContext";
 import Home from "./pages/Home";
 import Entities from "./pages/Entities";
 import EntityForm from "./pages/EntityForm";
@@ -12,17 +13,19 @@ import Graph from "./pages/Graph";
 
 function Router() {
   return (
-    <DashboardLayout>
-      <Switch>
-        <Route path={"/"} component={Home} />
-        <Route path={"/entities"} component={Entities} />
-        <Route path={"/entities/new"} component={EntityForm} />
-        <Route path={"/entities/:id/edit"} component={EntityForm} />
-        <Route path={"/graph"} component={Graph} />
-        <Route path={"/404"} component={NotFound} />
-        <Route component={NotFound} />
-      </Switch>
-    </DashboardLayout>
+    <GraphVisibilityProvider>
+      <DashboardLayout>
+        <Switch>
+          <Route path={"/"} component={Home} />
+          <Route path={"/entities"} component={Entities} />
+          <Route path={"/entities/new"} component={EntityForm} />
+          <Route path={"/entities/:id/edit"} component={EntityForm} />
+          <Route path={"/graph"} component={Graph} />
+          <Route path={"/404"} component={NotFound} />
+          <Route component={NotFound} />
+        </Switch>
+      </DashboardLayout>
+    </GraphVisibilityProvider>
   );
 }
 

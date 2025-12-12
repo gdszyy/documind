@@ -26,6 +26,8 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { EntityTreeNav } from './EntityTreeNav';
+import { useGraphVisibility } from '@/contexts/GraphVisibilityContext';
 
 const menuItems = [
   { icon: Users, label: "实体管理", path: "/entities" },
@@ -114,6 +116,10 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const { visibleEntityIds, setVisibleEntityIds } = useGraphVisibility();
+  
+  // 判断当前是否在知识图谱页面
+  const isGraphPage = location === '/graph';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -179,26 +185,40 @@ function DashboardLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {/* 如果不是知识图谱页面，显示页面导航 */}
+            {!isGraphPage && (
+              <SidebarMenu className="px-2 py-1">
+                {menuItems.map(item => {
+                  const isActive = location === item.path;
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        isActive={isActive}
+                        onClick={() => setLocation(item.path)}
+                        tooltip={item.label}
+                        className={`h-10 transition-all font-normal`}
+                      >
+                        <item.icon
+                          className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                        />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            )}
+            
+            {/* 如果是知识图谱页面，显示树状导航 */}
+            {isGraphPage && (
+              <div className="px-2">
+                <EntityTreeNav
+                  showCheckboxes={true}
+                  selectedEntityIds={visibleEntityIds || new Set()}
+                  onSelectionChange={setVisibleEntityIds}
+                />
+              </div>
+            )}
           </SidebarContent>
 
           <SidebarFooter className="p-3">
