@@ -472,12 +472,16 @@ export default function EntityForm() {
                             </SelectTrigger>
                             <SelectContent>
                               {entitiesList?.entities
-                                .filter((e) => e.id !== entityId)
-                                .map((e) => (
+                                ?.filter((e) => e.id !== entityId)
+                                ?.map((e) => (
                                   <SelectItem key={e.id} value={e.id.toString()}>
                                     {e.name} ({e.type})
                                   </SelectItem>
-                                ))}
+                                )) || (
+                                <div className="p-2 text-sm text-gray-500 text-center">
+                                  加载中...
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
