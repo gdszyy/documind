@@ -127,8 +127,9 @@ function mapTypeToDatabase(frontendType: string): string {
     'API': 'api',
     'Component': 'component',
     'Page': 'page',
-    'Document': 'document',
     'Module': 'module',
+    'Documentation': 'documentation',
+    'Document': 'document',
   };
   
   return typeMapping[frontendType] || frontendType.toLowerCase();
@@ -268,12 +269,13 @@ function capitalizeFirst(str: string): string {
  */
 function mapTypeToFrontend(dbType: string): string {
   const typeMapping: Record<string, string> = {
-    'document': 'Document',  // document 映射为 Document
     'service': 'Service',
     'api': 'API',
     'component': 'Component',
     'page': 'Page',
-    'module': 'Module',  // module 映射为 Module
+    'module': 'Module',
+    'documentation': 'Documentation',
+    'document': 'Document',
   };
   
   const lowerType = dbType.toLowerCase();

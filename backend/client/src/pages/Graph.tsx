@@ -49,35 +49,35 @@ import type { EChartsOption } from "echarts";
 
 // 扩展类型颜色，包含所有实体类型
 const typeColors: Record<string, string> = {
-  service: "#9333ea",
-  api: "#ea580c",
-  component: "#0891b2",
-  page: "#db2777",
-  module: "#16a34a",
-  documentation: "#607D8B",
-  document: "#795548",
+  Service: "#9333ea",
+  API: "#ea580c",
+  Component: "#0891b2",
+  Page: "#db2777",
+  Module: "#16a34a",
+  Documentation: "#607D8B",
+  Document: "#795548",
 };
 
 // 扩展类型图标
 const typeIcons: Record<string, string> = {
-  service: "🔧",
-  api: "📡",
-  component: "🧩",
-  page: "📄",
-  module: "📦",
-  documentation: "📚",
-  document: "📝",
+  Service: "🔧",
+  API: "📡",
+  Component: "🧩",
+  Page: "📄",
+  Module: "📦",
+  Documentation: "📚",
+  Document: "📝",
 };
 
 // 类型显示名称
 const typeDisplayNames: Record<string, string> = {
-  service: "Service",
-  api: "API",
-  component: "Component",
-  page: "Page",
-  module: "Module",
-  documentation: "Documentation",
-  document: "Document",
+  Service: "Service",
+  API: "API",
+  Component: "Component",
+  Page: "Page",
+  Module: "Module",
+  Documentation: "Documentation",
+  Document: "Document",
 };
 
 const statusColors = {
@@ -104,7 +104,7 @@ const relationTypeBadgeColors: Record<string, string> = {
 export default function Graph() {
   const [, navigate] = useLocation();
   // 默认选中核心类型，不包含文档类型
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["service", "api", "component", "page", "module"]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
@@ -255,7 +255,7 @@ export default function Graph() {
 
     // 转换数据为 ECharts 格式
     const nodes = data.nodes.map((entity) => {
-      const entityType = entity.type.toLowerCase();
+      const entityType = entity.type; // 不再转换为小写，直接使用大写格式
       return {
         id: entity.id.toString(),
         name: `${typeIcons[entityType] || "📄"} ${entity.name}`,
@@ -416,7 +416,7 @@ export default function Graph() {
   };
 
   // 所有可用的实体类型
-  const allEntityTypes = ["module", "page", "component", "api", "service", "documentation", "document"];
+  const allEntityTypes = ["Module", "Page", "Component", "API", "Service", "Documentation", "Document"];
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -508,7 +508,7 @@ export default function Graph() {
               <SheetHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{typeIcons[selectedEntity.type.toLowerCase()]}</span>
+                    <span className="text-3xl">{typeIcons[selectedEntity.type]}</span>
                     <div>
                       <SheetTitle className="text-xl">{selectedEntity.name}</SheetTitle>
                       <div className="flex items-center gap-2 mt-1">
@@ -794,7 +794,7 @@ export default function Graph() {
                     .filter((e) => e.id !== selectedEntityId)
                     .map((entity) => (
                       <SelectItem key={entity.id} value={entity.id.toString()}>
-                        {typeIcons[entity.type.toLowerCase()]} {entity.name} ({entity.type})
+                        {typeIcons[entity.type]} {entity.name} ({entity.type})
                       </SelectItem>
                     ))}
                 </SelectContent>
