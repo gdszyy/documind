@@ -289,6 +289,7 @@ function mapStatusToFrontend(dbStatus: string): string {
   const statusMapping: Record<string, string> = {
     'active': 'Production',      // active 映射为 Production
     'draft': 'Development',      // draft 映射为 Development
+    'planned': 'Development',    // planned 映射为 Development
     'archived': 'Deprecated',    // archived 映射为 Deprecated
     'development': 'Development',
     'testing': 'Testing',
@@ -813,8 +814,18 @@ export async function getGraphData(filters?: {
 
   if (filters?.statuses && filters.statuses.length > 0) {
     // 使用正确的状态映射
-    const statusesDb = filters.statuses.map(s => mapStatusToDatabase(s));
-    conditions.push(sql`${documindEntities.status} IN (${sql.join(statusesDb.map(s => sql`${s}`), sql`, `)})`);
+    // 注意：Development 需要包括 draft 和 planned 两种状态
+    const statusesDb: string[] = [];
+    filters.statuses.forEach(s => {
+      if (s === 'Development') {
+        statusesDb.push('draft', 'planned');
+      } else {
+        statusesDb.push(mapStatusToDatabase(s));
+      }
+    });
+    // 去重
+    const uniqueStatuses = [...new Set(statusesDb)];
+    conditions.push(sql`${documindEntities.status} IN (${sql.join(uniqueStatuses.map(s => sql`${s}`), sql`, `)})`);
   }
 
   let query = db
