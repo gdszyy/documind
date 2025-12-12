@@ -166,6 +166,14 @@ export const appRouter = router({
         await db.createRelationship(input);
         return { success: true };
       }),
+
+    // 删除实体关系
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteRelationship(input.id);
+        return { success: true };
+      }),
   }),
 });
 

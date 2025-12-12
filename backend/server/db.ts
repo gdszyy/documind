@@ -651,8 +651,30 @@ export async function createRelationship(data: {
 }
 
 export async function getEntityRelationships(entityId: number): Promise<{
-  outgoing: DocumindRelationship[];
-  incoming: DocumindRelationship[];
+  outgoing: Array<{
+    id: number;
+    relationshipId: string;
+    type: string;
+    targetId: string;
+    targetEntity: {
+      id: number;
+      name: string;
+      uniqueId: string;
+      type: string;
+    } | null;
+  }>;
+  incoming: Array<{
+    id: number;
+    relationshipId: string;
+    type: string;
+    sourceId: string;
+    sourceEntity: {
+      id: number;
+      name: string;
+      uniqueId: string;
+      type: string;
+    } | null;
+  }>;
 }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -662,17 +684,61 @@ export async function getEntityRelationships(entityId: number): Promise<{
     throw new Error("Entity not found");
   }
 
-  // 获取出站关系
-  const outgoing = await db
-    .select()
+  // 获取出站关系（带目标实体信息）
+  const outgoingResults = await db
+    .select({
+      relationship: documindRelationships,
+      target: documindEntities,
+    })
     .from(documindRelationships)
-    .where(eq(documindRelationships.sourceId, entity.entityId));
+    .leftJoin(
+      documindEntities,
+      eq(documindRelationships.targetId, documindEntities.entityId)
+    )
+    .where(eq(documindRelationships.sourceId, entity.uniqueId));
 
-  // 获取入站关系
-  const incoming = await db
-    .select()
+  const outgoing = outgoingResults.map((r) => ({
+    id: r.relationship.id,
+    relationshipId: r.relationship.relationshipId,
+    type: r.relationship.relationshipType,
+    targetId: r.relationship.targetId,
+    targetEntity: r.target
+      ? {
+          id: r.target.id,
+          name: r.target.title,
+          uniqueId: r.target.entityId,
+          type: mapTypeToFrontend(r.target.type),
+        }
+      : null,
+  }));
+
+  // 获取入站关系（带源实体信息）
+  const incomingResults = await db
+    .select({
+      relationship: documindRelationships,
+      source: documindEntities,
+    })
     .from(documindRelationships)
-    .where(eq(documindRelationships.targetId, entity.entityId));
+    .leftJoin(
+      documindEntities,
+      eq(documindRelationships.sourceId, documindEntities.entityId)
+    )
+    .where(eq(documindRelationships.targetId, entity.uniqueId));
+
+  const incoming = incomingResults.map((r) => ({
+    id: r.relationship.id,
+    relationshipId: r.relationship.relationshipId,
+    type: r.relationship.relationshipType,
+    sourceId: r.relationship.sourceId,
+    sourceEntity: r.source
+      ? {
+          id: r.source.id,
+          name: r.source.title,
+          uniqueId: r.source.entityId,
+          type: mapTypeToFrontend(r.source.type),
+        }
+      : null,
+  }));
 
   return {
     outgoing,
@@ -825,4 +891,28 @@ export async function getGraphData(filters?: {
     nodes: entitiesOldFormat,
     edges: filteredEdges,
   };
+}
+
+export async function deleteRelationship(relationshipId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // 验证关系是否存在
+  const existing = await db
+    .select()
+    .from(documindRelationships)
+    .where(eq(documindRelationships.id, relationshipId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    throw new Error("Relationship not found");
+  }
+
+  // 删除关系
+  await db
+    .delete(documindRelationships)
+    .where(eq(documindRelationships.id, relationshipId));
+
+  // 清除缓存
+  await redis.deleteCachePattern("graph:*").catch(() => {});
 }
