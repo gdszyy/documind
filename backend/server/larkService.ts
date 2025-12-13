@@ -3,10 +3,12 @@ import axios from "axios";
 // 飞书API配置
 const LARK_APP_ID = process.env.LARK_APP_ID || process.env.FEISHU_APP_ID || "cli_a98e2f05eff89e1a";
 const LARK_APP_SECRET = process.env.LARK_APP_SECRET || process.env.FEISHU_APP_SECRET || "P8RRCqQlzw587orCUowX5dt37WQI7CZI";
+const LARK_CHAT_ID = process.env.LARK_CHAT_ID || "oc_b4cc3ab148b634a9be1c07b0e3892157";
 
 // 飞书API端点
 const LARK_TENANT_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
 const LARK_CREATE_DOC_URL = "https://open.feishu.cn/open-apis/docx/v1/documents";
+const LARK_ADD_PERMISSION_URL = "https://open.feishu.cn/open-apis/drive/v1/permissions";
 
 // Token缓存
 let cachedTenantToken: { token: string; expiresAt: number } | null = null;
@@ -92,6 +94,9 @@ export async function createLarkDoc(entityName: string, entityId: number): Promi
 
     // 可选：添加初始内容到文档
     await addInitialContent(accessToken, documentId, entityName, entityId);
+
+    // 新增：设置群组编辑权限
+    await setChatEditPermission(accessToken, documentId, LARK_CHAT_ID);
 
     return documentUrl;
   } catch (error) {
@@ -193,13 +198,50 @@ async function addInitialContent(
   } catch (error) {
     console.error("[Lark] Failed to add initial content:", error);
     // 不抛出错误，初始内容添加失败不影响文档创建
-  }
-}
-
-/**
- * 健康检查
- */
-export async function healthCheck(): Promise<boolean> {
+	  }
+	}
+	
+	/**
+	 * 设置群组编辑权限
+	 */
+	async function setChatEditPermission(
+	  accessToken: string,
+	  documentId: string,
+	  chatId: string
+	): Promise<void> {
+	  try {
+	    console.log(`[Lark] Setting edit permission for chat ${chatId} on document ${documentId}`);
+	
+	    const response = await axios.post(
+	      `${LARK_ADD_PERMISSION_URL}/${documentId}/members`,
+	      {
+	        member_type: "chat",
+	        member_id: chatId,
+	        perm: "edit",
+	      },
+	      {
+	        headers: {
+	          Authorization: `Bearer ${accessToken}`,
+	          "Content-Type": "application/json",
+	        },
+	      }
+	    );
+	
+	    if (response.data.code !== 0) {
+	      throw new Error(`Failed to set chat edit permission: ${response.data.msg}`);
+	    }
+	
+	    console.log(`[Lark] Chat edit permission set successfully for document: ${documentId}`);
+	  } catch (error) {
+	    console.error("[Lark] Failed to set chat edit permission:", error);
+	    // 不抛出错误，权限设置失败不影响文档创建
+	  }
+	}
+	
+	/**
+	 * 健康检查
+	 */
+	export async function healthCheck(): Promise<boolean> {
   try {
     await getTenantAccessToken();
     return true;
