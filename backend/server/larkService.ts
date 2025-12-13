@@ -3,7 +3,7 @@ import axios from "axios";
 // 飞书API配置
 const LARK_APP_ID = process.env.LARK_APP_ID || process.env.FEISHU_APP_ID || "cli_a98e2f05eff89e1a";
 const LARK_APP_SECRET = process.env.LARK_APP_SECRET || process.env.FEISHU_APP_SECRET || "P8RRCqQlzw587orCUowX5dt37WQI7CZI";
-const LARK_CHAT_ID = process.env.LARK_CHAT_ID || "oc_b4cc3ab148b634a9be1c07b0e3892157";
+const LARK_CHAT_ID = process.env.LARK_CHAT_ID || "oc_3b9b7352ea632f33935f4f71b6bbb174";
 
 // 飞书API端点
 const LARK_TENANT_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
