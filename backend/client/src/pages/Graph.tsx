@@ -710,9 +710,10 @@ export default function Graph() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {relationships && relationships.length > 0 ? (
+                    {relationships && (relationships.outgoing?.length > 0 || relationships.incoming?.length > 0) ? (
                       <div className="space-y-3">
-                        {relationships.map((rel) => (
+                        {/* 出站关系 */}
+                        {relationships.outgoing?.map((rel) => (
                           <div
                             key={rel.id}
                             className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
@@ -725,10 +726,42 @@ export default function Graph() {
                                 >
                                   {relationTypeLabels[rel.type]}
                                 </Badge>
+                                <span className="text-xs text-gray-400">→</span>
                               </div>
-                              <p className="text-sm font-medium">{rel.targetName}</p>
+                              <p className="text-sm font-medium">{rel.targetEntity?.name || `目标实体 ${rel.targetId}`}</p>
                               <p className="text-xs text-gray-500 mt-1">
-                                类型: {rel.targetType}
+                                类型: {rel.targetEntity?.type || '未知'}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteRelation(rel.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        {/* 入站关系 */}
+                        {relationships.incoming?.map((rel) => (
+                          <div
+                            key={rel.id}
+                            className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs text-gray-400">←</span>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${relationTypeBadgeColors[rel.type]}`}
+                                >
+                                  {relationTypeLabels[rel.type]}
+                                </Badge>
+                              </div>
+                              <p className="text-sm font-medium">{rel.sourceEntity?.name || `源实体 ${rel.sourceId}`}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                类型: {rel.sourceEntity?.type || '未知'}
                               </p>
                             </div>
                             <Button
