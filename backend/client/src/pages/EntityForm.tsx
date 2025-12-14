@@ -471,7 +471,7 @@ export default function EntityForm() {
                               <SelectValue placeholder="选择目标实体" />
                             </SelectTrigger>
                             <SelectContent>
-                              {entitiesList?.entities
+                              {entitiesList?.items
                                 ?.filter((e) => e.id !== entityId)
                                 ?.map((e) => (
                                   <SelectItem key={e.id} value={e.id.toString()}>

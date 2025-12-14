@@ -790,8 +790,8 @@ export default function Graph() {
                   <SelectValue placeholder="选择目标实体" />
                 </SelectTrigger>
                 <SelectContent>
-                  {entitiesList?.entities
-                    .filter((e) => e.id !== selectedEntityId)
+                  {entitiesList?.items
+                    ?.filter((e) => e.id !== selectedEntityId)
                     .map((entity) => (
                       <SelectItem key={entity.id} value={entity.id.toString()}>
                         {typeIcons[entity.type.toLowerCase()]} {entity.name} ({entity.type})
