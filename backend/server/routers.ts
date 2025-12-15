@@ -4,16 +4,36 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { createLarkDoc, batchUpdatePermissions } from "./larkService";
+import * as larkService from "./larkService";
 
 export const appRouter = router({
   lark: router({
     batchUpdatePermissions: publicProcedure
       .input(z.object({ chatId: z.string() }))
       .mutation(async ({ input }) => {
-        return batchUpdatePermissions(input.chatId);
+        return larkService.batchUpdatePermissions(input.chatId);
+      }),
+
+    // 获取模板内容和变量
+    getTemplateContent: publicProcedure
+      .input(z.object({ templateType: z.enum(["Service", "API", "Page", "Component"]) }))
+      .query(async ({ input }) => {
+        return await larkService.getTemplateContent(input.templateType);
+      }),
+
+    // 应用模板到当前文档
+    applyTemplate: publicProcedure
+      .input(z.object({
+        documentId: z.string(),
+        templateType: z.enum(["Service", "API", "Page", "Component"]),
+        variables: z.record(z.string()),
+      }))
+      .mutation(async ({ input }) => {
+        await larkService.applyTemplate(input.documentId, input.templateType, input.variables);
+        return { success: true, message: "模板应用成功" };
       }),
   }),
+  
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -80,7 +100,7 @@ export const appRouter = router({
         }
 
         // 2. 创建飞书文档（模拟）
-        const larkDocUrl = await createLarkDoc(entity.name, entity.id);
+        const larkDocUrl = await larkService.createLarkDoc(entity.name, entity.id);
 
         // 3. 更新实体，添加飞书文档链接
         const updatedEntity = await db.updateEntity(entity.id, { larkDocUrl });

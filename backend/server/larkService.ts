@@ -312,3 +312,108 @@ async function getAllDocLinksFromDB(): Promise<{doc_id: string}[]> {
       .filter(Boolean);
     return docLinks;
 }
+
+
+// 模板文档ID映射
+const TEMPLATE_IDS = {
+  Service: 'NWupdUn53oP2YmxW1Kxja11wpPd',
+  API: 'ErjNdnhbjosyNYxLeuijkGKTpPd',
+  Page: 'UqIodjXBboJQrNxnZhdjGr9JpUh',
+  Component: 'QQgRwBYkaizqMWkvJ01jTVz5pab',
+};
+
+// 获取模板内容和变量
+export async function getTemplateContent(templateType: keyof typeof TEMPLATE_IDS) {
+  const templateId = TEMPLATE_IDS[templateType];
+  const blocks = await getAllBlocks(templateId);
+  const variables = new Set<string>();
+
+  for (const block of blocks) {
+    if (block.text) {
+      for (const element of block.text.elements) {
+        if (element.text_run) {
+          const matches = element.text_run.content.match(/\{\{([^}]+)\}\}/g);
+          if (matches) {
+            matches.forEach(match => variables.add(match.slice(2, -2)));
+          }
+        }
+      }
+    }
+  }
+
+  return { blocks, variables: Array.from(variables) };
+}
+
+// 应用模板到当前文档
+export async function applyTemplate(documentId: string, templateType: keyof typeof TEMPLATE_IDS, variables: Record<string, string>) {
+  const { blocks } = await getTemplateContent(templateType);
+
+  // 1. 删除当前文档的所有内容
+  const currentBlocks = await getAllBlocks(documentId);
+  const deleteRequests = currentBlocks
+    .filter(block => block.parent_id === documentId) // 只删除顶层Block
+    .map(block => ({ delete_block: { block_id: block.block_id } }));
+
+  if (deleteRequests.length > 0) {
+    await batchUpdateBlocks(documentId, deleteRequests);
+  }
+
+  // 2. 插入模板内容并替换变量
+  const insertRequests = blocks.map(block => {
+    if (block.text) {
+      for (const element of block.text.elements) {
+        if (element.text_run) {
+          let content = element.text_run.content;
+          for (const [key, value] of Object.entries(variables)) {
+            content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          }
+          element.text_run.content = content;
+        }
+      }
+    }
+    return { insert_block: { block: block, index: -1 } };
+  });
+
+  await batchUpdateBlocks(documentId, insertRequests);
+}
+
+// 批量更新Block的辅助函数
+async function batchUpdateBlocks(documentId: string, requests: any[]) {
+  const accessToken = await getTenantAccessToken();
+  await fetch(`https://open.feishu.cn/open-apis/docx/v1/documents/${documentId}/blocks/batch_update`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ requests }),
+  });
+}
+
+// 获取所有Block的辅助函数
+async function getAllBlocks(documentId: string): Promise<any[]> {
+  const accessToken = await getTenantAccessToken();
+  let blocks: any[] = [];
+  let pageToken: string | undefined = undefined;
+
+  do {
+    const response = await axios.get(`https://open.feishu.cn/open-apis/docx/v1/documents/${documentId}/blocks`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      params: {
+        page_size: 500,
+        page_token: pageToken,
+      },
+    });
+
+    if (response.data.code !== 0) {
+      throw new Error(`Failed to get blocks: ${response.data.msg}`);
+    }
+
+    blocks = blocks.concat(response.data.data.items);
+    pageToken = response.data.data.page_token;
+  } while (pageToken);
+
+  return blocks;
+}
