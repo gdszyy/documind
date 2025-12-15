@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as db from "./db";
 
 // 飞书API配置
 const LARK_APP_ID = process.env.LARK_APP_ID || process.env.FEISHU_APP_ID || "cli_a98e2f05eff89e1a";
@@ -249,4 +250,65 @@ async function addInitialContent(
     console.error("[Lark] Health check failed:", error);
     return false;
   }
+}
+
+
+/**
+ * 批量刷新所有文档的权限
+ */
+export async function batchUpdatePermissions(chatId: string): Promise<{successCount: number, failCount: number, failedDocs: any[]}> {
+  console.log(`[Lark] Starting batch permission update for chat: ${chatId}`);
+
+  let successCount = 0;
+  let failCount = 0;
+  const failedDocs: any[] = [];
+
+  try {
+    // 1. 获取 Access Token
+    const accessToken = await getTenantAccessToken();
+
+    // 2. 从数据库获取所有文档链接 (这里需要一个数据库查询函数)
+    // 假设我们有一个 get_all_doc_links() 函数
+    const docLinks = await getAllDocLinksFromDB(); 
+
+    console.log(`[Lark] Found ${docLinks.length} documents to update.`);
+
+    // 3. 遍历并设置权限
+    for (const doc of docLinks) {
+      try {
+        await setChatEditPermission(accessToken, doc.doc_id, chatId);
+        successCount++;
+      } catch (e) {
+        failCount++;
+        failedDocs.push({ doc_id: doc.doc_id, error: e.message });
+      }
+    }
+
+    console.log(`[Lark] Batch permission update finished. Success: ${successCount}, Fail: ${failCount}`);
+    return { successCount, failCount, failedDocs };
+
+  } catch (error) {
+    console.error("[Lark] Batch permission update failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * 从数据库获取所有文档链接 (辅助函数)
+ * 注意：这需要一个数据库连接实例，这里仅为示例
+ */
+async function getAllDocLinksFromDB(): Promise<{doc_id: string}[]> {
+    // 在实际应用中，这里应该调用数据库服务来获取文档链接
+    // 这里我们返回一个模拟数据
+        const entities = await db.getEntities({ limit: 1000 }); // 获取所有实体
+    const docLinks = entities.items
+      .map(entity => {
+        const match = entity.larkDocUrl?.match(/\/(docx|docs)\/([a-zA-Z0-9]+)/);
+        if (match && match[2]) {
+          return { doc_id: match[2], entity_name: entity.name };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    return docLinks;
 }

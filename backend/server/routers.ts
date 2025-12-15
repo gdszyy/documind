@@ -4,9 +4,16 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
-import { createLarkDoc } from "./larkService";
+import { createLarkDoc, batchUpdatePermissions } from "./larkService";
 
 export const appRouter = router({
+  lark: router({
+    batchUpdatePermissions: publicProcedure
+      .input(z.object({ chatId: z.string() }))
+      .mutation(async ({ input }) => {
+        return batchUpdatePermissions(input.chatId);
+      }),
+  }),
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
