@@ -109,6 +109,8 @@ export default function Graph() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   // 使用 Context 来共享节点可见性状态
   const { visibleEntityIds, setVisibleEntityIds } = useGraphVisibility();
+  // 维护一个隐藏节点的集合，用于右键隐藏功能
+  const [hiddenEntityIds, setHiddenEntityIds] = useState<Set<number>>(new Set());
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -245,25 +247,15 @@ export default function Graph() {
     deleteRelationMutation.mutate({ id: relationId });
   };
 
-  // 隐藏节点功能
+  // 隐藏节点功能（右键隐藏）
   const handleHideNode = (nodeId: number) => {
     if (!data) return;
     
-    // 获取当前可见的节点ID集合
-    // 如果 visibleEntityIds 为 null，表示所有节点都可见。
-    // 此时，我们需要创建一个包含所有节点ID的集合，然后移除目标节点。
-    const allNodeIds = new Set(data.nodes.map(n => n.id));
+    // 将节点添加到隐藏集合中
+    const newHiddenIds = new Set(hiddenEntityIds);
+    newHiddenIds.add(nodeId);
+    setHiddenEntityIds(newHiddenIds);
     
-    const currentVisible = visibleEntityIds === null 
-      ? allNodeIds
-      : new Set(visibleEntityIds);
-    
-    // 移除要隐藏的节点
-    currentVisible.delete(nodeId);
-    
-    // 确保新的可见集合是 Set 类型
-    setVisibleEntityIds(new Set(currentVisible));
-    setHoveredNodeId(null);
     toast.success("节点已隐藏");
   };
 
@@ -286,7 +278,8 @@ export default function Graph() {
     
     // 更新可见节点集合
     setVisibleEntityIds(relatedNodeIds);
-    setHoveredNodeId(null);
+    // 清空隐藏集合，因为双击展开关联节点时，应该显示所有关联节点
+    setHiddenEntityIds(new Set());
     toast.success(`已展示 ${relatedNodeIds.size} 个关联节点`);
   };
 
@@ -328,10 +321,17 @@ export default function Graph() {
     }
 
     // 转换数据为 ECharts 格式
-    // 如果 visibleEntityIds 不为 null，则只显示选中的实体
-    const filteredNodes = visibleEntityIds === null 
-      ? data.nodes 
-      : data.nodes.filter(entity => visibleEntityIds.has(entity.id));
+    // 同时考虑 visibleEntityIds 和 hiddenEntityIds
+    const filteredNodes = data.nodes.filter(entity => {
+      // 如果节点在隐藏集合中，则不显示
+      if (hiddenEntityIds.has(entity.id)) return false;
+      
+      // 如果 visibleEntityIds 为 null，表示所有节点都可见（除了隐藏的）
+      if (visibleEntityIds === null) return true;
+      
+      // 否则，只显示 visibleEntityIds 中的节点
+      return visibleEntityIds.has(entity.id);
+    });
 
     const nodes = filteredNodes.map((entity) => {
       const entityType = entity.type; // 不再转换为小写，直接使用大写格式
