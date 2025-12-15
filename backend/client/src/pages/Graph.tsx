@@ -966,7 +966,7 @@ export default function Graph() {
 	            <div className="space-y-2">
 	              <Label htmlFor="target-entity">目标实体</Label>
 	              <Select
-	                value={newRelationTargetId?.toString()}
+	                value={newRelationTargetId?.toString() || ""}
 	                onValueChange={(value) => {
 	                  const id = parseInt(value);
 	                  setNewRelationTargetId(isNaN(id) ? null : id);
