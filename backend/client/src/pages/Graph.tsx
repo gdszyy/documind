@@ -114,7 +114,7 @@ export default function Graph() {
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
+  const [addRelationState, setAddRelationState] = useState<{ open: boolean; sourceId: number | null }>({ open: false, sourceId: null });
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
 	  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
 	  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
@@ -123,13 +123,13 @@ export default function Graph() {
 
   useEffect(() => {
     // 对话框打开时重置状态，确保每次都是干净的表单
-    if (showAddRelationDialog) {
-      console.log("Dialog opened, resetting relation state.");
+    if (addRelationState.open) {
+      console.log("Dialog opened, sourceId:", addRelationState.sourceId);
       setNewRelationTargetId(null);
       setNewRelationTargetType(null);
       setNewRelationType("DEPENDS_ON");
     }
-  }, [showAddRelationDialog]);
+  }, [addRelationState.open]);
 
 
 
@@ -159,7 +159,7 @@ export default function Graph() {
 
   const { data: entitiesList } = trpc.entities.list.useQuery(
     { page: 1, limit: 100, sortBy: "name", order: "asc" },
-    { enabled: showAddRelationDialog }
+    { enabled: addRelationState.open }
   );
 
   const utils = trpc.useUtils();
@@ -193,7 +193,7 @@ export default function Graph() {
       toast.success("关系创建成功");
       refetchRelationships();
       utils.graph.getData.invalidate();
-      setShowAddRelationDialog(false);
+      setAddRelationState({ open: false, sourceId: null });
       setNewRelationTargetId(null);
     },
     onError: (error) => {
@@ -243,20 +243,20 @@ export default function Graph() {
     }
   };
 
-		  const handleAddRelation = () => {
-		    console.log("handleAddRelation - selectedEntityId:", selectedEntityId);
+const handleAddRelation = () => {
+		    console.log("handleAddRelation - sourceId from state:", addRelationState.sourceId);
 		    console.log("handleAddRelation - newRelationTargetId:", newRelationTargetId);
-		    if (!selectedEntityId || !newRelationTargetId) {
-		      toast.error("请选择目标实体");
+		    if (!addRelationState.sourceId || !newRelationTargetId) {
+		      toast.error("源实体或目标实体未选择");
 		      return;
 		    }
 
-    createRelationMutation.mutate({
-      sourceId: selectedEntityId,
-      targetId: newRelationTargetId,
-      type: newRelationType,
-    });
-  };
+		    createRelationMutation.mutate({
+		      sourceId: addRelationState.sourceId,
+		      targetId: newRelationTargetId,
+		      type: newRelationType,
+		    });
+		  };
 
   const handleDeleteRelation = (relationId: number) => {
     deleteRelationMutation.mutate({ id: relationId });
@@ -822,7 +822,7 @@ export default function Graph() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setShowAddRelationDialog(true)}
+                      onClick={() => setAddRelationState({ open: true, sourceId: selectedEntityId })}
                       className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -923,7 +923,7 @@ export default function Graph() {
       </Sheet>
 
       {/* 添加关系对话框 */}
-      <Dialog open={showAddRelationDialog} onOpenChange={setShowAddRelationDialog}>
+      <Dialog open={addRelationState.open} onOpenChange={(open) => setAddRelationState({ ...addRelationState, open })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>添加关联关系</DialogTitle>
