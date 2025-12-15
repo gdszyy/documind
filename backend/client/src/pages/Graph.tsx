@@ -250,14 +250,19 @@ export default function Graph() {
     if (!data) return;
     
     // 获取当前可见的节点ID集合
+    // 如果 visibleEntityIds 为 null，表示所有节点都可见。
+    // 此时，我们需要创建一个包含所有节点ID的集合，然后移除目标节点。
+    const allNodeIds = new Set(data.nodes.map(n => n.id));
+    
     const currentVisible = visibleEntityIds === null 
-      ? new Set(data.nodes.map(n => n.id))
+      ? allNodeIds
       : new Set(visibleEntityIds);
     
     // 移除要隐藏的节点
     currentVisible.delete(nodeId);
     
-    setVisibleEntityIds(currentVisible);
+    // 确保新的可见集合是 Set 类型
+    setVisibleEntityIds(new Set(currentVisible));
     setHoveredNodeId(null);
     toast.success("节点已隐藏");
   };
