@@ -101,7 +101,7 @@ export const appRouter = router({
           owner: z.string().min(1).optional(),
           status: z.enum(["Development", "Testing", "Production", "Deprecated"]).optional(),
           description: z.string().optional(),
-          documentUrl: z.string().nullable().optional(), // 添加documentUrl字段
+          larkDocUrl: z.string().nullable().optional(), // 飞书文档链接字段
           httpMethod: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).optional(),
           apiPath: z.string().optional(),
         })

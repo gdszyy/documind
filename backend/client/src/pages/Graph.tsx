@@ -126,7 +126,7 @@ export default function Graph() {
     owner: "",
     status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
     description: "",
-    documentUrl: "", // 新增文档链接字段
+    larkDocUrl: "", // 飞书文档链接，匹配后端字段
   });
 
   const { data, isLoading } = trpc.graph.getData.useQuery({
@@ -207,7 +207,7 @@ export default function Graph() {
         owner: selectedEntity.owner,
         status: selectedEntity.status,
         description: selectedEntity.description || "",
-        documentUrl: selectedEntity.documentUrl || "", // 新增文档链接字段
+        larkDocUrl: selectedEntity.larkDocUrl || "", // 飞书文档链接，匹配后端字段
       });
       setIsEditing(false);
     }
@@ -224,7 +224,7 @@ export default function Graph() {
       updateMutation.mutate({
         id: selectedEntityId,
         ...editFormData,
-        documentUrl: editFormData.documentUrl || null, // 确保空字符串被转换为null
+        larkDocUrl: editFormData.larkDocUrl || null, // 确保空字符串被转换为null
       });
     }
   };
@@ -301,49 +301,38 @@ export default function Graph() {
         }
       });
 
-      // 添加鼠标移动事件 - 使用globalout事件更可靠
-      chartInstanceRef.current.getZr().on('mousemove', (e: any) => {
-        const pointInPixel = [e.offsetX, e.offsetY];
-        const pointInGrid = chartInstanceRef.current!.convertFromPixel({ seriesIndex: 0 }, pointInPixel);
-        
-        // 检查是否悬停在节点上
-        const option = chartInstanceRef.current!.getOption();
-        const seriesData = option.series?.[0]?.data || [];
-        
-        let foundNode = null;
-        for (const node of seriesData) {
-          if (node.x !== undefined && node.y !== undefined) {
-            const dx = pointInGrid[0] - node.x;
-            const dy = pointInGrid[1] - node.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // 如果鼠标在节点范围内（symbolSize的一半）
-            if (distance < 30) { // 60/2 = 30
-              foundNode = node;
-              break;
-            }
-          }
-        }
-        
-        if (foundNode) {
-          const nodeId = parseInt(foundNode.id);
+      // 添加鼠标移动事件
+      chartInstanceRef.current.on("mousemove", (params: any) => {
+        if (params.dataType === "node") {
+          const nodeId = parseInt(params.data.id);
           setHoveredNodeId(nodeId);
           
-          // 转换节点中心位置为像素坐标
-          const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
-            foundNode.x,
-            foundNode.y
-          ]);
-          setHoveredNodePosition({ x: position[0], y: position[1] });
-        } else {
-          // 延迟隐藏，给用户时间移动到按钮上
-          setTimeout(() => {
-            if (!hoverButtonsRef.current?.matches(':hover')) {
-              setHoveredNodeId(null);
-              setHoveredNodePosition(null);
-            }
-          }, 100);
+          // 获取节点在图表中的实际位置
+          // 首先获取节点的数据位置，然后转换为像素坐标
+          const option = chartInstanceRef.current!.getOption();
+          const seriesData = option.series?.[0]?.data || [];
+          const nodeData = seriesData.find((item: any) => item.id === params.data.id);
+          
+          if (nodeData && nodeData.x !== undefined && nodeData.y !== undefined) {
+            // 转换节点中心位置为像素坐标
+            const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
+              nodeData.x,
+              nodeData.y
+            ]);
+            setHoveredNodePosition({ x: position[0], y: position[1] });
+          }
         }
+      });
+
+      // 添加鼠标移出事件
+      chartInstanceRef.current.on("mouseout", (params: any) => {
+        // 延迟隐藏，给用户时间移动到按钮上
+        setTimeout(() => {
+          if (!hoverButtonsRef.current?.matches(':hover')) {
+            setHoveredNodeId(null);
+            setHoveredNodePosition(null);
+          }
+        }, 100);
       });
 
 
@@ -764,12 +753,12 @@ export default function Graph() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="edit-document-url" className="text-sm">文档链接</Label>
+                          <Label htmlFor="edit-lark-doc-url" className="text-sm">文档链接</Label>
                           <Input
-                            id="edit-document-url"
-                            value={editFormData.documentUrl}
-                            onChange={(e) => setEditFormData({ ...editFormData, documentUrl: e.target.value })}
-                            placeholder="https://..."
+                            id="edit-lark-doc-url"
+                            value={editFormData.larkDocUrl}
+                            onChange={(e) => setEditFormData({ ...editFormData, larkDocUrl: e.target.value })}
+                            placeholder="https://feishu.cn/docs/..."
                           />
                         </div>
 
@@ -796,7 +785,7 @@ export default function Graph() {
                                   owner: selectedEntity.owner,
                                   status: selectedEntity.status,
                                   description: selectedEntity.description || "",
-                                  documentUrl: selectedEntity.documentUrl || "", // 确保取消时恢复documentUrl
+                                  larkDocUrl: selectedEntity.larkDocUrl || "", // 确保取消时恢复larkDocUrl
                                 });
                               }
                             }}
@@ -832,9 +821,9 @@ export default function Graph() {
 
                         <div>
                           <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">文档链接</Label>
-                          {selectedEntity.documentUrl ? (
+                          {selectedEntity.larkDocUrl ? (
                             <a
-                              href={selectedEntity.documentUrl}
+                              href={selectedEntity.larkDocUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all text-sm font-medium shadow-md hover:shadow-lg"
