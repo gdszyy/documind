@@ -81,7 +81,7 @@ const typeDisplayNames: Record<string, string> = {
   Document: "Document",
 };
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   Development: "bg-yellow-100 text-yellow-800 border-yellow-300",
   Testing: "bg-blue-100 text-blue-800 border-blue-300",
   Production: "bg-green-100 text-green-800 border-green-300",
@@ -112,6 +112,7 @@ export default function Graph() {
   // 维护一个隐藏节点的集合，用于右键隐藏功能
   const [hiddenEntityIds, setHiddenEntityIds] = useState<Set<number>>(new Set());
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
+  const [viewDocUrl, setViewDocUrl] = useState<string | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [addRelationState, setAddRelationState] = useState<{ open: boolean; sourceId: number | null }>({ open: false, sourceId: null });
@@ -134,7 +135,7 @@ export default function Graph() {
 
   const [editFormData, setEditFormData] = useState({
     name: "",
-    type: "Service" as string, // 新增类型字段
+    type: "Service" as "Service" | "API" | "Component" | "Page" | "Module" | "Documentation" | "Document",
     owner: "",
     status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
     description: "",
@@ -516,7 +517,40 @@ const handleAddRelation = () => {
   const allEntityTypes = ["Module", "Page", "Component", "API", "Service", "Documentation", "Document"];
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex bg-gray-50">
+      {/* 内嵌文档查看器 */}
+      {viewDocUrl && (
+        <div className="w-1/2 border-r bg-white flex flex-col h-screen">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-semibold">文档预览</h3>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(viewDocUrl, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                外部浏览器打开
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewDocUrl(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <iframe
+            src={viewDocUrl}
+            className="flex-1 w-full"
+            title="飞书文档"
+          />
+        </div>
+      )}
+
+      {/* 主内容区域 */}
+      <div className={`flex flex-col ${viewDocUrl ? 'w-1/2' : 'flex-1'} h-screen`}>
       {/* 顶部工具栏 */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
@@ -792,15 +826,13 @@ const handleAddRelation = () => {
                         <div>
                           <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">文档链接</Label>
                           {selectedEntity.larkDocUrl ? (
-                            <a
-                              href={selectedEntity.larkDocUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <Button
+                              onClick={() => setViewDocUrl(selectedEntity.larkDocUrl!)}
                               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all text-sm font-medium shadow-md hover:shadow-lg"
                             >
                               <ExternalLink className="h-4 w-4" />
                               查看文档
-                            </a>
+                            </Button>
                           ) : (
                             <p className="text-xs text-gray-400 italic">未设置文档链接</p>
                           )}
@@ -999,7 +1031,7 @@ const handleAddRelation = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddRelationDialog(false)}>
+            <Button variant="outline" onClick={() => setAddRelationState({ open: false, sourceId: null })}>
               取消
             </Button>
             <Button onClick={handleAddRelation} disabled={!newRelationTargetId}>
@@ -1026,6 +1058,7 @@ const handleAddRelation = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }
