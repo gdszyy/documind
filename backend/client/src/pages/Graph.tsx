@@ -233,11 +233,13 @@ export default function Graph() {
     }
   };
 
-	  const handleAddRelation = () => {
-	    if (!selectedEntityId || !newRelationTargetId) {
-	      toast.error("请选择目标实体");
-	      return;
-	    }
+		  const handleAddRelation = () => {
+		    console.log("handleAddRelation - selectedEntityId:", selectedEntityId);
+		    console.log("handleAddRelation - newRelationTargetId:", newRelationTargetId);
+		    if (!selectedEntityId || !newRelationTargetId) {
+		      toast.error("请选择目标实体");
+		      return;
+		    }
 
     createRelationMutation.mutate({
       sourceId: selectedEntityId,
@@ -966,11 +968,13 @@ export default function Graph() {
 	            <div className="space-y-2">
 	              <Label htmlFor="target-entity">目标实体</Label>
 	              <Select
-	                value={newRelationTargetId?.toString() || ""}
-	                onValueChange={(value) => {
-	                  const id = parseInt(value);
-	                  setNewRelationTargetId(isNaN(id) ? null : id);
-	                }}
+		                value={newRelationTargetId?.toString() || ""}
+		                onValueChange={(value) => {
+		                  console.log("Select onValueChange - raw value:", value);
+		                  const id = parseInt(value);
+		                  console.log("Select onValueChange - parsed id:", id);
+		                  setNewRelationTargetId(isNaN(id) ? null : id);
+		                }}
 	              >
 	                <SelectTrigger id="target-entity">
 	                  <SelectValue placeholder="选择目标实体" />
