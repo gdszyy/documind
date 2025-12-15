@@ -46,6 +46,7 @@ export default function EntityForm() {
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
 
   // 从 URL 参数获取预填充信息
   const searchParams = new URLSearchParams(window.location.search);
@@ -62,6 +63,7 @@ export default function EntityForm() {
     description: "",
     httpMethod: "GET" as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
     apiPath: "",
+    larkDocUrl: "", // 新增 larkDocUrl 字段
   });
 
   // 获取实体数据（编辑模式）
@@ -94,6 +96,7 @@ export default function EntityForm() {
         description: entity.description || "",
         httpMethod: entity.httpMethod || "GET",
         apiPath: entity.apiPath || "",
+        larkDocUrl: entity.larkDocUrl || "", // 填充 larkDocUrl 字段
       });
     }
   }, [entity]);
@@ -164,12 +167,13 @@ export default function EntityForm() {
     e.preventDefault();
 
     if (isEdit && entityId) {
-      updateMutation.mutate({
-        id: entityId,
-        ...formData,
-        httpMethod: formData.type === "API" ? formData.httpMethod : undefined,
-        apiPath: formData.type === "API" ? formData.apiPath : undefined,
-      });
+	      updateMutation.mutate({
+	        id: entityId,
+	        ...formData,
+	        httpMethod: formData.type === "API" ? formData.httpMethod : undefined,
+	        apiPath: formData.type === "API" ? formData.apiPath : undefined,
+	        larkDocUrl: formData.larkDocUrl || undefined, // 确保 larkDocUrl 被传递
+	      });
     } else {
       createMutation.mutate({
         ...formData,
@@ -177,7 +181,7 @@ export default function EntityForm() {
         apiPath: formData.type === "API" ? formData.apiPath : undefined,
         relatedToId,
         relationshipType: relationshipType || undefined,
-      });
+      } as any); // 强制类型转换以避免 TypeScript 错误，因为 formData 包含所有字段，但 createMutation 只接受部分
     }
   };
 
@@ -397,26 +401,29 @@ export default function EntityForm() {
                 />
               </div>
 
-              {/* 关联信息（仅编辑模式） */}
-              {isEdit && (entity?.larkDocUrl || relationships) && (
-                <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <Label>关联信息</Label>
-                  {entity?.larkDocUrl && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-700">飞书文档:</span>
-                      <a
-                        href={entity.larkDocUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        在飞书中查看
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
+	              {/* 飞书文档链接 (仅编辑模式) */}
+	              {isEdit && (
+	                <div className="space-y-2">
+	                  <Label htmlFor="larkDocUrl">飞书文档链接 (Lark Doc URL)</Label>
+	                  <Input
+	                    id="larkDocUrl"
+	                    value={formData.larkDocUrl}
+	                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
+	                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
+	                  />
+	                  {entity?.larkDocUrl && (
+	                    <a
+	                      href={entity.larkDocUrl}
+	                      target="_blank"
+	                      rel="noopener noreferrer"
+	                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+	                    >
+	                      在飞书中查看当前文档
+	                      <ExternalLink className="h-3 w-3" />
+	                    </a>
+	                  )}
+	                </div>
+	              )}
             </CardContent>
           </Card>
 
@@ -462,10 +469,35 @@ export default function EntityForm() {
                           </Select>
                         </div>
                         <div className="space-y-2">
+                          <Label htmlFor="targetEntityType">目标实体类型 (可选)</Label>
+                          <Select
+                            value={newRelationTargetType || ""}
+                            onValueChange={(value) => {
+                              setNewRelationTargetType(value || null);
+                              setNewRelationTargetId(null); // 切换类型时重置目标实体
+                            }}
+                          >
+                            <SelectTrigger id="targetEntityType">
+                              <SelectValue placeholder="选择实体类型" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">所有类型</SelectItem>
+                              <SelectItem value="Service">服务</SelectItem>
+                              <SelectItem value="API">API</SelectItem>
+                              <SelectItem value="Component">组件</SelectItem>
+                              <SelectItem value="Page">页面</SelectItem>
+                              <SelectItem value="Document">说明文档</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
                           <Label htmlFor="targetEntity">目标实体</Label>
                           <Select
                             value={newRelationTargetId?.toString()}
-                            onValueChange={(value) => setNewRelationTargetId(parseInt(value))}
+                            onValueChange={(value) => {
+                              const id = parseInt(value);
+                              setNewRelationTargetId(isNaN(id) ? null : id);
+                            }}
                           >
                             <SelectTrigger id="targetEntity">
                               <SelectValue placeholder="选择目标实体" />
@@ -473,6 +505,7 @@ export default function EntityForm() {
                             <SelectContent>
                               {entitiesList?.items
                                 ?.filter((e) => e.id !== entityId)
+                                ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType) // 根据类型过滤
                                 ?.map((e) => (
                                   <SelectItem key={e.id} value={e.id.toString()}>
                                     {e.name} ({e.type})
