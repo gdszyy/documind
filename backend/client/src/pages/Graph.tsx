@@ -126,6 +126,7 @@ export default function Graph() {
     owner: "",
     status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
     description: "",
+    documentUrl: "", // 新增文档链接字段
   });
 
   const { data, isLoading } = trpc.graph.getData.useQuery({
@@ -206,6 +207,7 @@ export default function Graph() {
         owner: selectedEntity.owner,
         status: selectedEntity.status,
         description: selectedEntity.description || "",
+        documentUrl: selectedEntity.documentUrl || "", // 新增文档链接字段
       });
       setIsEditing(false);
     }
@@ -222,6 +224,7 @@ export default function Graph() {
       updateMutation.mutate({
         id: selectedEntityId,
         ...editFormData,
+        documentUrl: editFormData.documentUrl || null, // 确保空字符串被转换为null
       });
     }
   };
@@ -745,6 +748,16 @@ export default function Graph() {
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-document-url" className="text-sm">文档链接</Label>
+                          <Input
+                            id="edit-document-url"
+                            value={editFormData.documentUrl}
+                            onChange={(e) => setEditFormData({ ...editFormData, documentUrl: e.target.value })}
+                            placeholder="https://..."
+                          />
+                        </div>
+
                         <div className="flex gap-2 pt-2">
                           <Button
                             onClick={handleSave}
@@ -768,6 +781,7 @@ export default function Graph() {
                                   owner: selectedEntity.owner,
                                   status: selectedEntity.status,
                                   description: selectedEntity.description || "",
+                                  documentUrl: selectedEntity.documentUrl || "", // 确保取消时恢复documentUrl
                                 });
                               }
                             }}
@@ -807,10 +821,10 @@ export default function Graph() {
                               href={selectedEntity.documentUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-1 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                              className="mt-1 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 truncate"
                             >
-                              查看文档
-                              <ExternalLink className="h-3 w-3" />
+                              {selectedEntity.documentUrl}
+                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             </a>
                           </div>
                         )}
