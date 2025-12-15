@@ -597,7 +597,7 @@ export default function Graph() {
             {hoveredNodeId !== null && hoveredNodePosition !== null && (
               <div
                 ref={hoverButtonsRef}
-                className="absolute pointer-events-auto z-50"
+                className="absolute z-[9999] pointer-events-none"
                 style={{
                   left: `${hoveredNodePosition.x}px`,
                   top: `${hoveredNodePosition.y}px`,
@@ -608,21 +608,21 @@ export default function Graph() {
                   setHoveredNodePosition(null);
                 }}
               >
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
                   {/* 隐藏按钮 - 在节点上方 */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleHideNode(hoveredNodeId);
                     }}
-                    className="bg-white hover:bg-red-50 text-red-600 rounded-full p-2 shadow-lg border border-red-200 transition-all hover:scale-110"
+                    className="bg-white hover:bg-red-50 text-red-600 rounded-full p-2.5 shadow-xl border-2 border-red-200 transition-all hover:scale-110 cursor-pointer"
                     title="隐藏此节点"
                   >
                     <EyeOff className="h-4 w-4" />
                   </button>
                   
                   {/* 节点占位 */}
-                  <div className="h-[60px]" />
+                  <div className="h-[70px] pointer-events-none" />
                   
                   {/* 展示关联节点按钮 - 在节点下方 */}
                   <button
@@ -630,7 +630,7 @@ export default function Graph() {
                       e.stopPropagation();
                       handleShowRelatedNodes(hoveredNodeId);
                     }}
-                    className="bg-white hover:bg-blue-50 text-blue-600 rounded-full p-2 shadow-lg border border-blue-200 transition-all hover:scale-110"
+                    className="bg-white hover:bg-blue-50 text-blue-600 rounded-full p-2.5 shadow-xl border-2 border-blue-200 transition-all hover:scale-110 cursor-pointer"
                     title="展示所有关联节点"
                   >
                     <Network className="h-4 w-4" />
@@ -647,19 +647,21 @@ export default function Graph() {
         <SheetContent className="w-[450px] overflow-y-auto" hideCloseButton showOverlay={false}>
           {selectedEntity && (
             <>
-              <SheetHeader className="pb-4">
+              <SheetHeader className="pb-6 border-b">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{typeIcons[selectedEntity.type]}</span>
-                    <div>
-                      <SheetTitle className="text-xl">{selectedEntity.name}</SheetTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-xl">
+                      <span className="text-4xl">{typeIcons[selectedEntity.type]}</span>
+                    </div>
+                    <div className="flex-1">
+                      <SheetTitle className="text-2xl font-bold text-gray-900 mb-2">{selectedEntity.name}</SheetTitle>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs font-medium px-2 py-1">
                           {selectedEntity.type}
                         </Badge>
                         <Badge 
                           variant="outline" 
-                          className={`text-xs border ${statusColors[selectedEntity.status]}`}
+                          className={`text-xs font-medium px-2 py-1 border ${statusColors[selectedEntity.status]}`}
                         >
                           {selectedEntity.status}
                         </Badge>
@@ -667,36 +669,36 @@ export default function Graph() {
                     </div>
                   </div>
                   <Button
-                    variant="ghost"
+                    variant={isEditing ? "default" : "outline"}
                     size="sm"
                     onClick={() => setIsEditing(!isEditing)}
-                    className="ml-2"
+                    className="ml-2 flex-shrink-0"
                   >
                     {isEditing ? (
-                      <X className="h-4 w-4" />
+                      <><X className="h-4 w-4 mr-1" /> 取消</>
                     ) : (
-                      <Edit2 className="h-4 w-4" />
+                      <><Edit2 className="h-4 w-4 mr-1" /> 编辑</>
                     )}
                   </Button>
                 </div>
               </SheetHeader>
 
-              <Separator className="my-4" />
 
-              <div className="space-y-6">
+
+              <div className="space-y-5 pt-6">
                 {/* 基本信息编辑区 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      基本信息
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="px-5 py-4 border-b border-gray-100">
+                    <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                      📊 基本信息
                       {isEditing && (
                         <Badge variant="secondary" className="text-xs">
-                          编辑模式
+                          编辑中
                         </Badge>
                       )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                    </h3>
+                  </div>
+                  <div className="px-5 py-5 space-y-5">
                     {isEditing ? (
                       <>
                         <div className="space-y-2">
@@ -793,69 +795,73 @@ export default function Graph() {
                       </>
                     ) : (
                       <>
-                        <div>
-                          <Label className="text-xs text-gray-500">负责人</Label>
-                          <p className="mt-1 text-sm font-medium">{selectedEntity.owner}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">负责人</Label>
+                            <p className="mt-2 text-sm font-semibold text-gray-900">{selectedEntity.owner}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">唯一标识</Label>
+                            <p className="mt-2 text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1.5 rounded border border-gray-200">
+                              {selectedEntity.uniqueId}
+                            </p>
+                          </div>
                         </div>
 
                         {selectedEntity.description && (
                           <div>
-                            <Label className="text-xs text-gray-500">描述</Label>
-                            <p className="mt-1 text-sm text-gray-700 leading-relaxed">
+                            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">描述</Label>
+                            <p className="mt-2 text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-200">
                               {selectedEntity.description}
                             </p>
                           </div>
                         )}
 
                         <div>
-                          <Label className="text-xs text-gray-500">唯一标识</Label>
-                          <p className="mt-1 text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                            {selectedEntity.uniqueId}
-                          </p>
-                        </div>
-
-                        {selectedEntity.documentUrl && (
-                          <div>
-                            <Label className="text-xs text-gray-500">文档链接</Label>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">文档链接</Label>
+                          {selectedEntity.documentUrl ? (
                             <a
                               href={selectedEntity.documentUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-1 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 truncate"
+                              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all text-sm font-medium shadow-md hover:shadow-lg"
                             >
-                              {selectedEntity.documentUrl}
-                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              <ExternalLink className="h-4 w-4" />
+                              查看文档
                             </a>
-                          </div>
-                        )}
+                          ) : (
+                            <p className="text-xs text-gray-400 italic">未设置文档链接</p>
+                          )}
+                        </div>
                       </>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                {/* 关系管理区域 - 保持原有逻辑 */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">关联关系</CardTitle>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowAddRelationDialog(true)}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        添加关系
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
+                {/* 关系管理区域 */}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                      🔗 关联关系
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowAddRelationDialog(true)}
+                      className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      添加关系
+                    </Button>
+                  </div>
+                  <div className="px-5 py-5">
                     {relationships && (relationships.outgoing?.length > 0 || relationships.incoming?.length > 0) ? (
                       <div className="space-y-3">
                         {/* 出站关系 */}
                         {relationships.outgoing?.map((rel) => (
                           <div
                             key={rel.id}
-                            className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-start justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -886,7 +892,7 @@ export default function Graph() {
                         {relationships.incoming?.map((rel) => (
                           <div
                             key={rel.id}
-                            className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-start justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -915,22 +921,26 @@ export default function Graph() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        暂无关联关系
-                      </p>
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-2">🔗</div>
+                        <p className="text-sm text-gray-500">暂无关联关系</p>
+                        <p className="text-xs text-gray-400 mt-1">点击上方按钮添加关系</p>
+                      </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* 删除按钮 */}
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => setDeleteEntityId(selectedEntity.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  删除实体
-                </Button>
+                <div className="pt-2 border-t border-gray-200">
+                  <Button
+                    variant="destructive"
+                    className="w-full bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transition-all"
+                    onClick={() => setDeleteEntityId(selectedEntity.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    删除实体
+                  </Button>
+                </div>
               </div>
             </>
           )}
