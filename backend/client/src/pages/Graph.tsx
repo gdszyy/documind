@@ -304,13 +304,20 @@ export default function Graph() {
           const nodeId = parseInt(params.data.id);
           setHoveredNodeId(nodeId);
           
-          // 获取节点在画布上的位置
-          const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
-            params.data.x || 0,
-            params.data.y || 0
-          ]);
+          // 获取节点在图表中的实际位置
+          // 首先获取节点的数据位置，然后转换为像素坐标
+          const option = chartInstanceRef.current!.getOption();
+          const seriesData = option.series?.[0]?.data || [];
+          const nodeData = seriesData.find((item: any) => item.id === params.data.id);
           
-          setHoveredNodePosition({ x: position[0], y: position[1] });
+          if (nodeData && nodeData.x !== undefined && nodeData.y !== undefined) {
+            // 转换节点中心位置为像素坐标
+            const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
+              nodeData.x,
+              nodeData.y
+            ]);
+            setHoveredNodePosition({ x: position[0], y: position[1] });
+          }
         }
       });
 
