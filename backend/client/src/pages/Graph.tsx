@@ -124,7 +124,6 @@ export default function Graph() {
   useEffect(() => {
     // 对话框打开时重置状态，确保每次都是干净的表单
     if (addRelationState.open) {
-      console.log("Dialog opened, sourceId:", addRelationState.sourceId);
       setNewRelationTargetId(null);
       setNewRelationTargetType(null);
       setNewRelationType("DEPENDS_ON");
@@ -244,8 +243,6 @@ export default function Graph() {
   };
 
 const handleAddRelation = () => {
-		    console.log("handleAddRelation - sourceId from state:", addRelationState.sourceId);
-		    console.log("handleAddRelation - newRelationTargetId:", newRelationTargetId);
 		    if (!addRelationState.sourceId || !newRelationTargetId) {
 		      toast.error("源实体或目标实体未选择");
 		      return;
@@ -980,12 +977,8 @@ const handleAddRelation = () => {
 	              <Select
 		                value={newRelationTargetId?.toString() || ""}
 		                onValueChange={(value) => {
-		                  console.log("Select onValueChange - raw value:", value);
 		                  const id = parseInt(value);
-		                  console.log("Select onValueChange - parsed id:", id);
-		                  const finalId = isNaN(id) ? null : id;
-                  setNewRelationTargetId(finalId);
-                  console.log("Select onValueChange - finalId set in state:", finalId);
+		                  setNewRelationTargetId(isNaN(id) ? null : id);
 		                }}
 	              >
 	                <SelectTrigger id="target-entity">
