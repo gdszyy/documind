@@ -117,9 +117,8 @@ export default function Graph() {
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
-  const hoverButtonsRef = useRef<HTMLDivElement>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
-  const [hoveredNodePosition, setHoveredNodePosition] = useState<{ x: number; y: number } | null>(null);
+
+
 
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -301,39 +300,24 @@ export default function Graph() {
         }
       });
 
-      // 添加鼠标移动事件
-      chartInstanceRef.current.on("mousemove", (params: any) => {
+      // 添加双击事件 - 展示该节点及其所有关联节点
+      chartInstanceRef.current.on("dblclick", (params: any) => {
         if (params.dataType === "node") {
           const nodeId = parseInt(params.data.id);
-          setHoveredNodeId(nodeId);
-          
-          // 获取节点在图表中的实际位置
-          // 首先获取节点的数据位置，然后转换为像素坐标
-          const option = chartInstanceRef.current!.getOption();
-          const seriesData = option.series?.[0]?.data || [];
-          const nodeData = seriesData.find((item: any) => item.id === params.data.id);
-          
-          if (nodeData && nodeData.x !== undefined && nodeData.y !== undefined) {
-            // 转换节点中心位置为像素坐标
-            const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
-              nodeData.x,
-              nodeData.y
-            ]);
-            setHoveredNodePosition({ x: position[0], y: position[1] });
-          }
+          handleShowRelatedNodes(nodeId);
         }
       });
 
-      // 添加鼠标移出事件
-      chartInstanceRef.current.on("mouseout", (params: any) => {
-        // 延迟隐藏，给用户时间移动到按钮上
-        setTimeout(() => {
-          if (!hoverButtonsRef.current?.matches(':hover')) {
-            setHoveredNodeId(null);
-            setHoveredNodePosition(null);
-          }
-        }, 100);
+      // 添加右键事件 - 隐藏该节点
+      chartInstanceRef.current.on("contextmenu", (params: any) => {
+        if (params.dataType === "node") {
+          params.event.event.preventDefault(); // 阻止默认右键菜单
+          const nodeId = parseInt(params.data.id);
+          handleHideNode(nodeId);
+        }
       });
+
+
 
 
     }
@@ -594,52 +578,6 @@ export default function Graph() {
         ) : (
           <>
             <div ref={chartRef} className="w-full h-full" />
-            
-            {/* 悬浮按钮层 */}
-            {hoveredNodeId !== null && hoveredNodePosition !== null && (
-              <div
-                ref={hoverButtonsRef}
-                className="absolute z-[9999] pointer-events-none"
-                style={{
-                  left: `${hoveredNodePosition.x}px`,
-                  top: `${hoveredNodePosition.y}px`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-                onMouseLeave={() => {
-                  setHoveredNodeId(null);
-                  setHoveredNodePosition(null);
-                }}
-              >
-                <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                  {/* 隐藏按钮 - 在节点上方 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleHideNode(hoveredNodeId);
-                    }}
-                    className="bg-white hover:bg-red-50 text-red-600 rounded-full p-2.5 shadow-xl border-2 border-red-200 transition-all hover:scale-110 cursor-pointer"
-                    title="隐藏此节点"
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </button>
-                  
-                  {/* 节点占位 */}
-                  <div className="h-[70px] pointer-events-none" />
-                  
-                  {/* 展示关联节点按钮 - 在节点下方 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShowRelatedNodes(hoveredNodeId);
-                    }}
-                    className="bg-white hover:bg-blue-50 text-blue-600 rounded-full p-2.5 shadow-xl border-2 border-blue-200 transition-all hover:scale-110 cursor-pointer"
-                    title="展示所有关联节点"
-                  >
-                    <Network className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
