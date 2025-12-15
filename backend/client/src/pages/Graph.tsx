@@ -116,7 +116,8 @@ export default function Graph() {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
-  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+	  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+	  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
@@ -230,11 +231,11 @@ export default function Graph() {
     }
   };
 
-  const handleAddRelation = () => {
-    if (!selectedEntityId || !newRelationTargetId) {
-      toast.error("请选择目标实体");
-      return;
-    }
+	  const handleAddRelation = () => {
+	    if (!selectedEntityId || !newRelationTargetId) {
+	      toast.error("请选择目标实体");
+	      return;
+	    }
 
     createRelationMutation.mutate({
       sourceId: selectedEntityId,
@@ -921,26 +922,54 @@ export default function Graph() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="target-entity">目标实体</Label>
-              <Select
-                value={newRelationTargetId?.toString()}
-                onValueChange={(value) => setNewRelationTargetId(parseInt(value))}
-              >
-                <SelectTrigger id="target-entity">
-                  <SelectValue placeholder="选择目标实体" />
-                </SelectTrigger>
-                <SelectContent>
-                  {entitiesList?.items
-                    ?.filter((e) => e.id !== selectedEntityId)
-                    .map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id.toString()}>
-                        {typeIcons[entity.type]} {entity.name} ({entity.type})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+	            <div className="space-y-2">
+	              <Label htmlFor="target-entity-type">目标实体类型 (可选)</Label>
+	              <Select
+	                value={newRelationTargetType || "all"}
+	                onValueChange={(value) => {
+	                  setNewRelationTargetType(value === "all" ? null : value);
+	                  setNewRelationTargetId(null); // 切换类型时重置目标实体
+	                }}
+	              >
+	                <SelectTrigger id="target-entity-type">
+	                  <SelectValue placeholder="选择实体类型" />
+	                </SelectTrigger>
+	                <SelectContent>
+	                  <SelectItem value="all">所有类型</SelectItem>
+	                  <SelectItem value="Service">Service</SelectItem>
+	                  <SelectItem value="API">API</SelectItem>
+	                  <SelectItem value="Component">Component</SelectItem>
+	                  <SelectItem value="Page">Page</SelectItem>
+	                  <SelectItem value="Module">Module</SelectItem>
+	                  <SelectItem value="Documentation">Documentation</SelectItem>
+	                  <SelectItem value="Document">Document</SelectItem>
+	                </SelectContent>
+	              </Select>
+	            </div>
+	            <div className="space-y-2">
+	              <Label htmlFor="target-entity">目标实体</Label>
+	              <Select
+	                value={newRelationTargetId?.toString()}
+	                onValueChange={(value) => {
+	                  const id = parseInt(value);
+	                  setNewRelationTargetId(isNaN(id) ? null : id);
+	                }}
+	              >
+	                <SelectTrigger id="target-entity">
+	                  <SelectValue placeholder="选择目标实体" />
+	                </SelectTrigger>
+	                <SelectContent>
+	                  {entitiesList?.items
+	                    ?.filter((e) => e.id !== selectedEntityId)
+	                    ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
+	                    .map((entity) => (
+	                      <SelectItem key={entity.id} value={entity.id.toString()}>
+	                        {typeIcons[entity.type]} {entity.name} ({entity.type})
+	                      </SelectItem>
+	                    ))}
+	                </SelectContent>
+	              </Select>
+	            </div>
           </div>
 
           <DialogFooter>
