@@ -470,7 +470,7 @@ export default function Graph() {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [data, visibleEntityIds]);
+  }, [data, visibleEntityIds, hiddenEntityIds]);
 
   // 清理 ECharts 实例
   useEffect(() => {
