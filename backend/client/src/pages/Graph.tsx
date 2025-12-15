@@ -349,11 +349,11 @@ export default function Graph() {
         itemStyle: {
           color: typeColors[entityType] || "#999999",
         },
-        label: {
-          show: true,
-          color: "#fff",
-          fontSize: 12,
-        },
+          label: {
+            show: true,
+            color: "#333", // 将文字颜色改为深灰色，提高可读性
+            fontSize: 12,
+          },
         // 存储原始数据用于点击事件
         entityData: entity,
       };
