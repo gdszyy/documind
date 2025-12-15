@@ -301,39 +301,52 @@ export default function Graph() {
         }
       });
 
-      // 添加鼠标移动事件
-      chartInstanceRef.current.on("mousemove", (params: any) => {
-        if (params.dataType === "node") {
-          const nodeId = parseInt(params.data.id);
+      // 添加鼠标移动事件 - 使用globalout事件更可靠
+      chartInstanceRef.current.getZr().on('mousemove', (e: any) => {
+        const pointInPixel = [e.offsetX, e.offsetY];
+        const pointInGrid = chartInstanceRef.current!.convertFromPixel({ seriesIndex: 0 }, pointInPixel);
+        
+        // 检查是否悬停在节点上
+        const option = chartInstanceRef.current!.getOption();
+        const seriesData = option.series?.[0]?.data || [];
+        
+        let foundNode = null;
+        for (const node of seriesData) {
+          if (node.x !== undefined && node.y !== undefined) {
+            const dx = pointInGrid[0] - node.x;
+            const dy = pointInGrid[1] - node.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 如果鼠标在节点范围内（symbolSize的一半）
+            if (distance < 30) { // 60/2 = 30
+              foundNode = node;
+              break;
+            }
+          }
+        }
+        
+        if (foundNode) {
+          const nodeId = parseInt(foundNode.id);
           setHoveredNodeId(nodeId);
           
-          // 获取节点在图表中的实际位置
-          // 首先获取节点的数据位置，然后转换为像素坐标
-          const option = chartInstanceRef.current!.getOption();
-          const seriesData = option.series?.[0]?.data || [];
-          const nodeData = seriesData.find((item: any) => item.id === params.data.id);
-          
-          if (nodeData && nodeData.x !== undefined && nodeData.y !== undefined) {
-            // 转换节点中心位置为像素坐标
-            const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
-              nodeData.x,
-              nodeData.y
-            ]);
-            setHoveredNodePosition({ x: position[0], y: position[1] });
-          }
+          // 转换节点中心位置为像素坐标
+          const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
+            foundNode.x,
+            foundNode.y
+          ]);
+          setHoveredNodePosition({ x: position[0], y: position[1] });
+        } else {
+          // 延迟隐藏，给用户时间移动到按钮上
+          setTimeout(() => {
+            if (!hoverButtonsRef.current?.matches(':hover')) {
+              setHoveredNodeId(null);
+              setHoveredNodePosition(null);
+            }
+          }, 100);
         }
       });
 
-      // 添加鼠标移出事件
-      chartInstanceRef.current.on("mouseout", (params: any) => {
-        // 延迟隐藏，给用户时间移动到按钮上
-        setTimeout(() => {
-          if (!hoverButtonsRef.current?.matches(':hover')) {
-            setHoveredNodeId(null);
-            setHoveredNodePosition(null);
-          }
-        }, 100);
-      });
+
     }
 
     // 转换数据为 ECharts 格式
