@@ -121,6 +121,16 @@ export default function Graph() {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
+  useEffect(() => {
+    // 对话框打开时重置状态，确保每次都是干净的表单
+    if (showAddRelationDialog) {
+      console.log("Dialog opened, resetting relation state.");
+      setNewRelationTargetId(null);
+      setNewRelationTargetType(null);
+      setNewRelationType("DEPENDS_ON");
+    }
+  }, [showAddRelationDialog]);
+
 
 
   const [editFormData, setEditFormData] = useState({
@@ -973,7 +983,9 @@ export default function Graph() {
 		                  console.log("Select onValueChange - raw value:", value);
 		                  const id = parseInt(value);
 		                  console.log("Select onValueChange - parsed id:", id);
-		                  setNewRelationTargetId(isNaN(id) ? null : id);
+		                  const finalId = isNaN(id) ? null : id;
+                  setNewRelationTargetId(finalId);
+                  console.log("Select onValueChange - finalId set in state:", finalId);
 		                }}
 	              >
 	                <SelectTrigger id="target-entity">
