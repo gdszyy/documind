@@ -125,6 +125,7 @@ export default function Graph() {
 
   const [editFormData, setEditFormData] = useState({
     name: "",
+    type: "Service" as string, // 新增类型字段
     owner: "",
     status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
     description: "",
@@ -206,6 +207,7 @@ export default function Graph() {
     if (selectedEntity) {
       setEditFormData({
         name: selectedEntity.name,
+        type: selectedEntity.type, // 填充类型字段
         owner: selectedEntity.owner,
         status: selectedEntity.status,
         description: selectedEntity.description || "",
@@ -648,6 +650,20 @@ export default function Graph() {
                     {isEditing ? (
                       <>
                         <div className="space-y-2">
+                          <Label htmlFor="edit-type" className="text-sm">类型</Label>
+                          <Select value={editFormData.type} disabled>
+                            <SelectTrigger id="edit-type">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allEntityTypes.map(type => (
+                                <SelectItem key={type} value={type}>{typeDisplayNames[type]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="edit-name" className="text-sm">名称</Label>
                           <Input
                             id="edit-name"
@@ -726,6 +742,7 @@ export default function Graph() {
                               if (selectedEntity) {
                                 setEditFormData({
                                   name: selectedEntity.name,
+                                  type: selectedEntity.type, // 恢复类型
                                   owner: selectedEntity.owner,
                                   status: selectedEntity.status,
                                   description: selectedEntity.description || "",
