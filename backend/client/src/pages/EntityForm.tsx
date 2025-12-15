@@ -405,23 +405,33 @@ export default function EntityForm() {
 	              {isEdit && (
 	                <div className="space-y-2">
 	                  <Label htmlFor="larkDocUrl">飞书文档链接 (Lark Doc URL)</Label>
-	                  <Input
-	                    id="larkDocUrl"
-	                    value={formData.larkDocUrl}
-	                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
-	                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
-	                  />
-	                  {entity?.larkDocUrl && (
-	                    <a
-	                      href={entity.larkDocUrl}
-	                      target="_blank"
-	                      rel="noopener noreferrer"
-	                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-	                    >
-	                      在飞书中查看当前文档
-	                      <ExternalLink className="h-3 w-3" />
-	                    </a>
-	                  )}
+		                  <Input
+		                    id="larkDocUrl"
+		                    value={formData.larkDocUrl}
+		                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
+		                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
+		                  />
+		                  {formData.larkDocUrl ? (
+		                    <a
+		                      href={formData.larkDocUrl}
+		                      target="_blank"
+		                      rel="noopener noreferrer"
+		                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+		                    >
+		                      在飞书中查看当前文档
+		                      <ExternalLink className="h-3 w-3" />
+		                    </a>
+		                  ) : (
+		                    <Button
+		                      type="button"
+		                      variant="outline"
+		                      size="sm"
+		                      onClick={() => toast.info("飞书文档创建功能待实现")} // 占位点击事件
+		                    >
+		                      <Plus className="h-4 w-4 mr-2" />
+		                      创建飞书文档
+		                    </Button>
+		                  )}
 	                </div>
 	              )}
             </CardContent>
@@ -471,9 +481,9 @@ export default function EntityForm() {
                         <div className="space-y-2">
                           <Label htmlFor="targetEntityType">目标实体类型 (可选)</Label>
                           <Select
-                            value={newRelationTargetType || ""}
+                            value={newRelationTargetType || "all"}
                             onValueChange={(value) => {
-                              setNewRelationTargetType(value || null);
+                              setNewRelationTargetType(value === "all" ? null : value);
                               setNewRelationTargetId(null); // 切换类型时重置目标实体
                             }}
                           >
@@ -481,7 +491,7 @@ export default function EntityForm() {
                               <SelectValue placeholder="选择实体类型" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">所有类型</SelectItem>
+                              <SelectItem value="all">所有类型</SelectItem>
                               <SelectItem value="Service">服务</SelectItem>
                               <SelectItem value="API">API</SelectItem>
                               <SelectItem value="Component">组件</SelectItem>
