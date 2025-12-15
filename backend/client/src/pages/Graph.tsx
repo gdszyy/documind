@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, EyeOff, Network } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +108,7 @@ export default function Graph() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   // 使用 Context 来共享节点可见性状态
-  const { visibleEntityIds } = useGraphVisibility();
+  const { visibleEntityIds, setVisibleEntityIds } = useGraphVisibility();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -117,6 +117,9 @@ export default function Graph() {
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+  const hoverButtonsRef = useRef<HTMLDivElement>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<number | null>(null);
+  const [hoveredNodePosition, setHoveredNodePosition] = useState<{ x: number; y: number } | null>(null);
 
   const [editFormData, setEditFormData] = useState({
     name: "",
@@ -240,6 +243,46 @@ export default function Graph() {
     deleteRelationMutation.mutate({ id: relationId });
   };
 
+  // 隐藏节点功能
+  const handleHideNode = (nodeId: number) => {
+    if (!data) return;
+    
+    // 获取当前可见的节点ID集合
+    const currentVisible = visibleEntityIds === null 
+      ? new Set(data.nodes.map(n => n.id))
+      : new Set(visibleEntityIds);
+    
+    // 移除要隐藏的节点
+    currentVisible.delete(nodeId);
+    
+    setVisibleEntityIds(currentVisible);
+    setHoveredNodeId(null);
+    toast.success("节点已隐藏");
+  };
+
+  // 展示所有关联节点功能
+  const handleShowRelatedNodes = (nodeId: number) => {
+    if (!data) return;
+    
+    // 找到所有与该节点相关的边
+    const relatedNodeIds = new Set<number>();
+    relatedNodeIds.add(nodeId); // 包含自己
+    
+    data.edges.forEach(edge => {
+      if (edge.sourceId === nodeId) {
+        relatedNodeIds.add(edge.targetId);
+      }
+      if (edge.targetId === nodeId) {
+        relatedNodeIds.add(edge.sourceId);
+      }
+    });
+    
+    // 更新可见节点集合
+    setVisibleEntityIds(relatedNodeIds);
+    setHoveredNodeId(null);
+    toast.success(`已展示 ${relatedNodeIds.size} 个关联节点`);
+  };
+
   // 初始化和更新 ECharts
   useEffect(() => {
     if (!chartRef.current || !data) return;
@@ -253,6 +296,33 @@ export default function Graph() {
         if (params.dataType === "node") {
           setSelectedEntityId(parseInt(params.data.id));
         }
+      });
+
+      // 添加鼠标移动事件
+      chartInstanceRef.current.on("mousemove", (params: any) => {
+        if (params.dataType === "node") {
+          const nodeId = parseInt(params.data.id);
+          setHoveredNodeId(nodeId);
+          
+          // 获取节点在画布上的位置
+          const position = chartInstanceRef.current!.convertToPixel({ seriesIndex: 0 }, [
+            params.data.x || 0,
+            params.data.y || 0
+          ]);
+          
+          setHoveredNodePosition({ x: position[0], y: position[1] });
+        }
+      });
+
+      // 添加鼠标移出事件
+      chartInstanceRef.current.on("mouseout", (params: any) => {
+        // 延迟隐藏，给用户时间移动到按钮上
+        setTimeout(() => {
+          if (!hoverButtonsRef.current?.matches(':hover')) {
+            setHoveredNodeId(null);
+            setHoveredNodePosition(null);
+          }
+        }, 100);
       });
     }
 
@@ -510,7 +580,55 @@ export default function Graph() {
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         ) : (
-          <div ref={chartRef} className="w-full h-full" />
+          <>
+            <div ref={chartRef} className="w-full h-full" />
+            
+            {/* 悬浮按钮层 */}
+            {hoveredNodeId !== null && hoveredNodePosition !== null && (
+              <div
+                ref={hoverButtonsRef}
+                className="absolute pointer-events-auto z-50"
+                style={{
+                  left: `${hoveredNodePosition.x}px`,
+                  top: `${hoveredNodePosition.y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                onMouseLeave={() => {
+                  setHoveredNodeId(null);
+                  setHoveredNodePosition(null);
+                }}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  {/* 隐藏按钮 - 在节点上方 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleHideNode(hoveredNodeId);
+                    }}
+                    className="bg-white hover:bg-red-50 text-red-600 rounded-full p-2 shadow-lg border border-red-200 transition-all hover:scale-110"
+                    title="隐藏此节点"
+                  >
+                    <EyeOff className="h-4 w-4" />
+                  </button>
+                  
+                  {/* 节点占位 */}
+                  <div className="h-[60px]" />
+                  
+                  {/* 展示关联节点按钮 - 在节点下方 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShowRelatedNodes(hoveredNodeId);
+                    }}
+                    className="bg-white hover:bg-blue-50 text-blue-600 rounded-full p-2 shadow-lg border border-blue-200 transition-all hover:scale-110"
+                    title="展示所有关联节点"
+                  >
+                    <Network className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
