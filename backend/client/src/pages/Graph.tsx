@@ -638,23 +638,24 @@ export default function Graph() {
 
     // 配置 ECharts 选项
     const option: EChartsOption = {
-      tooltip: {
-        trigger: "item",
-        formatter: (params: any) => {
-          if (params.dataType === "node") {
-            const entity = params.data.entityData;
-            return `
-              <div style="padding: 8px;">
-                <strong>${entity.name}</strong><br/>
-                类型: ${entity.type}<br/>
-                负责人: ${entity.owner}<br/>
-                状态: ${entity.status}
-              </div>
-            `;
-          }
-          return "";
-        },
-      },
+      // 移除 tooltip 配置，不再显示鼠标悬浮信息卡片
+      // tooltip: {
+      //   trigger: "item",
+      //   formatter: (params: any) => {
+      //     if (params.dataType === "node") {
+      //       const entity = params.data.entityData;
+      //       return `
+      //         <div style="padding: 8px;">
+      //           <strong>${entity.name}</strong><br/>
+      //           类型: ${entity.type}<br/>
+      //           负责人: ${entity.owner}<br/>
+      //           状态: ${entity.status}
+      //         </div>
+      //       `;
+      //     }
+      //     return "";
+      //   },
+      // },
       // 添加图例
       legend: [{
         data: categories.map(c => c.name),
