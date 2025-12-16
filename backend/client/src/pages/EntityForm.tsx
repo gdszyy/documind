@@ -2,7 +2,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,9 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Trash2, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ExternalLink, Loader2, Trash2, Plus, Search, ArrowLeftRight } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,54 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
+// 关系类型与目标实体类型的映射配置
+const RELATION_TYPE_CONFIG: Record<string, {
+  label: string;
+  reverseLabel: string;
+  suggestedTargetType: string | null;
+  description: string;
+  reverseDescription: string;
+}> = {
+  EXPOSES_API: {
+    label: "暴露 API",
+    reverseLabel: "被暴露于",
+    suggestedTargetType: "API",
+    description: "当前实体暴露以下 API",
+    reverseDescription: "当前实体被以下实体暴露为 API",
+  },
+  DEPENDS_ON: {
+    label: "依赖于",
+    reverseLabel: "被依赖于",
+    suggestedTargetType: null, // 依赖关系不限制类型
+    description: "当前实体依赖以下实体",
+    reverseDescription: "当前实体被以下实体依赖",
+  },
+  USES_COMPONENT: {
+    label: "使用组件",
+    reverseLabel: "被使用于",
+    suggestedTargetType: "Component",
+    description: "当前实体使用以下组件",
+    reverseDescription: "当前实体被以下实体作为组件使用",
+  },
+  CONTAINS: {
+    label: "包含",
+    reverseLabel: "被包含于",
+    suggestedTargetType: null, // 包含关系根据源实体类型动态确定
+    description: "当前实体包含以下实体",
+    reverseDescription: "当前实体被以下实体包含",
+  },
+};
+
+// 根据源实体类型推荐包含关系的目标类型
+const getContainsTargetType = (sourceType: string): string | null => {
+  const containsMapping: Record<string, string> = {
+    Service: "API", // 服务通常包含 API
+    Page: "Component", // 页面通常包含组件
+    Module: "Component", // 模块通常包含组件
+  };
+  return containsMapping[sourceType] || null;
+};
+
 export default function EntityForm() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/entities/:id/edit");
@@ -62,6 +110,10 @@ export default function EntityForm() {
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
   const [newRelationTargetIds, setNewRelationTargetIds] = useState<number[]>([]);
   const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
+  // 新增：搜索关键词状态
+  const [entitySearchQuery, setEntitySearchQuery] = useState("");
+  // 新增：关系反转状态
+  const [isRelationReversed, setIsRelationReversed] = useState(false);
 
   // 从 URL 参数获取预填充信息
   const searchParams = new URLSearchParams(window.location.search);
@@ -95,7 +147,7 @@ export default function EntityForm() {
 
   // 获取所有实体列表（用于选择关系目标）
   const { data: entitiesList } = trpc.entities.list.useQuery(
-    { page: 1, limit: 100, sortBy: "name", order: "asc" },
+    { page: 1, limit: 500, sortBy: "name", order: "asc" },
     { enabled: showAddRelationDialog }
   );
 
@@ -115,6 +167,47 @@ export default function EntityForm() {
       });
     }
   }, [entity]);
+
+  // 关系类型变化时自动设置目标实体类型（选项联动逻辑）
+  useEffect(() => {
+    const config = RELATION_TYPE_CONFIG[newRelationType];
+    if (config) {
+      let suggestedType = config.suggestedTargetType;
+      
+      // 特殊处理 CONTAINS 关系：根据当前实体类型推荐
+      if (newRelationType === "CONTAINS" && entity) {
+        suggestedType = getContainsTargetType(entity.type);
+      }
+      
+      // 如果有推荐类型，自动设置
+      if (suggestedType) {
+        setNewRelationTargetType(suggestedType);
+      }
+      // 如果没有推荐类型（如 DEPENDS_ON），保持当前选择或设为全部
+      // 不自动重置，让用户保持之前的选择
+    }
+    // 清空已选择的目标实体
+    setNewRelationTargetIds([]);
+  }, [newRelationType, entity]);
+
+  // 计算过滤后的实体列表（搜索 + 类型过滤）
+  const filteredEntities = useMemo(() => {
+    if (!entitiesList?.items) return [];
+    
+    return entitiesList.items
+      .filter((e) => e.id !== entityId) // 排除当前实体
+      .filter((e) => !newRelationTargetType || e.type === newRelationTargetType) // 类型过滤
+      .filter((e) => {
+        // 搜索过滤：匹配名称或类型
+        if (!entitySearchQuery.trim()) return true;
+        const query = entitySearchQuery.toLowerCase();
+        return (
+          e.name.toLowerCase().includes(query) ||
+          e.type.toLowerCase().includes(query) ||
+          e.uniqueId?.toLowerCase().includes(query)
+        );
+      });
+  }, [entitiesList?.items, entityId, newRelationTargetType, entitySearchQuery]);
 
   const utils = trpc.useUtils();
   const createMutation = trpc.entities.create.useMutation({
@@ -218,11 +311,20 @@ export default function EntityForm() {
     
     for (const targetId of newRelationTargetIds) {
       try {
-        await createRelationMutation.mutateAsync({
-          sourceId: entityId,
-          targetId,
-          type: newRelationType,
-        });
+        // 根据是否反转来决定 sourceId 和 targetId
+        const relationData = isRelationReversed
+          ? {
+              sourceId: targetId,
+              targetId: entityId,
+              type: newRelationType,
+            }
+          : {
+              sourceId: entityId,
+              targetId,
+              type: newRelationType,
+            };
+        
+        await createRelationMutation.mutateAsync(relationData);
         successCount++;
       } catch (error) {
         failCount++;
@@ -242,20 +344,31 @@ export default function EntityForm() {
     // 关闭对话框并重置状态
     setShowAddRelationDialog(false);
     setNewRelationTargetIds([]);
+    setEntitySearchQuery("");
+    setIsRelationReversed(false);
   };
 
   const handleDeleteRelation = (relationId: number) => {
     deleteRelationMutation.mutate({ id: relationId });
   };
 
-  const getRelationTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      EXPOSES_API: "暴露 API",
-      DEPENDS_ON: "依赖于",
-      USES_COMPONENT: "使用组件",
-      CONTAINS: "包含",
-    };
-    return labels[type] || type;
+  // 重置对话框状态
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowAddRelationDialog(open);
+    if (!open) {
+      // 关闭时重置所有状态
+      setNewRelationTargetIds([]);
+      setEntitySearchQuery("");
+      setIsRelationReversed(false);
+      setNewRelationType("DEPENDS_ON");
+      setNewRelationTargetType(null);
+    }
+  };
+
+  const getRelationTypeLabel = (type: string, reversed: boolean = false) => {
+    const config = RELATION_TYPE_CONFIG[type];
+    if (!config) return type;
+    return reversed ? config.reverseLabel : config.label;
   };
 
   const getRelationTypeBadgeColor = (type: string) => {
@@ -266,6 +379,13 @@ export default function EntityForm() {
       CONTAINS: "bg-orange-100 text-orange-800",
     };
     return colors[type] || "bg-gray-100 text-gray-800";
+  };
+
+  // 获取当前关系类型的描述
+  const getCurrentRelationDescription = () => {
+    const config = RELATION_TYPE_CONFIG[newRelationType];
+    if (!config) return "";
+    return isRelationReversed ? config.reverseDescription : config.description;
   };
 
   if (isEdit && isLoadingEntity) {
@@ -443,33 +563,33 @@ export default function EntityForm() {
 	              {isEdit && (
 	                <div className="space-y-2">
 	                  <Label htmlFor="larkDocUrl">飞书文档链接 (Lark Doc URL)</Label>
-		                  <Input
-		                    id="larkDocUrl"
-		                    value={formData.larkDocUrl}
-		                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
-		                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
-		                  />
-		                  {formData.larkDocUrl ? (
-		                    <a
-		                      href={formData.larkDocUrl}
-		                      target="_blank"
-		                      rel="noopener noreferrer"
-		                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-		                    >
-		                      在飞书中查看当前文档
-		                      <ExternalLink className="h-3 w-3" />
-		                    </a>
-		                  ) : (
-		                    <Button
-		                      type="button"
-		                      variant="outline"
-		                      size="sm"
-		                      onClick={() => toast.info("飞书文档创建功能待实现")} // 占位点击事件
-		                    >
-		                      <Plus className="h-4 w-4 mr-2" />
-		                      创建飞书文档
-		                    </Button>
-		                  )}
+	                  <Input
+	                    id="larkDocUrl"
+	                    value={formData.larkDocUrl}
+	                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
+	                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
+	                  />
+	                  {formData.larkDocUrl ? (
+	                    <a
+	                      href={formData.larkDocUrl}
+	                      target="_blank"
+	                      rel="noopener noreferrer"
+	                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+	                    >
+	                      在飞书中查看当前文档
+	                      <ExternalLink className="h-3 w-3" />
+	                    </a>
+	                  ) : (
+	                    <Button
+	                      type="button"
+	                      variant="outline"
+	                      size="sm"
+	                      onClick={() => toast.info("飞书文档创建功能待实现")} // 占位点击事件
+	                    >
+	                      <Plus className="h-4 w-4 mr-2" />
+	                      创建飞书文档
+	                    </Button>
+	                  )}
 	                </div>
 	              )}
             </CardContent>
@@ -484,14 +604,14 @@ export default function EntityForm() {
                     <CardTitle>关系管理</CardTitle>
                     <CardDescription>管理此实体与其他实体的关系</CardDescription>
                   </div>
-                  <Dialog open={showAddRelationDialog} onOpenChange={setShowAddRelationDialog}>
+                  <Dialog open={showAddRelationDialog} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
                             <Button type="button" size="sm" disabled={!isAdmin}>
                         <Plus className="h-4 w-4 mr-2" />
                         添加关系
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-lg">
                       <DialogHeader>
                         <DialogTitle>添加新关系</DialogTitle>
                         <DialogDescription>
@@ -499,6 +619,7 @@ export default function EntityForm() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
+                        {/* 关系类型选择 */}
                         <div className="space-y-2">
                           <Label htmlFor="relationType">关系类型</Label>
                           <Select
@@ -516,8 +637,39 @@ export default function EntityForm() {
                             </SelectContent>
                           </Select>
                         </div>
+
+                        {/* 关系反转开关 */}
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                          <div className="flex items-center gap-2">
+                            <ArrowLeftRight className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <Label htmlFor="reverseRelation" className="text-sm font-medium cursor-pointer">
+                                反转关系方向
+                              </Label>
+                              <p className="text-xs text-gray-500">
+                                {isRelationReversed 
+                                  ? `目标实体 → ${getRelationTypeLabel(newRelationType, false)} → 当前实体`
+                                  : `当前实体 → ${getRelationTypeLabel(newRelationType, false)} → 目标实体`
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            id="reverseRelation"
+                            checked={isRelationReversed}
+                            onCheckedChange={setIsRelationReversed}
+                          />
+                        </div>
+
+                        {/* 关系描述提示 */}
+                        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                          <span className="font-medium">关系说明：</span>{" "}
+                          {getCurrentRelationDescription()}
+                        </div>
+
+                        {/* 目标实体类型过滤 */}
                         <div className="space-y-2">
-                          <Label htmlFor="targetEntityType">目标实体类型 (可选)</Label>
+                          <Label htmlFor="targetEntityType">目标实体类型</Label>
                           <Select
                             value={newRelationTargetType || "all"}
                             onValueChange={(value) => {
@@ -537,58 +689,98 @@ export default function EntityForm() {
                               <SelectItem value="Document">说明文档</SelectItem>
                             </SelectContent>
                           </Select>
+                          {/* 类型推荐提示 */}
+                          {RELATION_TYPE_CONFIG[newRelationType]?.suggestedTargetType && (
+                            <p className="text-xs text-gray-500">
+                              💡 已根据关系类型自动选择推荐的目标类型
+                            </p>
+                          )}
                         </div>
+
+                        {/* 搜索框 */}
                         <div className="space-y-2">
                           <Label>目标实体 (可多选)</Label>
-                          {newRelationTargetIds.length > 0 && (
-                            <div className="text-sm text-gray-500 mb-2">
-                              已选择 {newRelationTargetIds.length} 个实体
-                            </div>
-                          )}
-                          <div className="border rounded-md max-h-[200px] overflow-y-auto">
-                            {entitiesList?.items
-                              ?.filter((e) => e.id !== entityId)
-                              ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
-                              .map((entity) => (
-                                <div
-                                  key={entity.id}
-                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                                  onClick={() => {
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              placeholder="搜索实体名称、类型或 ID..."
+                              value={entitySearchQuery}
+                              onChange={(e) => setEntitySearchQuery(e.target.value)}
+                              className="pl-9"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 已选择数量提示 */}
+                        {newRelationTargetIds.length > 0 && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">
+                              已选择 <span className="font-medium text-blue-600">{newRelationTargetIds.length}</span> 个实体
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setNewRelationTargetIds([])}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              清空选择
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* 实体列表 */}
+                        <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                          {filteredEntities.length > 0 ? (
+                            filteredEntities.map((entity) => (
+                              <div
+                                key={entity.id}
+                                className={`flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 ${
+                                  newRelationTargetIds.includes(entity.id) ? "bg-blue-50" : ""
+                                }`}
+                                onClick={() => {
+                                  setNewRelationTargetIds((prev) =>
+                                    prev.includes(entity.id)
+                                      ? prev.filter((id) => id !== entity.id)
+                                      : [...prev, entity.id]
+                                  );
+                                }}
+                              >
+                                <Checkbox
+                                  checked={newRelationTargetIds.includes(entity.id)}
+                                  onCheckedChange={(checked) => {
                                     setNewRelationTargetIds((prev) =>
-                                      prev.includes(entity.id)
-                                        ? prev.filter((id) => id !== entity.id)
-                                        : [...prev, entity.id]
+                                      checked
+                                        ? [...prev, entity.id]
+                                        : prev.filter((id) => id !== entity.id)
                                     );
                                   }}
-                                >
-                                  <Checkbox
-                                    checked={newRelationTargetIds.includes(entity.id)}
-                                    onCheckedChange={(checked) => {
-                                      setNewRelationTargetIds((prev) =>
-                                        checked
-                                          ? [...prev, entity.id]
-                                          : prev.filter((id) => id !== entity.id)
-                                      );
-                                    }}
-                                  />
-                                  <span className="text-sm">
-                                    {entity.name} ({entity.type})
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm truncate block">
+                                    {entity.name}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {entity.type} · {entity.uniqueId}
                                   </span>
                                 </div>
-                              ))}
-                            {(!entitiesList?.items || entitiesList.items.filter((e) => e.id !== entityId).filter((e) => !newRelationTargetType || e.type === newRelationTargetType).length === 0) && (
-                              <div className="px-3 py-4 text-sm text-gray-500 text-center">
-                                没有可选的实体
+                                <Badge variant="outline" className="text-xs shrink-0">
+                                  {entity.type}
+                                </Badge>
                               </div>
-                            )}
-                          </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                              {entitySearchQuery ? "没有匹配的实体" : "没有可选的实体"}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <DialogFooter>
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setShowAddRelationDialog(false)}
+                          onClick={() => handleDialogOpenChange(false)}
                         >
                           取消
                         </Button>
