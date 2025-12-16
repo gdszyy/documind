@@ -258,7 +258,7 @@ export default function Graph() {
       limit: ENTITIES_PAGE_SIZE, 
       sortBy: "name", 
       order: "asc",
-      type: newRelationTargetType || undefined,  // 类型筛选参数传给后端
+      type: (newRelationTargetType as "Service" | "API" | "Component" | "Page" | "Module" | "Documentation" | "Document" | undefined) || undefined,  // 类型筛选参数传给后端
     },
     { enabled: addRelationState.open }
   );
@@ -732,6 +732,8 @@ export default function Graph() {
           fontSize: 12,
           color: '#333',
         },
+        // 禁用图例的选择功能，避免与外部筛选冲突
+        selectedMode: false,
         formatter: (name: string) => {
           // 添加图标到图例
           const type = Object.keys(typeDisplayNames).find(
@@ -777,7 +779,8 @@ export default function Graph() {
       ],
     };
 
-    chartInstanceRef.current.setOption(option);
+    // 使用 notMerge: true 确保每次更新都是完整替换，避免旧数据残留
+    chartInstanceRef.current.setOption(option, { notMerge: true });
 
     // 窗口大小变化时重新调整图表
     const handleResize = () => {
