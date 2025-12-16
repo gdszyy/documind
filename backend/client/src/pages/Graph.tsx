@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, EyeOff, Network, Link2 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -242,10 +242,66 @@ export default function Graph() {
     { enabled: !!selectedEntityId }
   );
 
-  const { data: entitiesList } = trpc.entities.list.useQuery(
-    { page: 1, limit: 100, sortBy: "name", order: "asc" },
+  // 添加关系对话框的实体列表分页状态
+  const [entitiesPage, setEntitiesPage] = useState(1);
+  const [allEntities, setAllEntities] = useState<any[]>([]);
+  const [hasMoreEntities, setHasMoreEntities] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const entitiesListRef = useRef<HTMLDivElement>(null);
+  const ENTITIES_PAGE_SIZE = 50;
+
+  // 获取实体列表（分页）
+  const { data: entitiesList, isFetching: isFetchingEntities } = trpc.entities.list.useQuery(
+    { page: entitiesPage, limit: ENTITIES_PAGE_SIZE, sortBy: "name", order: "asc" },
     { enabled: addRelationState.open }
   );
+
+  // 当对话框打开时重置分页状态
+  useEffect(() => {
+    if (addRelationState.open) {
+      setEntitiesPage(1);
+      setAllEntities([]);
+      setHasMoreEntities(true);
+    }
+  }, [addRelationState.open]);
+
+  // 当获取到新数据时，追加到列表中
+  useEffect(() => {
+    if (entitiesList?.items) {
+      if (entitiesPage === 1) {
+        setAllEntities(entitiesList.items);
+      } else {
+        setAllEntities(prev => {
+          // 去重，避免重复添加
+          const existingIds = new Set(prev.map(e => e.id));
+          const newItems = entitiesList.items.filter(e => !existingIds.has(e.id));
+          return [...prev, ...newItems];
+        });
+      }
+      // 检查是否还有更多数据
+      setHasMoreEntities(entitiesList.items.length === ENTITIES_PAGE_SIZE);
+      setIsLoadingMore(false);
+    }
+  }, [entitiesList, entitiesPage]);
+
+  // 滚动加载更多实体
+  const handleEntitiesScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const { scrollTop, scrollHeight, clientHeight } = target;
+    
+    // 当滚动到底部附近时加载更多
+    if (scrollHeight - scrollTop - clientHeight < 50 && hasMoreEntities && !isFetchingEntities && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setEntitiesPage(prev => prev + 1);
+    }
+  }, [hasMoreEntities, isFetchingEntities, isLoadingMore]);
+
+  // 前端过滤实体列表（基于已加载的所有数据）
+  const filteredEntities = useMemo(() => {
+    return allEntities
+      .filter(e => e.id !== addRelationState.sourceId)
+      .filter(e => !newRelationTargetType || e.type === newRelationTargetType);
+  }, [allEntities, addRelationState.sourceId, newRelationTargetType]);
 
   const utils = trpc.useUtils();
 
@@ -1362,38 +1418,50 @@ export default function Graph() {
                   已选择 {newRelationTargetIds.length} 个实体
                 </div>
               )}
-              <div className="border rounded-md max-h-[200px] overflow-y-auto">
-                {entitiesList?.items
-                  ?.filter((e) => e.id !== addRelationState.sourceId)
-                  ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
-                  .map((entity) => (
-                    <div
-                      key={entity.id}
-                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-                      onClick={() => {
+              <div className="text-xs text-gray-400 mb-1">
+                已加载 {allEntities.length} 个实体{hasMoreEntities ? "，滚动加载更多" : "（已全部加载）"}
+              </div>
+              <div 
+                className="border rounded-md max-h-[200px] overflow-y-auto"
+                onScroll={handleEntitiesScroll}
+                ref={entitiesListRef}
+              >
+                {filteredEntities.map((entity) => (
+                  <div
+                    key={entity.id}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                    onClick={() => {
+                      setNewRelationTargetIds((prev) =>
+                        prev.includes(entity.id)
+                          ? prev.filter((id) => id !== entity.id)
+                          : [...prev, entity.id]
+                      );
+                    }}
+                  >
+                    <Checkbox
+                      checked={newRelationTargetIds.includes(entity.id)}
+                      onCheckedChange={(checked) => {
                         setNewRelationTargetIds((prev) =>
-                          prev.includes(entity.id)
-                            ? prev.filter((id) => id !== entity.id)
-                            : [...prev, entity.id]
+                          checked
+                            ? [...prev, entity.id]
+                            : prev.filter((id) => id !== entity.id)
                         );
                       }}
-                    >
-                      <Checkbox
-                        checked={newRelationTargetIds.includes(entity.id)}
-                        onCheckedChange={(checked) => {
-                          setNewRelationTargetIds((prev) =>
-                            checked
-                              ? [...prev, entity.id]
-                              : prev.filter((id) => id !== entity.id)
-                          );
-                        }}
-                      />
-                      <span className="text-sm">
-                        {typeIcons[entity.type]} {entity.name} ({entity.type})
-                      </span>
-                    </div>
-                  ))}
-                {entitiesList?.items?.filter((e) => e.id !== addRelationState.sourceId)?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType).length === 0 && (
+                    />
+                    <span className="text-sm">
+                      {typeIcons[entity.type]} {entity.name} ({entity.type})
+                    </span>
+                  </div>
+                ))}
+                {/* 加载中提示 */}
+                {(isFetchingEntities || isLoadingMore) && (
+                  <div className="px-3 py-3 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    加载中...
+                  </div>
+                )}
+                {/* 无数据提示 */}
+                {filteredEntities.length === 0 && !isFetchingEntities && (
                   <div className="px-3 py-4 text-sm text-gray-500 text-center">
                     没有可选的实体
                   </div>
