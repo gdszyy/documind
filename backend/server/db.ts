@@ -152,6 +152,7 @@ function mapStatusToDatabase(frontendStatus: string): string {
 /**
  * 旧表字段到新表字段的映射
  * 将前端/tRPC使用的旧格式转换为新的数据库格式
+ * 注意：此函数用于创建和更新操作，更新时只应包含需要更新的字段
  */
 function mapOldToNew(oldData: {
   name?: string;
@@ -163,15 +164,7 @@ function mapOldToNew(oldData: {
   httpMethod?: string;
   apiPath?: string;
   larkDocUrl?: string;
-}): Partial<InsertDocumindEntity> {
-  // 验证必需字段
-  if (!oldData.name) {
-    console.warn('[mapOldToNew] Missing required field: name');
-  }
-  if (!oldData.type) {
-    console.warn('[mapOldToNew] Missing required field: type');
-  }
-  
+}, isUpdate: boolean = false): Partial<InsertDocumindEntity> {
   const metadata: Record<string, any> = {};
   
   // 将扩展字段放入metadata（只添加有值的字段）
@@ -180,18 +173,47 @@ function mapOldToNew(oldData: {
   if (oldData.httpMethod !== undefined) metadata.httpMethod = oldData.httpMethod;
   if (oldData.apiPath !== undefined) metadata.apiPath = oldData.apiPath;
 
-  const result = {
-    entityId: oldData.uniqueId || `entity-${nanoid()}`,
-    type: oldData.type ? mapTypeToDatabase(oldData.type) : 'service',
-    title: oldData.name || 'Untitled',
-    status: oldData.status ? mapStatusToDatabase(oldData.status) : 'active',
-    documentUrl: oldData.larkDocUrl || null,
-    metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
-  };
+  const result: Partial<InsertDocumindEntity> = {};
+  
+  // 对于更新操作，只添加明确传入的字段
+  // 对于创建操作，使用默认值
+  if (oldData.uniqueId !== undefined) {
+    result.entityId = oldData.uniqueId;
+  } else if (!isUpdate) {
+    result.entityId = `entity-${nanoid()}`;
+  }
+  
+  if (oldData.type !== undefined) {
+    result.type = mapTypeToDatabase(oldData.type);
+  } else if (!isUpdate) {
+    result.type = 'service';
+  }
+  
+  if (oldData.name !== undefined) {
+    result.title = oldData.name;
+  } else if (!isUpdate) {
+    result.title = 'Untitled';
+    console.warn('[mapOldToNew] Missing required field: name, using default "Untitled"');
+  }
+  
+  if (oldData.status !== undefined) {
+    result.status = mapStatusToDatabase(oldData.status);
+  } else if (!isUpdate) {
+    result.status = 'active';
+  }
+  
+  if (oldData.larkDocUrl !== undefined) {
+    result.documentUrl = oldData.larkDocUrl || null;
+  }
+  
+  if (Object.keys(metadata).length > 0) {
+    result.metadata = JSON.stringify(metadata);
+  }
   
   console.log('[mapOldToNew] Mapping:', {
-    input: { name: oldData.name, uniqueId: oldData.uniqueId, type: oldData.type },
-    output: { title: result.title, entityId: result.entityId, type: result.type },
+    isUpdate,
+    input: { name: oldData.name, uniqueId: oldData.uniqueId, type: oldData.type, larkDocUrl: oldData.larkDocUrl },
+    output: result,
     metadataFields: Object.keys(metadata),
   });
   
@@ -436,8 +458,8 @@ export async function updateEntity(id: number, data: any) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // 转换旧格式到新格式
-  const newData = mapOldToNew(data);
+  // 转换旧格式到新格式（更新模式，只包含需要更新的字段）
+  const newData = mapOldToNew(data, true);
   console.log('[updateEntity] Converted to new format:', newData);
 
   // 1. 更新MySQL
