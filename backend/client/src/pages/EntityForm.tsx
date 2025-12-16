@@ -2,6 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -485,7 +486,7 @@ export default function EntityForm() {
                   </div>
                   <Dialog open={showAddRelationDialog} onOpenChange={setShowAddRelationDialog}>
                     <DialogTrigger asChild>
-                      <Button type="button" size="sm">
+                            <Button type="button" size="sm" disabled={!isAdmin}>
                         <Plus className="h-4 w-4 mr-2" />
                         添加关系
                       </Button>
@@ -617,40 +618,47 @@ export default function EntityForm() {
                       {relationships.outgoing.map((rel) => (
                         <div
                           key={rel.id}
-                          className="flex items-center justify-between p-3 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                          className="flex items-start justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
                         >
-                          <div className="flex items-center gap-3 flex-1">
-                            <Badge className={getRelationTypeBadgeColor(rel.type)}>
-                              {getRelationTypeLabel(rel.type)}
-                            </Badge>
-                            <span className="text-gray-400">→</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${getRelationTypeBadgeColor(rel.type)}`}
+                              >
+                                {getRelationTypeLabel(rel.type)}
+                              </Badge>
+                              <span className="text-xs text-gray-400">→</span>
+                            </div>
                             {rel.targetEntity ? (
                               <button
                                 type="button"
                                 onClick={() => navigate(`/entities/${rel.targetEntity!.id}/edit`)}
-                                className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                                className="text-sm font-medium text-gray-800 hover:text-blue-600 text-left"
                               >
                                 {rel.targetEntity.name}
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 ml-2">
                                   ({rel.targetEntity.type})
                                 </span>
                               </button>
                             ) : (
-                              <span className="text-gray-500">
+                              <p className="text-sm font-medium text-gray-500">
                                 目标实体不存在 (ID: {rel.targetId})
-                              </span>
+                              </p>
                             )}
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteRelation(rel.id)}
-                            disabled={deleteRelationMutation.isPending}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRelation(rel.id)}
+                              disabled={deleteRelationMutation.isPending}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -667,40 +675,47 @@ export default function EntityForm() {
                       {relationships.incoming.map((rel) => (
                         <div
                           key={rel.id}
-                          className="flex items-center justify-between p-3 bg-white border rounded-lg hover:shadow-sm transition-shadow"
+                          className="flex items-start justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-shadow"
                         >
-                          <div className="flex items-center gap-3 flex-1">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-gray-400">←</span>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${getRelationTypeBadgeColor(rel.type)}`}
+                              >
+                                {getRelationTypeLabel(rel.type)}
+                              </Badge>
+                            </div>
                             {rel.sourceEntity ? (
                               <button
                                 type="button"
                                 onClick={() => navigate(`/entities/${rel.sourceEntity!.id}/edit`)}
-                                className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                                className="text-sm font-medium text-gray-800 hover:text-blue-600 text-left"
                               >
                                 {rel.sourceEntity.name}
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 ml-2">
                                   ({rel.sourceEntity.type})
                                 </span>
                               </button>
                             ) : (
-                              <span className="text-gray-500">
+                              <p className="text-sm font-medium text-gray-500">
                                 源实体不存在 (ID: {rel.sourceId})
-                              </span>
+                              </p>
                             )}
-                            <span className="text-gray-400">→</span>
-                            <Badge className={getRelationTypeBadgeColor(rel.type)}>
-                              {getRelationTypeLabel(rel.type)}
-                            </Badge>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteRelation(rel.id)}
-                            disabled={deleteRelationMutation.isPending}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteRelation(rel.id)}
+                              disabled={deleteRelationMutation.isPending}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>

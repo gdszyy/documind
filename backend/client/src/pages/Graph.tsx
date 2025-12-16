@@ -1078,10 +1078,22 @@ export default function Graph() {
                                 </Badge>
                                 <span className="text-xs text-gray-400">→</span>
                               </div>
-                              <p className="text-sm font-medium">{rel.targetEntity?.name || `目标实体 ${rel.targetId}`}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                类型: {rel.targetEntity?.type || '未知'}
-                              </p>
+                              {rel.targetEntity ? (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/entities/${rel.targetEntity!.id}/edit`)}
+                                  className="text-sm font-medium text-gray-800 hover:text-blue-600 text-left"
+                                >
+                                  {rel.targetEntity.name}
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({rel.targetEntity.type})
+                                  </span>
+                                </button>
+                              ) : (
+                                <p className="text-sm font-medium text-gray-500">
+                                  目标实体不存在 (ID: {rel.targetId})
+                                </p>
+                              )}
                             </div>
                             {isAdmin && (
                               <Button
@@ -1111,10 +1123,22 @@ export default function Graph() {
                                   {relationTypeLabels[rel.type]}
                                 </Badge>
                               </div>
-                              <p className="text-sm font-medium">{rel.sourceEntity?.name || `源实体 ${rel.sourceId}`}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                类型: {rel.sourceEntity?.type || '未知'}
-                              </p>
+                              {rel.sourceEntity ? (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/entities/${rel.sourceEntity!.id}/edit`)}
+                                  className="text-sm font-medium text-gray-800 hover:text-blue-600 text-left"
+                                >
+                                  {rel.sourceEntity.name}
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({rel.sourceEntity.type})
+                                  </span>
+                                </button>
+                              ) : (
+                                <p className="text-sm font-medium text-gray-500">
+                                  源实体不存在 (ID: {rel.sourceId})
+                                </p>
+                              )}
                             </div>
                             {isAdmin && (
                               <Button
