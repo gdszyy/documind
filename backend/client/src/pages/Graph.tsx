@@ -143,6 +143,24 @@ export default function Graph() {
   // 跟踪当前聚焦的节点和展开层级，用于渐进式展开功能
   const [focusedNodeId, setFocusedNodeId] = useState<number | null>(null);
   const [expandLevel, setExpandLevel] = useState<number>(1);
+  
+  // 使用 ref 来存储最新的状态值，解决 ECharts 事件回调中的闭包问题
+  const focusedNodeIdRef = useRef<number | null>(null);
+  const expandLevelRef = useRef<number>(1);
+  const visibleEntityIdsRef = useRef<Set<number> | null>(null);
+  
+  // 同步更新 ref 值
+  useEffect(() => {
+    focusedNodeIdRef.current = focusedNodeId;
+  }, [focusedNodeId]);
+  
+  useEffect(() => {
+    expandLevelRef.current = expandLevel;
+  }, [expandLevel]);
+  
+  useEffect(() => {
+    visibleEntityIdsRef.current = visibleEntityIds;
+  }, [visibleEntityIds]);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -419,13 +437,19 @@ export default function Graph() {
   };
 
   // 展示所有关联节点功能（支持渐进式展开）
+  // 使用 ref 获取最新状态值，解决 ECharts 事件回调中的闭包问题
   const handleShowRelatedNodes = (nodeId: number) => {
     if (!data) return;
     
+    // 从 ref 中获取最新的状态值
+    const currentFocusedNodeId = focusedNodeIdRef.current;
+    const currentExpandLevel = expandLevelRef.current;
+    const currentVisibleEntityIds = visibleEntityIdsRef.current;
+    
     // 检查是否已经处于聚焦状态，且双击的是同一个节点
-    if (focusedNodeId === nodeId && visibleEntityIds !== null) {
+    if (currentFocusedNodeId === nodeId && currentVisibleEntityIds !== null) {
       // 已经在聚焦状态，再次双击同一节点，向外展开一层
-      const newLevel = expandLevel + 1;
+      const newLevel = currentExpandLevel + 1;
       const relatedNodeIds = getNodesAtLevel(nodeId, newLevel);
       
       setExpandLevel(newLevel);
