@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,18 @@ export default function EntityForm() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/entities/:id/edit");
   const isEdit = !!params?.id;
+  
+  // 获取用户信息，用于权限控制
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
+  // 如果不是管理员，重定向到实体列表页
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      toast.error("您没有权限访问此页面");
+      navigate("/entities");
+    }
+  }, [authLoading, isAdmin, navigate]);
   const entityId = params?.id ? parseInt(params.id) : undefined;
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);

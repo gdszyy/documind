@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -72,6 +73,10 @@ export default function Entities() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
+
+  // 获取用户信息，用于权限控制
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const { data, isLoading } = trpc.entities.list.useQuery({
     search,
@@ -356,12 +361,14 @@ export default function Entities() {
                   知识图谱
                 </Button>
               </Link>
-              <Link href="/entities/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  创建新实体
-                </Button>
-              </Link>
+              {isAdmin && (
+                <Link href="/entities/new">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    创建新实体
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -415,19 +422,23 @@ export default function Entities() {
                               查看文档
                             </Button>
                           )}
-                          <Link href={`/entities/${entity.id}/edit`}>
-                            <Button variant="ghost" size="sm">
-                              编辑
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteEntityId(entity.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Link href={`/entities/${entity.id}/edit`}>
+                                <Button variant="ghost" size="sm">
+                                  编辑
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteEntityId(entity.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -568,13 +579,13 @@ export default function Entities() {
                 <Button variant="outline" className="mt-4" onClick={clearFilters}>
                   清除筛选条件
                 </Button>
-              ) : (
+              ) : isAdmin ? (
                 <Link href="/entities/new">
                   <Button variant="outline" className="mt-4">
                     创建第一个实体
                   </Button>
                 </Link>
-              )}
+              ) : null}
             </div>
           )}
         </div>

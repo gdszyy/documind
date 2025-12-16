@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as larkService from "./larkService";
@@ -73,8 +73,8 @@ export const appRouter = router({
         return entity;
       }),
 
-    // 创建实体
-    create: publicProcedure
+    // 创建实体 (仅管理员)
+    create: adminProcedure
       .input(
         z.object({
           name: z.string().min(1),
@@ -117,8 +117,8 @@ export const appRouter = router({
         return updatedEntity;
       }),
 
-    // 更新实体
-    update: publicProcedure
+    // 更新实体 (仅管理员)
+    update: adminProcedure
       .input(
         z.object({
           id: z.number(),
@@ -138,8 +138,8 @@ export const appRouter = router({
         return db.updateEntity(id, data);
       }),
 
-    // 删除实体
-    delete: publicProcedure
+    // 删除实体 (仅管理员)
+    delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteEntity(input.id);
@@ -181,8 +181,8 @@ export const appRouter = router({
   }),
 
   relationships: router({
-    // 创建实体关系
-    create: publicProcedure
+    // 创建实体关系 (仅管理员)
+    create: adminProcedure
       .input(
         z.object({
           sourceId: z.number(),
@@ -195,8 +195,8 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 删除实体关系
-    delete: publicProcedure
+    // 删除实体关系 (仅管理员)
+    delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await db.deleteRelationship(input.id);

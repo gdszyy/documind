@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -104,6 +105,11 @@ const relationTypeBadgeColors: Record<string, string> = {
 
 export default function Graph() {
   const [, navigate] = useLocation();
+  
+  // 获取用户信息，用于权限控制
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   // 默认选中核心类型，不包含文档类型
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["Service", "API", "Component", "Page", "Module"]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
@@ -802,20 +808,24 @@ export default function Graph() {
             <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100">
               节点: {contextMenu.nodeName}
             </div>
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
-              onClick={handleContextMenuCreateEntity}
-            >
-              <Plus className="h-4 w-4 text-blue-500" />
-              创建新实体
-            </button>
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
-              onClick={handleContextMenuCreateRelation}
-            >
-              <Link2 className="h-4 w-4 text-green-500" />
-              创建新关系
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={handleContextMenuCreateEntity}
+                >
+                  <Plus className="h-4 w-4 text-blue-500" />
+                  创建新实体
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
+                  onClick={handleContextMenuCreateRelation}
+                >
+                  <Link2 className="h-4 w-4 text-green-500" />
+                  创建新关系
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -846,18 +856,20 @@ export default function Graph() {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant={isEditing ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="ml-2 flex-shrink-0"
-                  >
-                    {isEditing ? (
-                      <><X className="h-4 w-4 mr-1" /> 取消</>
-                    ) : (
-                      <><Edit2 className="h-4 w-4 mr-1" /> 编辑</>
-                    )}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant={isEditing ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="ml-2 flex-shrink-0"
+                    >
+                      {isEditing ? (
+                        <><X className="h-4 w-4 mr-1" /> 取消</>
+                      ) : (
+                        <><Edit2 className="h-4 w-4 mr-1" /> 编辑</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </SheetHeader>
 
@@ -1035,15 +1047,17 @@ export default function Graph() {
                     <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                       🔗 关联关系
                     </h3>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setAddRelationState({ open: true, sourceId: selectedEntityId })}
-                      className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      添加关系
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setAddRelationState({ open: true, sourceId: selectedEntityId })}
+                        className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        添加关系
+                      </Button>
+                    )}
                   </div>
                   <div className="px-5 py-5">
                     {relationships && (relationships.outgoing?.length > 0 || relationships.incoming?.length > 0) ? (
@@ -1069,14 +1083,16 @@ export default function Graph() {
                                 类型: {rel.targetEntity?.type || '未知'}
                               </p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteRelation(rel.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteRelation(rel.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         ))}
                         {/* 入站关系 */}
@@ -1100,14 +1116,16 @@ export default function Graph() {
                                 类型: {rel.sourceEntity?.type || '未知'}
                               </p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteRelation(rel.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteRelation(rel.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1121,17 +1139,19 @@ export default function Graph() {
                   </div>
                 </div>
 
-                {/* 删除按钮 */}
-                <div className="pt-2 border-t border-gray-200">
-                  <Button
-                    variant="destructive"
-                    className="w-full bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transition-all"
-                    onClick={() => setDeleteEntityId(selectedEntity.id)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    删除实体
-                  </Button>
-                </div>
+                {/* 删除按钮 (仅管理员可见) */}
+                {isAdmin && (
+                  <div className="pt-2 border-t border-gray-200">
+                    <Button
+                      variant="destructive"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg transition-all"
+                      onClick={() => setDeleteEntityId(selectedEntity.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      删除实体
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
