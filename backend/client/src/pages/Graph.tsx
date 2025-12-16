@@ -17,7 +17,8 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import {
   Dialog,
   DialogContent,
@@ -1017,7 +1018,7 @@ export default function Graph() {
       {/* 侧边信息面板 - 保持原有代码不变 */}
       <Sheet modal={false} open={!!selectedEntityId} onOpenChange={(open) => !open && setSelectedEntityId(null)}>
         <SheetContent className="w-[450px] overflow-y-auto" hideCloseButton showOverlay={false}>
-          {selectedEntity && (
+          {selectedEntity ? (
             <>
               <SheetHeader className="pb-6 border-b">
                 <div className="flex items-start justify-between">
@@ -1362,6 +1363,12 @@ export default function Graph() {
                 )}
               </div>
             </>
+          ) : (
+            // 当没有选中实体时，提供隐藏的标题以满足无障碍要求
+            <VisuallyHidden>
+              <SheetTitle>实体详情</SheetTitle>
+              <SheetDescription>选择一个实体查看详情</SheetDescription>
+            </VisuallyHidden>
           )}
         </SheetContent>
       </Sheet>
