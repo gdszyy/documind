@@ -643,10 +643,17 @@ export default function Graph() {
         // 将图例名称转换回类型名称，并更新 selectedTypes
         const newSelectedTypes = Object.keys(typeDisplayNames).filter(type => {
           const displayName = typeDisplayNames[type];
+          // 只有当图例被选中时，才保留该类型
           return selectedLegends[displayName] !== false;
         });
         
-        setSelectedTypes(newSelectedTypes);
+        // 只有当新的 selectedTypes 列表与当前状态不同时才更新，避免无限循环
+        setSelectedTypes(prev => {
+          if (prev.length === newSelectedTypes.length && prev.every(t => newSelectedTypes.includes(t))) {
+            return prev;
+          }
+          return newSelectedTypes;
+        });
       });
     }
 
