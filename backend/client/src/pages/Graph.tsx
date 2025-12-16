@@ -117,7 +117,7 @@ export default function Graph() {
   const [isEditing, setIsEditing] = useState(false);
   const [addRelationState, setAddRelationState] = useState<{ open: boolean; sourceId: number | null }>({ open: false, sourceId: null });
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
-  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+  const [newRelationTargetIds, setNewRelationTargetIds] = useState<number[]>([]);
   const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
@@ -155,7 +155,7 @@ export default function Graph() {
   useEffect(() => {
     // 对话框打开时重置状态，确保每次都是干净的表单
     if (addRelationState.open) {
-      setNewRelationTargetId(null);
+      setNewRelationTargetIds([]);
       setNewRelationTargetType(null);
       setNewRelationType("DEPENDS_ON");
     }
@@ -235,11 +235,9 @@ export default function Graph() {
 
   const createRelationMutation = trpc.relationships.create.useMutation({
     onSuccess: () => {
-      toast.success("关系创建成功");
+      // 单条关系创建成功时不关闭对话框，由 handleAddRelation 统一处理
       refetchRelationships();
       utils.graph.getData.invalidate();
-      setAddRelationState({ open: false, sourceId: null });
-      setNewRelationTargetId(null);
     },
     onError: (error) => {
       toast.error(`创建关系失败: ${error.message}`);
@@ -323,17 +321,42 @@ export default function Graph() {
     }
   };
 
-  const handleAddRelation = () => {
-    if (!addRelationState.sourceId || !newRelationTargetId) {
+  const handleAddRelation = async () => {
+    if (!addRelationState.sourceId || newRelationTargetIds.length === 0) {
       toast.error("源实体或目标实体未选择");
       return;
     }
 
-    createRelationMutation.mutate({
-      sourceId: addRelationState.sourceId,
-      targetId: newRelationTargetId,
-      type: newRelationType,
-    });
+    // 批量创建关系
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const targetId of newRelationTargetIds) {
+      try {
+        await createRelationMutation.mutateAsync({
+          sourceId: addRelationState.sourceId,
+          targetId,
+          type: newRelationType,
+        });
+        successCount++;
+      } catch (error) {
+        failCount++;
+        console.error(`创建关系失败 (targetId: ${targetId}):`, error);
+      }
+    }
+
+    // 显示结果
+    if (successCount > 0 && failCount === 0) {
+      toast.success(`成功创建 ${successCount} 条关系`);
+    } else if (successCount > 0 && failCount > 0) {
+      toast.warning(`成功创建 ${successCount} 条关系，${failCount} 条失败`);
+    } else {
+      toast.error(`创建关系失败`);
+    }
+
+    // 关闭对话框并重置状态
+    setAddRelationState({ open: false, sourceId: null });
+    setNewRelationTargetIds([]);
   };
 
   const handleDeleteRelation = (relationId: number) => {
@@ -1150,7 +1173,7 @@ export default function Graph() {
                 value={newRelationTargetType || "all"}
                 onValueChange={(value) => {
                   setNewRelationTargetType(value === "all" ? null : value);
-                  setNewRelationTargetId(null); // 切换类型时重置目标实体
+                  setNewRelationTargetIds([]); // 切换类型时重置目标实体
                 }}
               >
                 <SelectTrigger id="target-entity-type">
@@ -1169,28 +1192,49 @@ export default function Graph() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="target-entity">目标实体</Label>
-              <Select
-                value={newRelationTargetId?.toString() || ""}
-                onValueChange={(value) => {
-                  const id = parseInt(value);
-                  setNewRelationTargetId(isNaN(id) ? null : id);
-                }}
-              >
-                <SelectTrigger id="target-entity">
-                  <SelectValue placeholder="选择目标实体" />
-                </SelectTrigger>
-                <SelectContent>
-                  {entitiesList?.items
-                    ?.filter((e) => e.id !== selectedEntityId)
-                    ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
-                    .map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id.toString()}>
+              <Label>目标实体 (可多选)</Label>
+              {newRelationTargetIds.length > 0 && (
+                <div className="text-sm text-gray-500 mb-2">
+                  已选择 {newRelationTargetIds.length} 个实体
+                </div>
+              )}
+              <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                {entitiesList?.items
+                  ?.filter((e) => e.id !== addRelationState.sourceId)
+                  ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
+                  .map((entity) => (
+                    <div
+                      key={entity.id}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                      onClick={() => {
+                        setNewRelationTargetIds((prev) =>
+                          prev.includes(entity.id)
+                            ? prev.filter((id) => id !== entity.id)
+                            : [...prev, entity.id]
+                        );
+                      }}
+                    >
+                      <Checkbox
+                        checked={newRelationTargetIds.includes(entity.id)}
+                        onCheckedChange={(checked) => {
+                          setNewRelationTargetIds((prev) =>
+                            checked
+                              ? [...prev, entity.id]
+                              : prev.filter((id) => id !== entity.id)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">
                         {typeIcons[entity.type]} {entity.name} ({entity.type})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                      </span>
+                    </div>
+                  ))}
+                {entitiesList?.items?.filter((e) => e.id !== addRelationState.sourceId)?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType).length === 0 && (
+                  <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                    没有可选的实体
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1198,8 +1242,9 @@ export default function Graph() {
             <Button variant="outline" onClick={() => setAddRelationState({ open: false, sourceId: null })}>
               取消
             </Button>
-            <Button onClick={handleAddRelation} disabled={!newRelationTargetId}>
-              添加
+            <Button onClick={handleAddRelation} disabled={newRelationTargetIds.length === 0 || createRelationMutation.isPending}>
+              {createRelationMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              添加 {newRelationTargetIds.length > 0 && `(${newRelationTargetIds.length})`}
             </Button>
           </DialogFooter>
         </DialogContent>

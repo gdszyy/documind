@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,7 +46,7 @@ export default function EntityForm() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
-  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+  const [newRelationTargetIds, setNewRelationTargetIds] = useState<number[]>([]);
   const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
 
   // 从 URL 参数获取预填充信息
@@ -137,10 +138,8 @@ export default function EntityForm() {
 
   const createRelationMutation = trpc.relationships.create.useMutation({
     onSuccess: () => {
-      toast.success("关系创建成功");
+      // 单条关系创建成功时不关闭对话框，由 handleAddRelation 统一处理
       refetchRelationships();
-      setShowAddRelationDialog(false);
-      setNewRelationTargetId(null);
     },
     onError: (error) => {
       toast.error(`创建关系失败: ${error.message}`);
@@ -193,17 +192,42 @@ export default function EntityForm() {
     }));
   };
 
-  const handleAddRelation = () => {
-    if (!entityId || !newRelationTargetId) {
+  const handleAddRelation = async () => {
+    if (!entityId || newRelationTargetIds.length === 0) {
       toast.error("请选择目标实体");
       return;
     }
 
-    createRelationMutation.mutate({
-      sourceId: entityId,
-      targetId: newRelationTargetId,
-      type: newRelationType,
-    });
+    // 批量创建关系
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const targetId of newRelationTargetIds) {
+      try {
+        await createRelationMutation.mutateAsync({
+          sourceId: entityId,
+          targetId,
+          type: newRelationType,
+        });
+        successCount++;
+      } catch (error) {
+        failCount++;
+        console.error(`创建关系失败 (targetId: ${targetId}):`, error);
+      }
+    }
+
+    // 显示结果
+    if (successCount > 0 && failCount === 0) {
+      toast.success(`成功创建 ${successCount} 条关系`);
+    } else if (successCount > 0 && failCount > 0) {
+      toast.warning(`成功创建 ${successCount} 条关系，${failCount} 条失败`);
+    } else {
+      toast.error(`创建关系失败`);
+    }
+
+    // 关闭对话框并重置状态
+    setShowAddRelationDialog(false);
+    setNewRelationTargetIds([]);
   };
 
   const handleDeleteRelation = (relationId: number) => {
@@ -484,7 +508,7 @@ export default function EntityForm() {
                             value={newRelationTargetType || "all"}
                             onValueChange={(value) => {
                               setNewRelationTargetType(value === "all" ? null : value);
-                              setNewRelationTargetId(null); // 切换类型时重置目标实体
+                              setNewRelationTargetIds([]); // 切换类型时重置目标实体
                             }}
                           >
                             <SelectTrigger id="targetEntityType">
@@ -501,32 +525,49 @@ export default function EntityForm() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="targetEntity">目标实体</Label>
-                          <Select
-                            value={newRelationTargetId?.toString()}
-                            onValueChange={(value) => {
-                              const id = parseInt(value);
-                              setNewRelationTargetId(isNaN(id) ? null : id);
-                            }}
-                          >
-                            <SelectTrigger id="targetEntity">
-                              <SelectValue placeholder="选择目标实体" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {entitiesList?.items
-                                ?.filter((e) => e.id !== entityId)
-                                ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType) // 根据类型过滤
-                                ?.map((e) => (
-                                  <SelectItem key={e.id} value={e.id.toString()}>
-                                    {e.name} ({e.type})
-                                  </SelectItem>
-                                )) || (
-                                <div className="p-2 text-sm text-gray-500 text-center">
-                                  加载中...
+                          <Label>目标实体 (可多选)</Label>
+                          {newRelationTargetIds.length > 0 && (
+                            <div className="text-sm text-gray-500 mb-2">
+                              已选择 {newRelationTargetIds.length} 个实体
+                            </div>
+                          )}
+                          <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                            {entitiesList?.items
+                              ?.filter((e) => e.id !== entityId)
+                              ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
+                              .map((entity) => (
+                                <div
+                                  key={entity.id}
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                                  onClick={() => {
+                                    setNewRelationTargetIds((prev) =>
+                                      prev.includes(entity.id)
+                                        ? prev.filter((id) => id !== entity.id)
+                                        : [...prev, entity.id]
+                                    );
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={newRelationTargetIds.includes(entity.id)}
+                                    onCheckedChange={(checked) => {
+                                      setNewRelationTargetIds((prev) =>
+                                        checked
+                                          ? [...prev, entity.id]
+                                          : prev.filter((id) => id !== entity.id)
+                                      );
+                                    }}
+                                  />
+                                  <span className="text-sm">
+                                    {entity.name} ({entity.type})
+                                  </span>
                                 </div>
-                              )}
-                            </SelectContent>
-                          </Select>
+                              ))}
+                            {(!entitiesList?.items || entitiesList.items.filter((e) => e.id !== entityId).filter((e) => !newRelationTargetType || e.type === newRelationTargetType).length === 0) && (
+                              <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                                没有可选的实体
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <DialogFooter>
@@ -540,12 +581,12 @@ export default function EntityForm() {
                         <Button
                           type="button"
                           onClick={handleAddRelation}
-                          disabled={createRelationMutation.isPending || !newRelationTargetId}
+                          disabled={createRelationMutation.isPending || newRelationTargetIds.length === 0}
                         >
                           {createRelationMutation.isPending && (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           )}
-                          添加
+                          添加 {newRelationTargetIds.length > 0 && `(${newRelationTargetIds.length})`}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
