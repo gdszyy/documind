@@ -82,6 +82,18 @@ const typeDisplayNames: Record<string, string> = {
   Document: "Document",
 };
 
+// 节点大小配置：按层级设置不同大小
+// 页面最大，服务次之，API较小，其他类型依次递减
+const typeSizes: Record<string, number> = {
+  Page: 80,           // 页面最大
+  Service: 70,        // 服务次之（与API链接的服务大于API）
+  Module: 65,         // 模块
+  Component: 60,      // 组件
+  API: 55,            // API
+  Documentation: 50,  // 文档类型
+  Document: 50,       // 文档
+};
+
 const statusColors: Record<string, string> = {
   Development: "bg-yellow-100 text-yellow-800 border-yellow-300",
   Testing: "bg-blue-100 text-blue-800 border-blue-300",
@@ -127,6 +139,10 @@ export default function Graph() {
   const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+  
+  // 跟踪当前聚焦的节点和展开层级，用于渐进式展开功能
+  const [focusedNodeId, setFocusedNodeId] = useState<number | null>(null);
+  const [expandLevel, setExpandLevel] = useState<number>(1);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -369,28 +385,63 @@ export default function Graph() {
     deleteRelationMutation.mutate({ id: relationId });
   };
 
-  // 展示所有关联节点功能
+  // 获取指定层级的关联节点
+  const getNodesAtLevel = (centerNodeId: number, level: number): Set<number> => {
+    if (!data) return new Set([centerNodeId]);
+    
+    const result = new Set<number>();
+    result.add(centerNodeId);
+    
+    // 当前层的节点集合
+    let currentLevelNodes = new Set<number>([centerNodeId]);
+    
+    // 逐层向外扩展
+    for (let i = 0; i < level; i++) {
+      const nextLevelNodes = new Set<number>();
+      
+      currentLevelNodes.forEach(nodeId => {
+        data.edges.forEach(edge => {
+          if (edge.sourceId === nodeId && !result.has(edge.targetId)) {
+            nextLevelNodes.add(edge.targetId);
+            result.add(edge.targetId);
+          }
+          if (edge.targetId === nodeId && !result.has(edge.sourceId)) {
+            nextLevelNodes.add(edge.sourceId);
+            result.add(edge.sourceId);
+          }
+        });
+      });
+      
+      currentLevelNodes = nextLevelNodes;
+    }
+    
+    return result;
+  };
+
+  // 展示所有关联节点功能（支持渐进式展开）
   const handleShowRelatedNodes = (nodeId: number) => {
     if (!data) return;
     
-    // 找到所有与该节点相关的边
-    const relatedNodeIds = new Set<number>();
-    relatedNodeIds.add(nodeId); // 包含自己
-    
-    data.edges.forEach(edge => {
-      if (edge.sourceId === nodeId) {
-        relatedNodeIds.add(edge.targetId);
-      }
-      if (edge.targetId === nodeId) {
-        relatedNodeIds.add(edge.sourceId);
-      }
-    });
-    
-    // 更新可见节点集合
-    setVisibleEntityIds(relatedNodeIds);
-    // 清空隐藏集合，因为双击展开关联节点时，应该显示所有关联节点
-    setHiddenEntityIds(new Set());
-    toast.success(`已展示 ${relatedNodeIds.size} 个关联节点`);
+    // 检查是否已经处于聚焦状态，且双击的是同一个节点
+    if (focusedNodeId === nodeId && visibleEntityIds !== null) {
+      // 已经在聚焦状态，再次双击同一节点，向外展开一层
+      const newLevel = expandLevel + 1;
+      const relatedNodeIds = getNodesAtLevel(nodeId, newLevel);
+      
+      setExpandLevel(newLevel);
+      setVisibleEntityIds(relatedNodeIds);
+      setHiddenEntityIds(new Set());
+      toast.success(`已展开第 ${newLevel} 层关系，共 ${relatedNodeIds.size} 个节点`);
+    } else {
+      // 首次双击或双击了不同的节点，重置为第1层
+      const relatedNodeIds = getNodesAtLevel(nodeId, 1);
+      
+      setFocusedNodeId(nodeId);
+      setExpandLevel(1);
+      setVisibleEntityIds(relatedNodeIds);
+      setHiddenEntityIds(new Set());
+      toast.success(`已聚焦到节点，展示 ${relatedNodeIds.size} 个直接关联节点`);
+    }
   };
 
   // 关闭右键菜单
@@ -514,10 +565,12 @@ export default function Graph() {
 
     const nodes = filteredNodes.map((entity) => {
       const entityType = entity.type; // 不再转换为小写，直接使用大写格式
+      // 根据节点类型获取对应的大小，默认为55
+      const nodeSize = typeSizes[entityType] || 55;
       return {
         id: entity.id.toString(),
         name: `${typeIcons[entityType] || "📄"} ${entity.name}`,
-        symbolSize: 60,
+        symbolSize: nodeSize,
         category: entityType, // 用于图例分类
         itemStyle: {
           color: typeColors[entityType] || "#999999",
@@ -788,6 +841,31 @@ export default function Graph() {
 
       {/* 图谱画布 */}
       <div className="flex-1 relative">
+        {/* 聚焦状态提示栏 */}
+        {focusedNodeId !== null && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-4 py-2 flex items-center gap-3">
+            <span className="text-sm text-gray-600">
+              当前聚焦第 <span className="font-semibold text-purple-600">{expandLevel}</span> 层关系
+            </span>
+            <span className="text-gray-300">|</span>
+            <span className="text-xs text-gray-500">双击同一节点可继续展开</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                setFocusedNodeId(null);
+                setExpandLevel(1);
+                setVisibleEntityIds(null);
+                setHiddenEntityIds(new Set());
+                toast.success("已显示全部节点");
+              }}
+            >
+              <Network className="h-3 w-3 mr-1" />
+              显示全部
+            </Button>
+          </div>
+        )}
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -825,6 +903,23 @@ export default function Graph() {
                   创建新关系
                 </button>
               </>
+            )}
+            {/* 显示全部节点按钮，仅在聚焦状态时显示 */}
+            {focusedNodeId !== null && (
+              <button
+                className="w-full px-3 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2"
+                onClick={() => {
+                  setFocusedNodeId(null);
+                  setExpandLevel(1);
+                  setVisibleEntityIds(null);
+                  setHiddenEntityIds(new Set());
+                  closeContextMenu();
+                  toast.success("已显示全部节点");
+                }}
+              >
+                <Network className="h-4 w-4 text-purple-500" />
+                显示全部节点
+              </button>
             )}
           </div>
         )}
