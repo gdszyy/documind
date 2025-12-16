@@ -557,6 +557,7 @@ export async function deleteEntity(id: number) {
 
 export async function getEntities(params: {
   search?: string;
+  type?: string;
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -568,10 +569,10 @@ export async function getEntities(params: {
   limit: number;
   totalPages: number;
 }> {
-  const { search = "", page = 1, limit = 10, sortBy = "updatedAt", order = "desc" } = params;
+  const { search = "", type, page = 1, limit = 10, sortBy = "updatedAt", order = "desc" } = params;
 
   // 1. 尝试从缓存获取
-  const cacheKey = redis.CacheKeys.entitiesList(search, page, limit, sortBy, order);
+  const cacheKey = redis.CacheKeys.entitiesList(search, page, limit, sortBy, order) + (type ? `:type:${type}` : "");
   const cached = await redis.getCache<{
     items: any[];
     total: number;
@@ -594,6 +595,10 @@ export async function getEntities(params: {
   if (search) {
     conditions.push(like(documindEntities.title, `%${search}%`));
   }
+  if (type) {
+    const typeDb = mapTypeToDatabase(type);
+    conditions.push(sql`${documindEntities.type} = ${typeDb}`);
+  }
 
   let query = db
     .select()
@@ -609,15 +614,16 @@ export async function getEntities(params: {
   const items = await query.limit(limit).offset(offset);
 
   // 获取总数
+  const countConditions = [
+    sql`${documindEntities.deletedAt} IS NULL`,
+    search ? like(documindEntities.title, `%${search}%`) : undefined,
+    type ? sql`${documindEntities.type} = ${mapTypeToDatabase(type)}` : undefined,
+  ].filter(Boolean);
+  
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(documindEntities)
-    .where(
-      and(
-        sql`${documindEntities.deletedAt} IS NULL`,
-        search ? like(documindEntities.title, `%${search}%`) : undefined
-      )
-    );
+    .where(and(...countConditions));
 
   const total = Number(countResult[0]?.count || 0);
 

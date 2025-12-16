@@ -250,20 +250,27 @@ export default function Graph() {
   const entitiesListRef = useRef<HTMLDivElement>(null);
   const ENTITIES_PAGE_SIZE = 50;
 
-  // 获取实体列表（分页）
+  // 获取实体列表（分页，支持类型筛选）
+  // 筛选时重新请求后端获取符合条件的数据
   const { data: entitiesList, isFetching: isFetchingEntities } = trpc.entities.list.useQuery(
-    { page: entitiesPage, limit: ENTITIES_PAGE_SIZE, sortBy: "name", order: "asc" },
+    { 
+      page: entitiesPage, 
+      limit: ENTITIES_PAGE_SIZE, 
+      sortBy: "name", 
+      order: "asc",
+      type: newRelationTargetType || undefined,  // 类型筛选参数传给后端
+    },
     { enabled: addRelationState.open }
   );
 
-  // 当对话框打开时重置分页状态
+  // 当对话框打开或筛选条件变化时重置分页状态
   useEffect(() => {
     if (addRelationState.open) {
       setEntitiesPage(1);
       setAllEntities([]);
       setHasMoreEntities(true);
     }
-  }, [addRelationState.open]);
+  }, [addRelationState.open, newRelationTargetType]);
 
   // 当获取到新数据时，追加到列表中
   useEffect(() => {
@@ -296,12 +303,10 @@ export default function Graph() {
     }
   }, [hasMoreEntities, isFetchingEntities, isLoadingMore]);
 
-  // 前端过滤实体列表（基于已加载的所有数据）
+  // 过滤掉源实体自身（类型筛选已由后端处理）
   const filteredEntities = useMemo(() => {
-    return allEntities
-      .filter(e => e.id !== addRelationState.sourceId)
-      .filter(e => !newRelationTargetType || e.type === newRelationTargetType);
-  }, [allEntities, addRelationState.sourceId, newRelationTargetType]);
+    return allEntities.filter(e => e.id !== addRelationState.sourceId);
+  }, [allEntities, addRelationState.sourceId]);
 
   const utils = trpc.useUtils();
 
@@ -1394,6 +1399,10 @@ export default function Graph() {
                 onValueChange={(value) => {
                   setNewRelationTargetType(value === "all" ? null : value);
                   setNewRelationTargetIds([]); // 切换类型时重置目标实体
+                  // 重置分页状态，重新从后端获取筛选后的数据
+                  setEntitiesPage(1);
+                  setAllEntities([]);
+                  setHasMoreEntities(true);
                 }}
               >
                 <SelectTrigger id="target-entity-type">
