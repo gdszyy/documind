@@ -634,6 +634,20 @@ export default function Graph() {
           });
         }
       });
+
+      // 添加图例点击事件 - 同步到 React 状态
+      chartInstanceRef.current.on("legendselectchanged", (params: any) => {
+        // params.selected 是一个对象，键是图例名称，值是是否选中
+        const selectedLegends = params.selected;
+        
+        // 将图例名称转换回类型名称，并更新 selectedTypes
+        const newSelectedTypes = Object.keys(typeDisplayNames).filter(type => {
+          const displayName = typeDisplayNames[type];
+          return selectedLegends[displayName] !== false;
+        });
+        
+        setSelectedTypes(newSelectedTypes);
+      });
     }
 
     // 转换数据为 ECharts 格式
@@ -733,8 +747,15 @@ export default function Graph() {
           fontSize: 12,
           color: '#333',
         },
-        // 禁用图例的选择功能，避免与外部筛选冲突
-        selectedMode: false,
+        // 启用图例点击选择功能
+        selectedMode: 'multiple',
+        // 根据当前 selectedTypes 设置图例的选中状态
+        selected: Object.fromEntries(
+          Object.keys(typeDisplayNames).map(type => [
+            typeDisplayNames[type],
+            selectedTypes.includes(type)
+          ])
+        ),
         formatter: (name: string) => {
           // 添加图标到图例
           const type = Object.keys(typeDisplayNames).find(
@@ -792,7 +813,7 @@ export default function Graph() {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [data, visibleEntityIds, hiddenEntityIds]);
+  }, [data, visibleEntityIds, hiddenEntityIds, selectedTypes]);
 
   // 清理 ECharts 实例
   useEffect(() => {
