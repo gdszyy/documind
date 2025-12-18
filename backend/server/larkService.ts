@@ -4,7 +4,8 @@ import * as db from "./db";
 // 飞书API配置
 const LARK_APP_ID = process.env.LARK_APP_ID || process.env.FEISHU_APP_ID || "cli_a98e2f05eff89e1a";
 const LARK_APP_SECRET = process.env.LARK_APP_SECRET || process.env.FEISHU_APP_SECRET || "P8RRCqQlzw587orCUowX5dt37WQI7CZI";
-const LARK_CHAT_ID = process.env.LARK_CHAT_ID || "oc_3b9b7352ea632f33935f4f71b6bbb174";
+// LARK_CHAT_ID 假设为“周报测试群”的 ID
+const LARK_CHAT_ID = process.env.LARK_CHAT_ID || process.env.FEISHU_CHAT_ID || "oc_3b9b7352ea632f33935f4f71b6bbb174";
 
 // 飞书API端点
 const LARK_TENANT_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
@@ -103,9 +104,12 @@ export async function createLarkDocWithTemplate(
       ENTITY_TYPE: entityType,
       // 可以添加更多变量，例如创建人、创建时间等
     };
-    await applyTemplate(documentId, entityType, variables);
+    // 确保 entityType 是 TEMPLATE_IDS 中存在的键
+    const templateType = entityType as keyof typeof TEMPLATE_IDS;
+    await applyTemplate(documentId, templateType, variables);
 
     // 4. 设置群组编辑权限
+    // LARK_CHAT_ID 默认为 "oc_3b9b7352ea632f33935f4f71b6bbb174" (假设为“周报测试群”的 ID)
     await setChatEditPermission(accessToken, documentId, LARK_CHAT_ID);
 
     return documentUrl;
@@ -376,6 +380,7 @@ async function getAllDocLinksFromDB(): Promise<{doc_id: string}[]> {
 
 
 // 模板文档ID映射
+// 模板文档ID映射 (已根据用户提供的信息确认)
 const TEMPLATE_IDS = {
   Service: 'NWupdUn53oP2YmxW1Kxja11wpPd',
   API: 'ErjNdnhbjosyNYxLeuijkGKTpPd',
