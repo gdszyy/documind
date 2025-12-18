@@ -109,11 +109,44 @@ export default function EntityForm() {
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
   const [newRelationTargetIds, setNewRelationTargetIds] = useState<number[]>([]);
-  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
-  // 新增：搜索关键词状态
-  const [entitySearchQuery, setEntitySearchQuery] = useState("");
-  // 新增：关系反转状态
-  const [isRelationReversed, setIsRelationReversed] = useState(false);
+	  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
+	  // 新增：搜索关键词状态
+	  const [entitySearchQuery, setEntitySearchQuery] = useState("");
+	  // 新增：关系反转状态
+	  const [isRelationReversed, setIsRelationReversed] = useState(false);
+	  
+	  // 飞书文档创建 Mutation
+	  const createLarkDocMutation = trpc.lark.createDoc.useMutation({
+	    onSuccess: (data) => {
+	      toast.success("飞书文档创建成功");
+	      setFormData(prev => ({ ...prev, larkDocUrl: data.larkDocUrl }));
+	      // 刷新实体数据以更新 UI
+	      refetchEntity();
+	    },
+	    onError: (error) => {
+	      toast.error(`飞书文档创建失败: ${error.message}`);
+	    },
+	  });
+	
+	  const handleCreateLarkDoc = () => {
+	    if (!entity) {
+	      toast.error("实体数据未加载");
+	      return;
+	    }
+	    
+	    // 检查实体类型是否支持模板
+	    const supportedTypes = ["Service", "API", "Page", "Component"];
+	    if (!supportedTypes.includes(entity.type)) {
+	      toast.error(`实体类型 ${entity.type} 暂不支持自动创建飞书文档`);
+	      return;
+	    }
+	
+	    createLarkDocMutation.mutate({
+	      entityId: entity.id,
+	      entityName: entity.name,
+	      entityType: entity.type as "Service" | "API" | "Page" | "Component",
+	    });
+	  };
 
   // 从 URL 参数获取预填充信息
   const searchParams = new URLSearchParams(window.location.search);
@@ -133,11 +166,11 @@ export default function EntityForm() {
     larkDocUrl: "", // 新增 larkDocUrl 字段
   });
 
-  // 获取实体数据（编辑模式）
-  const { data: entity, isLoading: isLoadingEntity } = trpc.entities.getById.useQuery(
-    { id: entityId! },
-    { enabled: isEdit && !!entityId }
-  );
+	  // 获取实体数据（编辑模式）
+	  const { data: entity, isLoading: isLoadingEntity, refetch: refetchEntity } = trpc.entities.getById.useQuery(
+	    { id: entityId! },
+	    { enabled: isEdit && !!entityId }
+	  );
 
   // 获取实体关系
   const { data: relationships, refetch: refetchRelationships } = trpc.entities.getRelationships.useQuery(
@@ -580,15 +613,20 @@ export default function EntityForm() {
 	                      <ExternalLink className="h-3 w-3" />
 	                    </a>
 	                  ) : (
-	                    <Button
-	                      type="button"
-	                      variant="outline"
-	                      size="sm"
-	                      onClick={() => toast.info("飞书文档创建功能待实现")} // 占位点击事件
-	                    >
-	                      <Plus className="h-4 w-4 mr-2" />
-	                      创建飞书文档
-	                    </Button>
+		                  <Button
+		                      type="button"
+		                      variant="outline"
+		                      size="sm"
+		                      onClick={handleCreateLarkDoc}
+		                      disabled={createLarkDocMutation.isPending || !isAdmin || !entity}
+		                    >
+		                      {createLarkDocMutation.isPending ? (
+		                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+		                      ) : (
+		                        <Plus className="h-4 w-4 mr-2" />
+		                      )}
+		                      创建飞书文档
+		                    </Button>
 	                  )}
 	                </div>
 	              )}

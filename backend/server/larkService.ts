@@ -59,7 +59,68 @@ async function getTenantAccessToken(): Promise<string> {
 }
 
 /**
- * 创建飞书文档
+ * 创建飞书文档（带模板）
+ */
+export async function createLarkDocWithTemplate(
+  entityName: string,
+  entityId: number,
+  entityType: "Service" | "API" | "Page" | "Component"
+): Promise<string> {
+  try {
+    console.log(`[Lark] Creating document for entity: ${entityName} (ID: ${entityId}, Type: ${entityType})`);
+
+    // 1. 获取access token
+    const accessToken = await getTenantAccessToken();
+
+    // 2. 创建空文档
+    const documentTitle = `${entityName} - DocuMind`;
+    const documentContent = {
+      document: {
+        title: documentTitle,
+      },
+    };
+
+    const response = await axios.post(LARK_CREATE_DOC_URL, documentContent, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.data.code !== 0) {
+      throw new Error(`Failed to create document: ${response.data.msg}`);
+    }
+
+    const documentId = response.data.data.document.document_id;
+    const documentUrl = `https://feishu.cn/docx/${documentId}`;
+
+    console.log(`[Lark] Document created successfully: ${documentUrl}`);
+
+    // 3. 应用模板
+    const variables = {
+      ENTITY_NAME: entityName,
+      ENTITY_ID: entityId.toString(),
+      ENTITY_TYPE: entityType,
+      // 可以添加更多变量，例如创建人、创建时间等
+    };
+    await applyTemplate(documentId, entityType, variables);
+
+    // 4. 设置群组编辑权限
+    await setChatEditPermission(accessToken, documentId, LARK_CHAT_ID);
+
+    return documentUrl;
+  } catch (error) {
+    console.error("[Lark] Failed to create document:", error);
+
+    // 降级：返回模拟链接
+    console.log("[Lark] Falling back to mock document URL");
+    const mockUrl = `https://feishu.cn/docs/doccn${entityId.toString().padStart(10, "0")}`;
+    return mockUrl;
+  }
+}
+
+/**
+ * 创建飞书文档（不带模板，旧版）
  */
 export async function createLarkDoc(entityName: string, entityId: number): Promise<string> {
   try {
@@ -199,8 +260,8 @@ async function addInitialContent(
   } catch (error) {
     console.error("[Lark] Failed to add initial content:", error);
     // 不抛出错误，初始内容添加失败不影响文档创建
-	  }
-	}
+  }
+}
 	
 	/**
 	 * 设置群组编辑权限

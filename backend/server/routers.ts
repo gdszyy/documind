@@ -22,15 +22,30 @@ export const appRouter = router({
       }),
 
     // 应用模板到当前文档
-    applyTemplate: publicProcedure
+      applyTemplate: publicProcedure
+        .input(z.object({
+          documentId: z.string(),
+          templateType: z.enum(["Service", "API", "Page", "Component"]),
+          variables: z.record(z.string()),
+        }))
+        .mutation(async ({ input }) => {
+          await larkService.applyTemplate(input.documentId, input.templateType, input.variables);
+          return { success: true, message: "模板应用成功" };
+        }),
+
+    // 创建飞书文档
+    createDoc: adminProcedure
       .input(z.object({
-        documentId: z.string(),
-        templateType: z.enum(["Service", "API", "Page", "Component"]),
-        variables: z.record(z.string()),
+        entityId: z.number(),
+        entityName: z.string(),
+        entityType: z.enum(["Service", "API", "Page", "Component"]),
       }))
       .mutation(async ({ input }) => {
-        await larkService.applyTemplate(input.documentId, input.templateType, input.variables);
-        return { success: true, message: "模板应用成功" };
+        const { entityId, entityName, entityType } = input;
+        const larkDocUrl = await larkService.createLarkDocWithTemplate(entityName, entityId, entityType);
+        // 更新实体，添加飞书文档链接
+        await db.updateEntity(entityId, { larkDocUrl });
+        return { success: true, larkDocUrl };
       }),
   }),
   
@@ -100,8 +115,8 @@ export const appRouter = router({
           throw new Error("Failed to create entity");
         }
 
-        // 2. 创建飞书文档（模拟）
-        const larkDocUrl = await larkService.createLarkDoc(entity.name, entity.id);
+        // 2. 创建飞书文档（使用模板）
+        const larkDocUrl = await larkService.createLarkDocWithTemplate(entity.name, entity.id, entity.type as any);
 
         // 3. 更新实体，添加飞书文档链接
         const updatedEntity = await db.updateEntity(entity.id, { larkDocUrl });

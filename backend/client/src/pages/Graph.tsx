@@ -106,19 +106,14 @@ export default function Graph() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  // const [isEditing, setIsEditing] = useState(false); // 移除 isEditing 状态
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
-  const [editFormData, setEditFormData] = useState({
-    name: "",
-    owner: "",
-    status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
-    description: "",
-  });
+// const [editFormData, setEditFormData] = useState({ ... }); // 移除 editFormData 状态
 
   // 添加日志：监控selectedTypes和selectedStatuses的变化
   useEffect(() => {
@@ -163,6 +158,8 @@ export default function Graph() {
 
   const utils = trpc.useUtils();
 
+  // 移除 updateMutation，因为编辑逻辑已移至 EntityForm.tsx
+  /*
   const updateMutation = trpc.entities.update.useMutation({
     onSuccess: () => {
       toast.success("实体更新成功");
@@ -174,6 +171,7 @@ export default function Graph() {
       toast.error(`更新失败: ${error.message}`);
     },
   });
+  */
 
   const deleteMutation = trpc.entities.delete.useMutation({
     onSuccess: () => {
@@ -209,18 +207,15 @@ export default function Graph() {
     },
   });
 
-  // 当选中实体变化时，更新编辑表单数据
+  // 当选中实体变化时，更新编辑表单数据 (不再需要，因为跳转到 EntityForm)
+  /*
   useEffect(() => {
     if (selectedEntity) {
-      setEditFormData({
-        name: selectedEntity.name,
-        owner: selectedEntity.owner,
-        status: selectedEntity.status,
-        description: selectedEntity.description || "",
-      });
-      setIsEditing(false);
+      // setEditFormData({ ... }); // 移除 editFormData 状态
+      // setIsEditing(false); // 移除 isEditing 状态
     }
   }, [selectedEntity]);
+  */
 
   const handleDelete = () => {
     if (deleteEntityId) {
@@ -228,6 +223,8 @@ export default function Graph() {
     }
   };
 
+  // 移除 handleSave，因为编辑逻辑已移至 EntityForm.tsx
+  /*
   const handleSave = () => {
     if (selectedEntityId) {
       updateMutation.mutate({
@@ -236,6 +233,7 @@ export default function Graph() {
       });
     }
   };
+  */
 
   const handleAddRelation = async () => {
     if (!selectedEntityId || !newRelationTargetId) {
@@ -514,15 +512,7 @@ export default function Graph() {
               <div className="space-y-4 mt-4">
                 <div>
                   <Label className="text-sm font-medium">名称</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editFormData.name}
-                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600 mt-1">{selectedEntity.name}</p>
-                  )}
+                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.name}</p>
                 </div>
 
                 <div>
@@ -532,49 +522,19 @@ export default function Graph() {
 
                 <div>
                   <Label className="text-sm font-medium">负责人</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editFormData.owner}
-                      onChange={(e) => setEditFormData({ ...editFormData, owner: e.target.value })}
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600 mt-1">{selectedEntity.owner}</p>
-                  )}
+                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.owner}</p>
                 </div>
 
                 <div>
                   <Label className="text-sm font-medium">状态</Label>
-                  {isEditing ? (
-                    <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value as any })}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Development">Development</SelectItem>
-                        <SelectItem value="Testing">Testing</SelectItem>
-                        <SelectItem value="Production">Production</SelectItem>
-                        <SelectItem value="Deprecated">Deprecated</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={statusColors[selectedEntity.status]} variant="outline">
+                  <Badge className={statusColors[selectedEntity.status]} variant="outline">
                       {selectedEntity.status}
                     </Badge>
-                  )}
                 </div>
 
                 <div>
                   <Label className="text-sm font-medium">描述</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editFormData.description}
-                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600 mt-1">{selectedEntity.description || "无"}</p>
-                  )}
+                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.description || "无"}</p>
                 </div>
 
                 {/* 关系列表 */}
@@ -610,48 +570,28 @@ export default function Graph() {
                 <div className="flex gap-2 pt-4">
                   {isAdmin && (
                     <>
-                      {!isEditing ? (
-                        <>
-                          <button
-                            onClick={() => setIsEditing(true)}
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                          >
-                            <Edit2 className="h-4 w-4 mr-2 inline" />
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => setShowAddRelationDialog(true)}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            <Plus className="h-4 w-4 mr-2 inline" />
-                            添加关系
-                          </button>
-                          <button
-                            onClick={() => setDeleteEntityId(selectedEntityId)}
-                            className="flex-1 px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2 inline" />
-                            删除
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={handleSave}
-                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
-                          >
-                            <Save className="h-4 w-4 mr-2 inline" />
-                            保存
-                          </button>
-                          <button
-                            onClick={() => setIsEditing(false)}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            <X className="h-4 w-4 mr-2 inline" />
-                            取消
-                          </button>
-                        </>
-                      )}
+                      {/* 统一编辑入口为跳转到 EntityForm.tsx */}
+                      <Link
+                        href={`/entities/${selectedEntity.id}/edit`}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                      >
+                        <Edit2 className="h-4 w-4 mr-2 inline" />
+                        编辑
+                      </Link>
+                      <button
+                        onClick={() => setShowAddRelationDialog(true)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <Plus className="h-4 w-4 mr-2 inline" />
+                        添加关系
+                      </button>
+                      <button
+                        onClick={() => setDeleteEntityId(selectedEntityId)}
+                        className="flex-1 px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2 inline" />
+                        删除
+                      </button>
                     </>
                   )}
                 </div>
