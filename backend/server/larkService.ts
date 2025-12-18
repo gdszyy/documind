@@ -10,6 +10,8 @@ const LARK_CHAT_ID = process.env.LARK_CHAT_ID || process.env.FEISHU_CHAT_ID || "
 // 飞书API端点
 const LARK_TENANT_TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
 const LARK_CREATE_DOC_URL = "https://open.feishu.cn/open-apis/docx/v1/documents";
+// 飞书文档权限 API
+// 正确的 URL 格式: https://open.feishu.cn/open-apis/drive/v1/permissions/:token/members?type=docx
 const LARK_ADD_PERMISSION_URL = "https://open.feishu.cn/open-apis/drive/v1/permissions";
 
 // Token缓存
@@ -267,42 +269,50 @@ async function addInitialContent(
   }
 }
 	
-	/**
-	 * 设置群组编辑权限
-	 */
-	async function setChatEditPermission(
-	  accessToken: string,
-	  documentId: string,
-	  chatId: string
-	): Promise<void> {
-	  try {
-	    console.log(`[Lark] Setting edit permission for chat ${chatId} on document ${documentId}`);
-	
-	    const response = await axios.post(
-	      `${LARK_ADD_PERMISSION_URL}/${documentId}/members`,
-	      {
-	        member_type: "chat",
-	        member_id: chatId,
-	        perm: "edit",
-	      },
-	      {
-	        headers: {
-	          Authorization: `Bearer ${accessToken}`,
-	          "Content-Type": "application/json",
-	        },
-	      }
-	    );
-	
-	    if (response.data.code !== 0) {
-	      throw new Error(`Failed to set chat edit permission: ${response.data.msg}`);
-	    }
-	
-	    console.log(`[Lark] Chat edit permission set successfully for document: ${documentId}`);
-	  } catch (error) {
-	    console.error("[Lark] Failed to set chat edit permission:", error);
-	    // 不抛出错误，权限设置失败不影响文档创建
-	  }
-	}
+/**
+ * 设置群组编辑权限
+ * 根据飞书 API 文档，需要使用 openchat 作为 member_type
+ * URL 格式: POST https://open.feishu.cn/open-apis/drive/v1/permissions/:token/members?type=docx
+ */
+async function setChatEditPermission(
+  accessToken: string,
+  documentId: string,
+  chatId: string
+): Promise<void> {
+  try {
+    console.log(`[Lark] Setting edit permission for chat ${chatId} on document ${documentId}`);
+
+    // 正确的 API URL 格式，需要在 query 参数中指定 type=docx
+    const url = `${LARK_ADD_PERMISSION_URL}/${documentId}/members?type=docx`;
+    
+    const response = await axios.post(
+      url,
+      {
+        member_type: "openchat", // 使用 openchat 而不是 chat
+        member_id: chatId,
+        perm: "edit",
+        type: "chat", // 指定协作者类型为群组
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json; charset=utf-8",
+        },
+      }
+    );
+
+    console.log(`[Lark] Permission API response:`, JSON.stringify(response.data));
+
+    if (response.data.code !== 0) {
+      throw new Error(`Failed to set chat edit permission: ${response.data.msg} (code: ${response.data.code})`);
+    }
+
+    console.log(`[Lark] Chat edit permission set successfully for document: ${documentId}`);
+  } catch (error: any) {
+    console.error("[Lark] Failed to set chat edit permission:", error.response?.data || error.message || error);
+    // 不抛出错误，权限设置失败不影响文档创建
+  }
+}
 	
 	/**
 	 * 健康检查
