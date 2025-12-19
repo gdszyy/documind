@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, FileEdit } from "lucide-react";
+import EntityContentEditor from "@/components/EntityContentEditor";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +111,8 @@ export default function Graph() {
   const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
   const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
+  const [showContentEditor, setShowContentEditor] = useState(false); // 内容编辑器状态
+  const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number } | null>(null); // 右键菜单状态
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
@@ -207,6 +210,17 @@ export default function Graph() {
     },
   });
 
+  // 更新实体内容 mutation
+  const updateContentMutation = trpc.entities.update.useMutation({
+    onSuccess: () => {
+      toast.success("内容保存成功");
+      refetchEntity();
+    },
+    onError: (error) => {
+      toast.error(`保存失败: ${error.message}`);
+    },
+  });
+
   // 当选中实体变化时，更新编辑表单数据 (不再需要，因为跳转到 EntityForm)
   /*
   useEffect(() => {
@@ -255,6 +269,29 @@ export default function Graph() {
     deleteRelationMutation.mutate({ id: relationId });
   };
 
+  // 保存实体内容
+  const handleSaveContent = async (content: string) => {
+    if (!selectedEntityId) return;
+    await updateContentMutation.mutateAsync({
+      id: selectedEntityId,
+      content,
+    });
+  };
+
+  // 从右键菜单打开编辑器
+  const handleOpenEditorFromContextMenu = () => {
+    if (contextMenuEntity) {
+      setSelectedEntityId(contextMenuEntity.id);
+      setShowContentEditor(true);
+      setContextMenuEntity(null);
+    }
+  };
+
+  // 关闭右键菜单
+  const handleCloseContextMenu = () => {
+    setContextMenuEntity(null);
+  };
+
   // 初始化和更新 ECharts
   useEffect(() => {
     console.log("[ECharts] useEffect triggered with data:", {
@@ -279,6 +316,21 @@ export default function Graph() {
         if (params.dataType === "node") {
           console.log("[ECharts] Node clicked:", params.data.id);
           setSelectedEntityId(parseInt(params.data.id));
+          // 关闭右键菜单
+          setContextMenuEntity(null);
+        }
+      });
+
+      // 添加右键菜单事件
+      chartInstanceRef.current.on("contextmenu", (params: any) => {
+        if (params.dataType === "node") {
+          console.log("[ECharts] Node right-clicked:", params.data.id);
+          params.event.event.preventDefault();
+          setContextMenuEntity({
+            id: parseInt(params.data.id),
+            x: params.event.event.clientX,
+            y: params.event.event.clientY,
+          });
         }
       });
     }
@@ -567,27 +619,37 @@ export default function Graph() {
                 )}
 
                 {/* 操作按钮 */}
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-col gap-2 pt-4">
                   {isAdmin && (
                     <>
-                      {/* 统一编辑入口为跳转到 EntityForm.tsx */}
-                      <Link
-                        href={`/entities/${selectedEntity.id}/edit`}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 text-center"
-                      >
-                        <Edit2 className="h-4 w-4 mr-2 inline" />
-                        编辑
-                      </Link>
+                      {/* 编辑文档按钮 */}
                       <button
-                        onClick={() => setShowAddRelationDialog(true)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setShowContentEditor(true)}
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center justify-center"
                       >
-                        <Plus className="h-4 w-4 mr-2 inline" />
-                        添加关系
+                        <FileEdit className="h-4 w-4 mr-2" />
+                        编辑文档
                       </button>
+                      <div className="flex gap-2">
+                        {/* 统一编辑入口为跳转到 EntityForm.tsx */}
+                        <Link
+                          href={`/entities/${selectedEntity.id}/edit`}
+                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                        >
+                          <Edit2 className="h-4 w-4 mr-2 inline" />
+                          编辑
+                        </Link>
+                        <button
+                          onClick={() => setShowAddRelationDialog(true)}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          <Plus className="h-4 w-4 mr-2 inline" />
+                          添加关系
+                        </button>
+                      </div>
                       <button
                         onClick={() => setDeleteEntityId(selectedEntityId)}
-                        className="flex-1 px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
+                        className="w-full px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4 mr-2 inline" />
                         删除
@@ -687,6 +749,98 @@ export default function Graph() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* 右键菜单 */}
+        {contextMenuEntity && (
+          <>
+            {/* 透明遮罩层，点击关闭菜单 */}
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={handleCloseContextMenu}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                handleCloseContextMenu();
+              }}
+            />
+            {/* 右键菜单 */}
+            <div
+              className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]"
+              style={{
+                left: contextMenuEntity.x,
+                top: contextMenuEntity.y,
+              }}
+            >
+              {isAdmin && (
+                <>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={handleOpenEditorFromContextMenu}
+                  >
+                    <FileEdit className="h-4 w-4" />
+                    编辑文档
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      setSelectedEntityId(contextMenuEntity.id);
+                      setContextMenuEntity(null);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    查看详情
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      navigate(`/entities/${contextMenuEntity.id}/edit`);
+                      setContextMenuEntity(null);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    编辑实体
+                  </button>
+                  <div className="border-t border-gray-200 my-1" />
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                    onClick={() => {
+                      setDeleteEntityId(contextMenuEntity.id);
+                      setContextMenuEntity(null);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    删除实体
+                  </button>
+                </>
+              )}
+              {!isAdmin && (
+                <button
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => {
+                    setSelectedEntityId(contextMenuEntity.id);
+                    setContextMenuEntity(null);
+                  }}
+                >
+                  <Edit2 className="h-4 w-4" />
+                  查看详情
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Vditor 内容编辑器对话框 */}
+        {selectedEntity && (
+          <EntityContentEditor
+            open={showContentEditor}
+            onOpenChange={setShowContentEditor}
+            entityId={selectedEntity.id}
+            entityName={selectedEntity.name}
+            content={selectedEntity.content || ""}
+            larkDocUrl={selectedEntity.larkDocUrl}
+            onSave={handleSaveContent}
+            isLoading={updateContentMutation.isPending}
+          />
+        )}
       </div>
     </div>
   );

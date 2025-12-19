@@ -14,7 +14,7 @@ interface VditorEditorProps {
 
 /**
  * Vditor 编辑器组件
- * 使用 IR（Instant Rendering）模式，实现所见即所得的编辑体验
+ * 使用 wysiwyg（所见即所得）模式，提供最直观的编辑体验
  */
 export default function VditorEditor({
   value = "",
@@ -40,7 +40,7 @@ export default function VditorEditor({
     }
 
     const vditor = new Vditor(editorRef.current, {
-      mode: "ir", // IR 模式：所见即所得
+      mode: "wysiwyg", // 所见即所得模式
       height: typeof height === "number" ? height : undefined,
       placeholder,
       value: initialValueRef.current,

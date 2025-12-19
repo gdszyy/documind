@@ -25,6 +25,7 @@ interface EntityContentEditorProps {
 /**
  * 实体内容编辑对话框
  * 使用 Vditor 编辑器编辑实体的 Markdown 内容
+ * 默认使用较大的窗口尺寸以提供更好的编辑体验
  */
 export default function EntityContentEditor({
   open,
@@ -82,10 +83,25 @@ export default function EntityContentEditor({
     setIsFullscreen(!isFullscreen);
   };
 
+  // 计算编辑器高度
+  const getEditorHeight = () => {
+    if (isFullscreen) {
+      return "calc(100vh - 180px)";
+    }
+    // 默认使用更大的高度
+    return 600;
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent 
-        className={`${isFullscreen ? 'max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] m-0 rounded-none' : 'max-w-5xl w-[90vw] max-h-[90vh]'} flex flex-col`}
+        className={`
+          ${isFullscreen 
+            ? 'max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] m-0 rounded-none' 
+            : 'max-w-[95vw] w-[1400px] max-h-[95vh]'
+          } 
+          flex flex-col
+        `}
       >
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -99,7 +115,7 @@ export default function EntityContentEditor({
                 )}
               </DialogTitle>
               <DialogDescription>
-                使用 Markdown 编辑器编辑实体内容
+                使用 Markdown 编辑器编辑实体内容，支持所见即所得模式
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -129,7 +145,15 @@ export default function EntityContentEditor({
           </div>
         </DialogHeader>
 
-        <div className={`flex-1 overflow-hidden ${isFullscreen ? 'h-[calc(100vh-180px)]' : 'min-h-[500px] max-h-[60vh]'}`}>
+        <div 
+          className={`
+            flex-1 overflow-hidden 
+            ${isFullscreen 
+              ? 'h-[calc(100vh-180px)]' 
+              : 'min-h-[600px] h-[70vh]'
+            }
+          `}
+        >
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -140,7 +164,7 @@ export default function EntityContentEditor({
               value={editorContent}
               onChange={handleContentChange}
               onSave={handleSave}
-              height={isFullscreen ? "calc(100vh - 200px)" : 500}
+              height={getEditorHeight()}
               placeholder="请输入实体内容，支持 Markdown 格式..."
             />
           )}
