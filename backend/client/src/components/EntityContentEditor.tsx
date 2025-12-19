@@ -25,7 +25,7 @@ interface EntityContentEditorProps {
 /**
  * 实体内容编辑对话框
  * 使用 Vditor 编辑器编辑实体的 Markdown 内容
- * 默认使用较大的窗口尺寸以提供更好的编辑体验
+ * 默认宽度为屏幕宽度的 60%，全屏模式为 100%
  */
 export default function EntityContentEditor({
   open,
@@ -97,13 +97,13 @@ export default function EntityContentEditor({
       <DialogContent 
         className={`
           ${isFullscreen 
-            ? 'max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] m-0 rounded-none' 
-            : 'max-w-[95vw] w-[1400px] max-h-[95vh]'
+            ? 'fixed inset-0 max-w-none w-screen h-screen max-h-screen m-0 rounded-none p-0' 
+            : 'w-[60vw] max-h-[95vh]'
           } 
           flex flex-col
         `}
       >
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-6">
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function EntityContentEditor({
           className={`
             flex-1 overflow-hidden 
             ${isFullscreen 
-              ? 'h-[calc(100vh-180px)]' 
+              ? 'h-screen' 
               : 'min-h-[600px] h-[70vh]'
             }
           `}
@@ -170,7 +170,7 @@ export default function EntityContentEditor({
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 flex items-center justify-between sm:justify-between">
+        <DialogFooter className={`flex-shrink-0 flex items-center justify-between sm:justify-between ${isFullscreen ? 'px-6 pb-6' : ''}`}>
           <div className="text-sm text-gray-500">
             提示：按 Ctrl+Enter 可快速保存
           </div>
