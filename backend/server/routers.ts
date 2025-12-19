@@ -145,6 +145,7 @@ export const appRouter = router({
           status: z.enum(["Development", "Testing", "Production", "Deprecated"]).optional(),
           description: z.string().optional(),
           larkDocUrl: z.string().nullable().optional(), // 飞书文档链接字段
+          content: z.string().nullable().optional(), // Markdown 内容字段
           httpMethod: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH"]).optional(),
           apiPath: z.string().optional(),
         })

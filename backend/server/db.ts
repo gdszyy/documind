@@ -164,6 +164,7 @@ function mapOldToNew(oldData: {
   httpMethod?: string;
   apiPath?: string;
   larkDocUrl?: string;
+  content?: string;
 }, isUpdate: boolean = false): Partial<InsertDocumindEntity> {
   const metadata: Record<string, any> = {};
   
@@ -204,6 +205,11 @@ function mapOldToNew(oldData: {
   
   if (oldData.larkDocUrl !== undefined) {
     result.documentUrl = oldData.larkDocUrl || null;
+  }
+  
+  // 添加 content 字段映射
+  if (oldData.content !== undefined) {
+    result.content = oldData.content || null;
   }
   
   if (Object.keys(metadata).length > 0) {
@@ -251,6 +257,7 @@ function mapNewToOld(newEntity: any) {
     httpMethod: metadata.httpMethod || null,
     apiPath: metadata.apiPath || null,
     larkDocUrl: newEntity.documentUrl,
+    content: newEntity.content || null, // Markdown 内容
     createdAt: newEntity.createdAt,
     updatedAt: newEntity.updatedAt,
   };

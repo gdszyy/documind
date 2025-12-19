@@ -41,6 +41,9 @@ export const documindEntities = mysqlTable("documind_entities", {
   // Lark文档URL
   documentUrl: varchar("documentUrl", { length: 1000 }),
   
+  // Markdown 内容（使用 Vditor 编辑器编辑）
+  content: text("content"),
+  
   // 元数据（灵活的JSON对象）
   // 可以包含：author, created_at, tags, category, version等任意字段
   metadata: text("metadata"),

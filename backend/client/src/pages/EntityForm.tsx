@@ -13,7 +13,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Trash2, Plus, Search, ArrowLeftRight } from "lucide-react";
+import { ExternalLink, Loader2, Trash2, Plus, Search, ArrowLeftRight, Edit3 } from "lucide-react";
+import EntityContentEditor from "@/components/EntityContentEditor";
 import { useEffect, useState, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
@@ -114,6 +115,8 @@ export default function EntityForm() {
 	  const [entitySearchQuery, setEntitySearchQuery] = useState("");
 	  // 新增：关系反转状态
 	  const [isRelationReversed, setIsRelationReversed] = useState(false);
+	  // 新增：内容编辑器状态
+	  const [showContentEditor, setShowContentEditor] = useState(false);
 	  
 	  // 飞书文档创建 Mutation
 	  const createLarkDocMutation = trpc.lark.createDoc.useMutation({
@@ -163,7 +166,8 @@ export default function EntityForm() {
     description: "",
     httpMethod: "GET" as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
     apiPath: "",
-    larkDocUrl: "", // 新增 larkDocUrl 字段
+    larkDocUrl: "", // 飞书文档链接字段
+    content: "", // Markdown 内容字段
   });
 
 	  // 获取实体数据（编辑模式）
@@ -197,6 +201,7 @@ export default function EntityForm() {
         httpMethod: entity.httpMethod || "GET",
         apiPath: entity.apiPath || "",
         larkDocUrl: entity.larkDocUrl || "", // 填充 larkDocUrl 字段
+        content: entity.content || "", // 填充 content 字段
       });
     }
   }, [entity]);
@@ -602,32 +607,60 @@ export default function EntityForm() {
 	                    onChange={(e) => setFormData({ ...formData, larkDocUrl: e.target.value })}
 	                    placeholder="例如：https://docs.feishu.cn/docs/doccn..."
 	                  />
-	                  {formData.larkDocUrl ? (
-	                    <a
-	                      href={formData.larkDocUrl}
-	                      target="_blank"
-	                      rel="noopener noreferrer"
-	                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+	                  <div className="flex items-center gap-2">
+	                    {formData.larkDocUrl && (
+	                      <a
+	                        href={formData.larkDocUrl}
+	                        target="_blank"
+	                        rel="noopener noreferrer"
+	                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+	                      >
+	                        在飞书中查看当前文档
+	                        <ExternalLink className="h-3 w-3" />
+	                      </a>
+	                    )}
+	                    {!formData.larkDocUrl && (
+		                    <Button
+		                        type="button"
+		                        variant="outline"
+		                        size="sm"
+		                        onClick={handleCreateLarkDoc}
+		                        disabled={createLarkDocMutation.isPending || !isAdmin || !entity}
+		                      >
+		                        {createLarkDocMutation.isPending ? (
+		                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+		                        ) : (
+		                          <Plus className="h-4 w-4 mr-2" />
+		                        )}
+		                        创建飞书文档
+		                      </Button>
+	                    )}
+	                  </div>
+	                </div>
+	              )}
+
+	              {/* 内容编辑器 (仅编辑模式) */}
+	              {isEdit && (
+	                <div className="space-y-2">
+	                  <Label>实体内容 (Markdown)</Label>
+	                  <div className="flex items-center gap-2">
+	                    <Button
+	                      type="button"
+	                      variant="outline"
+	                      onClick={() => setShowContentEditor(true)}
 	                    >
-	                      在飞书中查看当前文档
-	                      <ExternalLink className="h-3 w-3" />
-	                    </a>
-	                  ) : (
-		                  <Button
-		                      type="button"
-		                      variant="outline"
-		                      size="sm"
-		                      onClick={handleCreateLarkDoc}
-		                      disabled={createLarkDocMutation.isPending || !isAdmin || !entity}
-		                    >
-		                      {createLarkDocMutation.isPending ? (
-		                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-		                      ) : (
-		                        <Plus className="h-4 w-4 mr-2" />
-		                      )}
-		                      创建飞书文档
-		                    </Button>
-	                  )}
+	                      <Edit3 className="h-4 w-4 mr-2" />
+	                      编辑内容
+	                    </Button>
+	                    {formData.content && (
+	                      <span className="text-sm text-gray-500">
+	                        已有内容 ({formData.content.length} 字符)
+	                      </span>
+	                    )}
+	                  </div>
+	                  <p className="text-xs text-gray-500">
+	                    使用 Vditor 编辑器编辑实体的详细内容，支持 Markdown 格式
+	                  </p>
 	                </div>
 	              )}
             </CardContent>
@@ -1023,6 +1056,21 @@ export default function EntityForm() {
           </div>
         </form>
       </div>
+
+      {/* Vditor 内容编辑器对话框 */}
+      {isEdit && entity && (
+        <EntityContentEditor
+          open={showContentEditor}
+          onOpenChange={setShowContentEditor}
+          entityId={entity.id}
+          entityName={entity.name}
+          content={formData.content}
+          larkDocUrl={formData.larkDocUrl || null}
+          onSave={async (content) => {
+            setFormData(prev => ({ ...prev, content }));
+          }}
+        />
+      )}
     </div>
   );
 }
