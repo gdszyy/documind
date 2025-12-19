@@ -86,26 +86,25 @@ export default function EntityContentEditor({
   // 计算编辑器高度
   const getEditorHeight = () => {
     if (isFullscreen) {
-      return "calc(100vh - 180px)";
+      // 全屏时减去 header 和 footer 的高度
+      return "calc(100vh - 200px)";
     }
-    // 默认使用更大的高度
+    // 默认高度
     return 600;
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent 
-        className={`
-          ${isFullscreen 
-            ? 'fixed inset-0 max-w-none w-screen h-screen max-h-screen m-0 rounded-none p-0' 
-            : 'w-[60vw] max-h-[95vh]'
-          } 
-          flex flex-col
-        `}
+        className={
+          isFullscreen 
+            ? 'max-w-none w-screen h-screen max-h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 rounded-none flex flex-col' 
+            : 'max-w-[60vw] w-[60vw] max-h-[90vh] flex flex-col'
+        }
       >
-        <DialogHeader className="flex-shrink-0 px-6 pt-6">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               <DialogTitle className="flex items-center gap-2">
                 编辑内容 - {entityName}
                 {hasChanges && (
@@ -118,7 +117,7 @@ export default function EntityContentEditor({
                 使用 Markdown 编辑器编辑实体内容，支持所见即所得模式
               </DialogDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 ml-4">
               {larkDocUrl && (
                 <Button
                   variant="outline"
@@ -149,8 +148,8 @@ export default function EntityContentEditor({
           className={`
             flex-1 overflow-hidden 
             ${isFullscreen 
-              ? 'h-screen' 
-              : 'min-h-[600px] h-[70vh]'
+              ? 'h-full' 
+              : 'min-h-[600px]'
             }
           `}
         >
@@ -170,7 +169,7 @@ export default function EntityContentEditor({
           )}
         </div>
 
-        <DialogFooter className={`flex-shrink-0 flex items-center justify-between sm:justify-between ${isFullscreen ? 'px-6 pb-6' : ''}`}>
+        <DialogFooter className="flex-shrink-0 flex items-center justify-between sm:justify-between">
           <div className="text-sm text-gray-500">
             提示：按 Ctrl+Enter 可快速保存
           </div>
