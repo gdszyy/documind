@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Trash2, Edit2, Download } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit2, Download, Link2, Network, FileEdit, Search } from "lucide-react";
 import EntityEditSidebar from "@/components/EntityEditSidebar";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -17,6 +17,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 
@@ -79,11 +97,30 @@ export default function Graph() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
-  const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number } | null>(null); // 右键菜单状态
+  const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number; name: string } | null>(null); // 右键菜单状态
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
-// const [editFormData, setEditFormData] = useState({ ... }); // 移除 editFormData 状态
+  // 添加关系对话框状态
+  const [addRelationState, setAddRelationState] = useState<{ open: boolean; sourceId: number | null; sourceName: string }>({ open: false, sourceId: null, sourceName: "" });
+  const [newRelationType, setNewRelationType] = useState<string>("DEPENDS_ON");
+  const [newRelationTargetIds, setNewRelationTargetIds] = useState<number[]>([]);
+  const [newRelationTargetType, setNewRelationTargetType] = useState<string | null>(null);
+  const [entitySearchQuery, setEntitySearchQuery] = useState("");
+
+  // 创建实体对话框状态
+  const [createEntityDialog, setCreateEntityDialog] = useState<{ open: boolean; relatedNodeId: number | null; relatedNodeName: string }>({ open: false, relatedNodeId: null, relatedNodeName: "" });
+  const [newEntityFormData, setNewEntityFormData] = useState({
+    name: "",
+    uniqueId: "",
+    type: "Service" as "Service" | "API" | "Component" | "Page" | "Module" | "Documentation" | "Document",
+    owner: "",
+    status: "Development" as "Development" | "Testing" | "Production" | "Deprecated",
+    description: "",
+    createRelation: true,
+    relationType: "DEPENDS_ON" as "EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS",
+    relationDirection: "to" as "from" | "to", // from: 新实体 -> 相关节点, to: 相关节点 -> 新实体
+  });
 
   // 添加日志：监控selectedTypes和selectedStatuses的变化
   useEffect(() => {
@@ -112,6 +149,71 @@ export default function Graph() {
   }, [data]);
 
   const utils = trpc.useUtils();
+
+  // 获取实体列表用于添加关系对话框
+  const { data: entitiesList } = trpc.entities.list.useQuery({ page: 1, pageSize: 1000 });
+
+  // 创建关系的 mutation
+  const createRelationMutation = trpc.entities.createRelationship.useMutation({
+    onSuccess: () => {
+      toast.success("关系创建成功");
+      utils.graph.getData.invalidate();
+      setAddRelationState({ open: false, sourceId: null, sourceName: "" });
+      setNewRelationTargetIds([]);
+      setNewRelationType("DEPENDS_ON");
+      setNewRelationTargetType(null);
+      setEntitySearchQuery("");
+    },
+    onError: (error) => {
+      toast.error(`创建关系失败: ${error.message}`);
+    },
+  });
+
+  // 创建实体的 mutation
+  const createEntityMutation = trpc.entities.create.useMutation({
+    onSuccess: async (newEntity) => {
+      toast.success("实体创建成功");
+      
+      // 如果需要创建关系，等待实体创建完成后再创建关系
+      if (newEntityFormData.createRelation && createEntityDialog.relatedNodeId && newEntity) {
+        try {
+          const sourceId = newEntityFormData.relationDirection === "from" 
+            ? newEntity.id 
+            : createEntityDialog.relatedNodeId;
+          const targetId = newEntityFormData.relationDirection === "from" 
+            ? createEntityDialog.relatedNodeId 
+            : newEntity.id;
+          
+          await createRelationMutation.mutateAsync({
+            sourceId,
+            targetId,
+            type: newEntityFormData.relationType,
+          });
+        } catch (error) {
+          console.error("创建关系失败:", error);
+        }
+      }
+      
+      utils.graph.getData.invalidate();
+      utils.entities.list.invalidate();
+      setCreateEntityDialog({ open: false, relatedNodeId: null, relatedNodeName: "" });
+      // 重置表单
+      setNewEntityFormData({
+        name: "",
+        uniqueId: "",
+        type: "Service",
+        owner: "",
+        status: "Development",
+        description: "",
+        createRelation: true,
+        relationType: "DEPENDS_ON",
+        relationDirection: "to",
+      });
+    },
+    onError: (error) => {
+      toast.error(`创建实体失败: ${error.message}`);
+    },
+  });
 
   const deleteMutation = trpc.entities.delete.useMutation({
     onSuccess: () => {
@@ -142,6 +244,72 @@ export default function Graph() {
   // 关闭右键菜单
   const handleCloseContextMenu = () => {
     setContextMenuEntity(null);
+  };
+
+  // 处理右键菜单 - 创建新实体
+  const handleContextMenuCreateEntity = () => {
+    if (contextMenuEntity) {
+      setCreateEntityDialog({
+        open: true,
+        relatedNodeId: contextMenuEntity.id,
+        relatedNodeName: contextMenuEntity.name,
+      });
+    }
+    handleCloseContextMenu();
+  };
+
+  // 处理右键菜单 - 创建新关系
+  const handleContextMenuCreateRelation = () => {
+    if (contextMenuEntity) {
+      setAddRelationState({ open: true, sourceId: contextMenuEntity.id, sourceName: contextMenuEntity.name });
+    }
+    handleCloseContextMenu();
+  };
+
+  // 处理添加关系
+  const handleAddRelation = async () => {
+    if (!addRelationState.sourceId || newRelationTargetIds.length === 0) {
+      toast.error("源实体或目标实体未选择");
+      return;
+    }
+    
+    // 为每个目标实体创建关系
+    for (const targetId of newRelationTargetIds) {
+      try {
+        await createRelationMutation.mutateAsync({
+          sourceId: addRelationState.sourceId,
+          targetId,
+          type: newRelationType as any,
+        });
+      } catch (error) {
+        console.error("创建关系失败:", error);
+      }
+    }
+  };
+
+  // 处理名称变化，自动生成 uniqueId
+  const handleNewEntityNameChange = (name: string) => {
+    setNewEntityFormData((prev) => ({
+      ...prev,
+      name,
+      uniqueId: name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    }));
+  };
+
+  // 处理新建实体表单提交
+  const handleCreateEntity = () => {
+    if (!newEntityFormData.name || !newEntityFormData.uniqueId || !newEntityFormData.owner) {
+      toast.error("请填写必填字段");
+      return;
+    }
+    createEntityMutation.mutate({
+      name: newEntityFormData.name,
+      uniqueId: newEntityFormData.uniqueId,
+      type: newEntityFormData.type,
+      owner: newEntityFormData.owner,
+      status: newEntityFormData.status,
+      description: newEntityFormData.description || undefined,
+    });
   };
 
   // 导出 MMD
@@ -203,10 +371,12 @@ export default function Graph() {
         if (params.dataType === "node") {
           console.log("[ECharts] Node right-clicked:", params.data.id);
           params.event.event.preventDefault();
+          const nodeName = params.data.entityData?.name || "";
           setContextMenuEntity({
             id: parseInt(params.data.id),
             x: params.event.event.clientX,
             y: params.event.event.clientY,
+            name: nodeName,
           });
         }
       });
@@ -464,16 +634,34 @@ export default function Graph() {
             />
             {/* 右键菜单 */}
             <div
-              className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[160px]"
+              className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[180px]"
               style={{
                 left: contextMenuEntity.x,
                 top: contextMenuEntity.y,
               }}
             >
+              <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100">
+                节点: {contextMenuEntity.name}
+              </div>
               {isAdmin && (
                 <>
                   <button
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={handleContextMenuCreateEntity}
+                  >
+                    <Plus className="h-4 w-4 text-blue-500" />
+                    创建新实体
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={handleContextMenuCreateRelation}
+                  >
+                    <Link2 className="h-4 w-4 text-green-500" />
+                    创建新关系
+                  </button>
+                  <div className="border-t border-gray-200 my-1" />
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                     onClick={handleOpenSidebarFromContextMenu}
                   >
                     <Edit2 className="h-4 w-4" />
@@ -481,7 +669,7 @@ export default function Graph() {
                   </button>
                   <div className="border-t border-gray-200 my-1" />
                   <button
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                     onClick={() => {
                       setDeleteEntityId(contextMenuEntity.id);
                       setContextMenuEntity(null);
@@ -494,7 +682,7 @@ export default function Graph() {
               )}
               {!isAdmin && (
                 <button
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => {
                     setSelectedEntityId(contextMenuEntity.id);
                     setContextMenuEntity(null);
@@ -508,6 +696,294 @@ export default function Graph() {
           </>
         )}
 
+        {/* 添加关系对话框 */}
+        <Dialog open={addRelationState.open} onOpenChange={(open) => setAddRelationState({ ...addRelationState, open })}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>添加关系</DialogTitle>
+              <DialogDescription>
+                为 "{addRelationState.sourceName}" 添加新的关系
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* 关系类型选择 */}
+              <div className="space-y-2">
+                <Label>关系类型</Label>
+                <Select value={newRelationType} onValueChange={setNewRelationType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DEPENDS_ON">依赖于</SelectItem>
+                    <SelectItem value="EXPOSES_API">暴露 API</SelectItem>
+                    <SelectItem value="USES_COMPONENT">使用组件</SelectItem>
+                    <SelectItem value="CONTAINS">包含</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 目标实体类型筛选 */}
+              <div className="space-y-2">
+                <Label>目标实体类型</Label>
+                <Select
+                  value={newRelationTargetType || "all"}
+                  onValueChange={(value) => setNewRelationTargetType(value === "all" ? null : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="全部类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部类型</SelectItem>
+                    <SelectItem value="Service">服务</SelectItem>
+                    <SelectItem value="API">API</SelectItem>
+                    <SelectItem value="Component">组件</SelectItem>
+                    <SelectItem value="Page">页面</SelectItem>
+                    <SelectItem value="Module">模块</SelectItem>
+                    <SelectItem value="Documentation">文档</SelectItem>
+                    <SelectItem value="Document">说明文档</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 目标实体选择 */}
+              <div className="space-y-2">
+                <Label>目标实体 (可多选)</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="搜索实体..."
+                    value={entitySearchQuery}
+                    onChange={(e) => setEntitySearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">
+                    已选择 <span className="font-medium text-blue-600">{newRelationTargetIds.length}</span> 个实体
+                  </span>
+                  {newRelationTargetIds.length > 0 && (
+                    <button
+                      className="text-blue-600 hover:text-blue-800 text-xs"
+                      onClick={() => setNewRelationTargetIds([])}
+                    >
+                      清空选择
+                    </button>
+                  )}
+                </div>
+                <div className="border rounded-md max-h-[200px] overflow-y-auto">
+                  {entitiesList?.items
+                    ?.filter((e) => e.id !== addRelationState.sourceId)
+                    ?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType)
+                    ?.filter((e) => 
+                      !entitySearchQuery || 
+                      e.name.toLowerCase().includes(entitySearchQuery.toLowerCase()) ||
+                      e.uniqueId.toLowerCase().includes(entitySearchQuery.toLowerCase())
+                    )
+                    ?.map((entity) => (
+                      <div
+                        key={entity.id}
+                        className={`px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-50 ${
+                          newRelationTargetIds.includes(entity.id) ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => {
+                          setNewRelationTargetIds((prev) =>
+                            prev.includes(entity.id)
+                              ? prev.filter((id) => id !== entity.id)
+                              : [...prev, entity.id]
+                          );
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newRelationTargetIds.includes(entity.id)}
+                          onChange={() => {}}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm truncate block">{entity.name}</span>
+                          <span className="text-xs text-gray-400">{entity.type}</span>
+                        </div>
+                      </div>
+                    ))}
+                  {entitiesList?.items?.filter((e) => e.id !== addRelationState.sourceId)?.filter((e) => !newRelationTargetType || e.type === newRelationTargetType).length === 0 && (
+                    <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                      没有可选的实体
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddRelationState({ open: false, sourceId: null, sourceName: "" })}>
+                取消
+              </Button>
+              <Button onClick={handleAddRelation} disabled={newRelationTargetIds.length === 0 || createRelationMutation.isPending}>
+                {createRelationMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                添加 {newRelationTargetIds.length > 0 && `(${newRelationTargetIds.length})`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 创建新实体对话框（从右键菜单触发） */}
+        <Dialog open={createEntityDialog.open} onOpenChange={(open) => setCreateEntityDialog({ ...createEntityDialog, open })}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>创建新实体</DialogTitle>
+              <DialogDescription>
+                创建一个新实体，并可选择与 "{createEntityDialog.relatedNodeName}" 建立关系
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* 基本信息 */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-gray-700 border-b pb-2">基本信息</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-entity-name">
+                      名称 <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-entity-name"
+                      value={newEntityFormData.name}
+                      onChange={(e) => handleNewEntityNameChange(e.target.value)}
+                      placeholder="例如：用户认证服务"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-entity-uniqueId">
+                      唯一标识 (ID) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-entity-uniqueId"
+                      value={newEntityFormData.uniqueId}
+                      onChange={(e) => setNewEntityFormData({ ...newEntityFormData, uniqueId: e.target.value })}
+                      placeholder="例如：user-auth-service"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-entity-type">
+                      类型 <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={newEntityFormData.type}
+                      onValueChange={(value: any) => setNewEntityFormData({ ...newEntityFormData, type: value })}
+                    >
+                      <SelectTrigger id="new-entity-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Service">服务</SelectItem>
+                        <SelectItem value="API">API</SelectItem>
+                        <SelectItem value="Component">组件</SelectItem>
+                        <SelectItem value="Page">页面</SelectItem>
+                        <SelectItem value="Module">模块</SelectItem>
+                        <SelectItem value="Documentation">文档</SelectItem>
+                        <SelectItem value="Document">说明文档</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-entity-owner">
+                      负责人 <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-entity-owner"
+                      value={newEntityFormData.owner}
+                      onChange={(e) => setNewEntityFormData({ ...newEntityFormData, owner: e.target.value })}
+                      placeholder="例如：张三"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-entity-status">状态</Label>
+                  <Select
+                    value={newEntityFormData.status}
+                    onValueChange={(value: any) => setNewEntityFormData({ ...newEntityFormData, status: value })}
+                  >
+                    <SelectTrigger id="new-entity-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Development">开发中</SelectItem>
+                      <SelectItem value="Testing">测试中</SelectItem>
+                      <SelectItem value="Production">已上线</SelectItem>
+                      <SelectItem value="Deprecated">已废弃</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 关系设置 */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-gray-700 border-b pb-2">关系设置</h4>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>创建关系</Label>
+                    <p className="text-xs text-gray-500">同时与 "{createEntityDialog.relatedNodeName}" 建立关系</p>
+                  </div>
+                  <Switch
+                    checked={newEntityFormData.createRelation}
+                    onCheckedChange={(checked) => setNewEntityFormData({ ...newEntityFormData, createRelation: checked })}
+                  />
+                </div>
+
+                {newEntityFormData.createRelation && (
+                  <div className="space-y-4 pl-4 border-l-2 border-blue-200">
+                    <div className="space-y-2">
+                      <Label>关系类型</Label>
+                      <Select
+                        value={newEntityFormData.relationType}
+                        onValueChange={(value: any) => setNewEntityFormData({ ...newEntityFormData, relationType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DEPENDS_ON">依赖于</SelectItem>
+                          <SelectItem value="EXPOSES_API">暴露 API</SelectItem>
+                          <SelectItem value="USES_COMPONENT">使用组件</SelectItem>
+                          <SelectItem value="CONTAINS">包含</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>关系方向</Label>
+                      <Select
+                        value={newEntityFormData.relationDirection}
+                        onValueChange={(value: any) => setNewEntityFormData({ ...newEntityFormData, relationDirection: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="from">新实体 → {createEntityDialog.relatedNodeName}</SelectItem>
+                          <SelectItem value="to">{createEntityDialog.relatedNodeName} → 新实体</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateEntityDialog({ open: false, relatedNodeId: null, relatedNodeName: "" })}>
+                取消
+              </Button>
+              <Button onClick={handleCreateEntity} disabled={createEntityMutation.isPending}>
+                {createEntityMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                创建
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>
