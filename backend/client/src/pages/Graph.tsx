@@ -213,7 +213,7 @@ export default function Graph() {
   const { data: entitiesList } = trpc.entities.list.useQuery({ page: 1, pageSize: 1000 });
 
   // 创建关系的 mutation
-  const createRelationMutation = trpc.entities.createRelationship.useMutation({
+  const createRelationMutation = trpc.relationships.create.useMutation({
     onSuccess: () => {
       toast.success("关系创建成功");
       utils.graph.getData.invalidate();
