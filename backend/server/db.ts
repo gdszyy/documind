@@ -203,16 +203,13 @@ function mapOldToNew(oldData: {
     result.status = 'active';
   }
   
-  // 只在字段明确传入时才添加，避免插入 undefined 导致数据库错误
-  // documentUrl 允许 null 值，所以只检查 undefined
-  if (oldData.larkDocUrl !== undefined) {
+  // 确保在创建时这些字段始终存在，即使为 null，以避免 Drizzle 使用 'default' 关键字
+  if (isUpdate) {
+    if (oldData.larkDocUrl !== undefined) result.documentUrl = oldData.larkDocUrl || null;
+    if (oldData.content !== undefined) result.content = oldData.content || null;
+  } else {
     result.documentUrl = oldData.larkDocUrl || null;
-  }
-  
-  // content 字段不应该在创建时包含，除非明确提供了非空值
-  // 这样可以避免 Drizzle ORM 尝试插入 default 值
-  if (oldData.content) {
-    result.content = oldData.content;
+    result.content = oldData.content || null;
   }
   
   // 始终序列化 metadata，即使为空对象，以确保数据库字段的一致性
