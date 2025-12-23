@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, FileEdit } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, FileEdit, Download } from "lucide-react";
 import EntityContentEditor from "@/components/EntityContentEditor";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -292,6 +292,31 @@ export default function Graph() {
     setContextMenuEntity(null);
   };
 
+  // 导出 MMD
+  const handleExportMmd = async () => {
+    try {
+      const mmdContent = await trpc.graph.exportMmd.query({
+        types: selectedTypes as any,
+        statuses: selectedStatuses as any,
+      });
+      
+      // 创建下载链接
+      const blob = new Blob([mmdContent], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `knowledge-graph-${new Date().toISOString().split('T')[0]}.mmd`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('知识图谱已导出为 MMD 格式');
+    } catch (error) {
+      toast.error(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   // 初始化和更新 ECharts
   useEffect(() => {
     console.log("[ECharts] useEffect triggered with data:", {
@@ -479,6 +504,14 @@ export default function Graph() {
               <p className="text-sm text-gray-600 mt-1">可视化展示所有实体及其关联关系</p>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={handleExportMmd}
+                disabled={isLoading || !data?.nodes?.length}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="h-4 w-4 mr-2 inline" />
+                导出 MMD
+              </button>
               <Link href="/entities">
                 <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                   实体列表
