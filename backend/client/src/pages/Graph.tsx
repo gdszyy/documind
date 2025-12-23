@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Loader2, Trash2, Edit2, Download } from "lucide-react";
 import EntityEditSidebar from "@/components/EntityEditSidebar";
 import { useEffect, useState, useRef } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   AlertDialog,
