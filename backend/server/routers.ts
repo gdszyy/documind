@@ -5,6 +5,7 @@ import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_
 import { z } from "zod";
 import * as db from "./db";
 import * as larkService from "./larkService";
+import { generateMmdFromGraphData } from "./mmd";
 
 export const appRouter = router({
   lark: router({
@@ -194,6 +195,18 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return db.getGraphData(input);
+      }),
+    // 导出知识图谱为 MMD 格式
+    exportMmd: publicProcedure
+      .input(
+        z.object({
+          types: z.array(z.enum(["Service", "API", "Component", "Page", "Module", "Documentation", "Document"])).optional(),
+          statuses: z.array(z.enum(["Development", "Testing", "Production", "Deprecated"])).optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        const graphData = await db.getGraphData(input);
+        return generateMmdFromGraphData(graphData);
       }),
   }),
 
