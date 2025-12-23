@@ -203,13 +203,15 @@ function mapOldToNew(oldData: {
     result.status = 'active';
   }
   
+  // 只在字段明确传入且有值时才添加，避免插入 undefined 导致数据库错误
   if (oldData.larkDocUrl !== undefined) {
     result.documentUrl = oldData.larkDocUrl || null;
   }
   
-  // 添加 content 字段映射
-  if (oldData.content !== undefined) {
-    result.content = oldData.content || null;
+  // 添加 content 字段映射（仅在明确传入且有值时）
+  // 注意：不要在创建时包含 content 字段，除非明确提供了值
+  if (oldData.content !== undefined && oldData.content !== null) {
+    result.content = oldData.content;
   }
   
   if (Object.keys(metadata).length > 0) {
