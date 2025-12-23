@@ -89,6 +89,37 @@ const relationTypeBadgeColors = {
   CONTAINS: "bg-orange-100 text-orange-800",
 };
 
+// 节点类型层级定义：模块 > 页面 > 组件 > API < 服务
+// 层级数字越小表示越高级，展开时只展示同级或下级节点
+const typeHierarchy: Record<string, number> = {
+  Module: 1,      // 模块 - 最高级
+  Page: 2,        // 页面
+  Component: 3,   // 组件
+  API: 4,         // API
+  Service: 4,     // 服务 - 与 API 同级
+  Documentation: 5, // 文档
+  Document: 5,    // 说明文档
+};
+
+// 节点大小配置：按层级调整大小
+const typeSizes: Record<string, number> = {
+  Module: 70,
+  Page: 65,
+  Component: 60,
+  API: 55,
+  Service: 55,
+  Documentation: 50,
+  Document: 50,
+};
+
+// 检查目标节点是否为同级或下级节点
+const isAllowedExpansion = (sourceType: string, targetType: string): boolean => {
+  const sourceLevel = typeHierarchy[sourceType] ?? 99;
+  const targetLevel = typeHierarchy[targetType] ?? 99;
+  // 允许同级或下级节点（目标层级 >= 源层级）
+  return targetLevel >= sourceLevel;
+};
+
 export default function Graph() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -100,6 +131,28 @@ export default function Graph() {
   const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number; name: string } | null>(null); // 右键菜单状态
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+
+  // 双击展开功能：跟踪当前聚焦的节点和展开层级
+  const [focusedNodeId, setFocusedNodeId] = useState<number | null>(null);
+  const [expandLevel, setExpandLevel] = useState<number>(1);
+  const [visibleEntityIds, setVisibleEntityIds] = useState<Set<number> | null>(null);
+
+  // 使用 ref 来存储最新的状态值，解决 ECharts 事件回调中的闭包问题
+  const focusedNodeIdRef = useRef<number | null>(null);
+  const expandLevelRef = useRef<number>(1);
+  const visibleEntityIdsRef = useRef<Set<number> | null>(null);
+  // 同步更新 ref 值
+  useEffect(() => {
+    focusedNodeIdRef.current = focusedNodeId;
+  }, [focusedNodeId]);
+
+  useEffect(() => {
+    expandLevelRef.current = expandLevel;
+  }, [expandLevel]);
+
+  useEffect(() => {
+    visibleEntityIdsRef.current = visibleEntityIds;
+  }, [visibleEntityIds]);
 
   // 添加关系对话框状态
   const [addRelationState, setAddRelationState] = useState<{ open: boolean; sourceId: number | null; sourceName: string }>({ open: false, sourceId: null, sourceName: "" });
@@ -135,6 +188,12 @@ export default function Graph() {
     types: selectedTypes as any,
     statuses: selectedStatuses as any,
   });
+
+  // 使用 ref 存储 data，解决 ECharts 事件回调中的闭包问题
+  const dataRef = useRef<typeof data>(null);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   // 添加日志：监控data的变化
   useEffect(() => {
@@ -337,6 +396,92 @@ export default function Graph() {
     }
   };
 
+  // 获取指定层级的关联节点（仅限同级和下级节点）
+  const getNodesAtLevel = (centerNodeId: number, level: number): Set<number> => {
+    const currentData = dataRef.current;
+    if (!currentData) return new Set([centerNodeId]);
+    
+    const result = new Set<number>();
+    result.add(centerNodeId);
+    
+    // 获取中心节点的类型
+    const centerNode = currentData.nodes.find(n => n.id === centerNodeId);
+    if (!centerNode) return result;
+    const centerType = centerNode.type;
+    
+    // 当前层的节点集合
+    let currentLevelNodes = new Set<number>([centerNodeId]);
+    
+    // 逐层向外扩展
+    for (let i = 0; i < level; i++) {
+      const nextLevelNodes = new Set<number>();
+      
+      currentLevelNodes.forEach(nodeId => {
+        currentData.edges.forEach(edge => {
+          // 检查出边
+          if (edge.sourceId === nodeId && !result.has(edge.targetId)) {
+            const targetNode = currentData.nodes.find(n => n.id === edge.targetId);
+            if (targetNode && isAllowedExpansion(centerType, targetNode.type)) {
+              nextLevelNodes.add(edge.targetId);
+              result.add(edge.targetId);
+            }
+          }
+          // 检查入边
+          if (edge.targetId === nodeId && !result.has(edge.sourceId)) {
+            const sourceNode = currentData.nodes.find(n => n.id === edge.sourceId);
+            if (sourceNode && isAllowedExpansion(centerType, sourceNode.type)) {
+              nextLevelNodes.add(edge.sourceId);
+              result.add(edge.sourceId);
+            }
+          }
+        });
+      });
+      
+      currentLevelNodes = nextLevelNodes;
+    }
+    
+    return result;
+  };
+
+  // 展示所有关联节点功能（支持渐进式展开）
+  // 使用 ref 获取最新状态值，解决 ECharts 事件回调中的闭包问题
+  const handleShowRelatedNodes = (nodeId: number) => {
+    const currentData = dataRef.current;
+    if (!currentData) return;
+    
+    // 从 ref 中获取最新的状态值
+    const currentFocusedNodeId = focusedNodeIdRef.current;
+    const currentExpandLevel = expandLevelRef.current;
+    const currentVisibleEntityIds = visibleEntityIdsRef.current;
+    
+    // 检查是否已经处于聚焦状态，且双击的是同一个节点
+    if (currentFocusedNodeId === nodeId && currentVisibleEntityIds !== null) {
+      // 已经在聚焦状态，再次双击同一节点，向外展开一层
+      const newLevel = currentExpandLevel + 1;
+      const relatedNodeIds = getNodesAtLevel(nodeId, newLevel);
+      
+      setExpandLevel(newLevel);
+      setVisibleEntityIds(relatedNodeIds);
+      toast.success(`已展开第 ${newLevel} 层关系，共 ${relatedNodeIds.size} 个节点（仅同级和下级）`);
+    } else {
+      // 首次双击或双击了不同的节点，重置为第1层
+      const relatedNodeIds = getNodesAtLevel(nodeId, 1);
+      
+      setFocusedNodeId(nodeId);
+      setExpandLevel(1);
+      setVisibleEntityIds(relatedNodeIds);
+      toast.success(`已聚焦到节点，展示 ${relatedNodeIds.size} 个直接关联节点（仅同级和下级）`);
+    }
+  };
+
+  // 显示全部节点
+  const handleShowAllNodes = () => {
+    setFocusedNodeId(null);
+    setExpandLevel(1);
+    setVisibleEntityIds(null);
+    toast.success("已显示全部节点");
+  };
+
   // 初始化和更新 ECharts
   useEffect(() => {
     console.log("[ECharts] useEffect triggered with data:", {
@@ -366,6 +511,15 @@ export default function Graph() {
         }
       });
 
+      // 添加双击事件 - 展示该节点及其所有关联节点
+      chartInstanceRef.current.on("dblclick", (params: any) => {
+        if (params.dataType === "node") {
+          const nodeId = parseInt(params.data.id);
+          console.log("[ECharts] Node double-clicked:", nodeId);
+          handleShowRelatedNodes(nodeId);
+        }
+      });
+
       // 添加右键菜单事件
       chartInstanceRef.current.on("contextmenu", (params: any) => {
         if (params.dataType === "node") {
@@ -384,11 +538,16 @@ export default function Graph() {
 
     console.log("[ECharts] Converting data to ECharts format");
 
+    // 根据 visibleEntityIds 过滤节点
+    const filteredNodes = visibleEntityIds 
+      ? data.nodes.filter(entity => visibleEntityIds.has(entity.id))
+      : data.nodes;
+
     // 转换数据为 ECharts 格式
-    const nodes = data.nodes.map((entity) => ({
+    const nodes = filteredNodes.map((entity) => ({
       id: entity.id.toString(),
       name: `${typeIcons[entity.type]} ${entity.name}`,
-      symbolSize: 60,
+      symbolSize: typeSizes[entity.type] || 55, // 根据类型调整大小
       itemStyle: {
         color: typeColors[entity.type],
       },
@@ -401,7 +560,13 @@ export default function Graph() {
       entityData: entity,
     }));
 
-    const links = data.edges.map((edge) => ({
+    // 根据可见节点过滤边
+    const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
+    const filteredEdges = data.edges.filter(
+      edge => visibleNodeIds.has(edge.sourceId) && visibleNodeIds.has(edge.targetId)
+    );
+
+    const links = filteredEdges.map((edge) => ({
       source: edge.sourceId.toString(),
       target: edge.targetId.toString(),
       label: {
@@ -487,7 +652,7 @@ export default function Graph() {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, [data]);
+  }, [data, visibleEntityIds]);
 
   // 清理 ECharts 实例
   useEffect(() => {
@@ -599,6 +764,25 @@ export default function Graph() {
 
         {/* 图谱画布 */}
         <div className="flex-1 relative">
+          {/* 聚焦状态提示栏 */}
+          {focusedNodeId !== null && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-4 py-2 flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                当前聚焦第 <span className="font-semibold text-purple-600">{expandLevel}</span> 层关系
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xs text-gray-500">双击同一节点可继续展开（仅同级和下级）</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleShowAllNodes}
+              >
+                <Network className="h-3 w-3 mr-1" />
+                显示全部
+              </Button>
+            </div>
+          )}
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -691,6 +875,22 @@ export default function Graph() {
                   <Edit2 className="h-4 w-4" />
                   查看详情
                 </button>
+              )}
+              {/* 显示全部节点按钮，仅在聚焦状态时显示 */}
+              {focusedNodeId !== null && (
+                <>
+                  <div className="border-t border-gray-200 my-1" />
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => {
+                      handleShowAllNodes();
+                      handleCloseContextMenu();
+                    }}
+                  >
+                    <Network className="h-4 w-4 text-purple-500" />
+                    显示全部节点
+                  </button>
+                </>
               )}
             </div>
           </>
