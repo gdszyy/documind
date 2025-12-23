@@ -13,6 +13,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, FileEdit, Download } from "lucide-react";
 import EntityContentEditor from "@/components/EntityContentEditor";
+import EntityEditDialog from "@/components/EntityEditDialog";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,7 @@ export default function Graph() {
   const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
   const [showContentEditor, setShowContentEditor] = useState(false); // 内容编辑器状态
   const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number } | null>(null); // 右键菜单状态
+  const [showEditDialog, setShowEditDialog] = useState(false); // 实体编辑对话框状态
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
@@ -664,14 +666,14 @@ export default function Graph() {
                         编辑文档
                       </button>
                       <div className="flex gap-2">
-                        {/* 统一编辑入口为跳转到 EntityForm.tsx */}
-                        <Link
-                          href={`/entities/${selectedEntity.id}/edit`}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 text-center"
+                        {/* 编辑实体按钮 */}
+                        <button
+                          onClick={() => setShowEditDialog(true)}
+                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
                         >
                           <Edit2 className="h-4 w-4 mr-2 inline" />
                           编辑
-                        </Link>
+                        </button>
                         <button
                           onClick={() => setShowAddRelationDialog(true)}
                           className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -874,6 +876,19 @@ export default function Graph() {
             isLoading={updateContentMutation.isPending}
           />
         )}
+
+        {/* 实体编辑对话框 */}
+        <EntityEditDialog
+          entityId={selectedEntityId}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSuccess={() => {
+            // 刷新图谱数据
+            utils.graph.getData.invalidate();
+            // 刷新当前实体数据
+            refetchEntity();
+          }}
+        />
       </div>
     </div>
   );

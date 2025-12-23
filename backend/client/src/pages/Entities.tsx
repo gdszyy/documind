@@ -40,6 +40,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import EntityContentEditor from "@/components/EntityContentEditor";
+import EntityEditDialog from "@/components/EntityEditDialog";
 
 const statusColors: Record<string, string> = {
   Development: "bg-blue-100 text-blue-800",
@@ -76,6 +77,9 @@ export default function Entities() {
     content: string;
     larkDocUrl: string | null;
   } | null>(null);
+  
+  // 实体编辑对话框状态
+  const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   
   // 筛选状态
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -450,11 +454,13 @@ export default function Entities() {
                             )}
                             {isAdmin && (
                               <>
-                                <Link href={`/entities/${entity.id}/edit`}>
-                                  <Button variant="ghost" size="sm">
-                                    编辑
-                                  </Button>
-                                </Link>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setEditingEntityId(entity.id)}
+                                >
+                                  编辑
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -656,6 +662,17 @@ export default function Entities() {
           isLoading={updateContentMutation.isPending}
         />
       )}
+
+      {/* 实体编辑对话框 */}
+      <EntityEditDialog
+        entityId={editingEntityId}
+        open={!!editingEntityId}
+        onOpenChange={(open) => !open && setEditingEntityId(null)}
+        onSuccess={() => {
+          // 刷新列表
+          refetch();
+        }}
+      />
     </div>
   );
 }
