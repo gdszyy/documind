@@ -295,7 +295,7 @@ export default function Graph() {
   // 导出 MMD
   const handleExportMmd = async () => {
     try {
-      const mmdContent = await trpc.graph.exportMmd.query({
+      const mmdContent = await utils.client.graph.exportMmd.query({
         types: selectedTypes as any,
         statuses: selectedStatuses as any,
       });
