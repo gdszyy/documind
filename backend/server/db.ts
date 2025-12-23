@@ -215,7 +215,9 @@ function mapOldToNew(oldData: {
     result.content = oldData.content;
   }
   
-  if (Object.keys(metadata).length > 0) {
+  // 始终序列化 metadata，即使为空对象，以确保数据库字段的一致性
+  // 如果是更新操作且没有传入任何 metadata 相关字段，则不更新 metadata
+  if (!isUpdate || Object.keys(metadata).length > 0) {
     result.metadata = JSON.stringify(metadata);
   }
   
