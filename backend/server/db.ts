@@ -203,14 +203,15 @@ function mapOldToNew(oldData: {
     result.status = 'active';
   }
   
-  // 只在字段明确传入且有值时才添加，避免插入 undefined 导致数据库错误
+  // 只在字段明确传入时才添加，避免插入 undefined 导致数据库错误
+  // documentUrl 允许 null 值，所以只检查 undefined
   if (oldData.larkDocUrl !== undefined) {
     result.documentUrl = oldData.larkDocUrl || null;
   }
   
-  // 添加 content 字段映射（仅在明确传入且有值时）
-  // 注意：不要在创建时包含 content 字段，除非明确提供了值
-  if (oldData.content !== undefined && oldData.content !== null) {
+  // content 字段不应该在创建时包含，除非明确提供了非空值
+  // 这样可以避免 Drizzle ORM 尝试插入 default 值
+  if (oldData.content) {
     result.content = oldData.content;
   }
   
