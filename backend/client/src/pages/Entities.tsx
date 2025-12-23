@@ -194,9 +194,9 @@ export default function Entities() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       {/* 主内容区域 */}
-      <div className="min-h-screen bg-gray-50 flex-1 overflow-auto">
+      <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto py-8">
           {/* 页面标题 */}
           <div className="mb-8">

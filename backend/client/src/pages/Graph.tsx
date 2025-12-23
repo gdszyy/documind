@@ -345,9 +345,9 @@ export default function Graph() {
   const allEntityTypes = ["Module", "Page", "Component", "API", "Service", "Documentation", "Document"];
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen bg-gray-50">
       {/* 主内容区域 */}
-      <div className="flex-1 flex flex-col h-screen">
+      <div className="flex flex-col h-screen">
         {/* 顶部工具栏 */}
         <div className="bg-white border-b px-6 py-4">
           <div className="flex items-center justify-between">

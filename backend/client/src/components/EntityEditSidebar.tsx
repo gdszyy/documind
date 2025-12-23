@@ -369,7 +369,15 @@ export default function EntityEditSidebar({
   }
 
   return (
-    <div className="w-96 bg-white border-l flex flex-col h-full">
+    <>
+      {/* 透明遮罩层 */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-20 z-40"
+        onClick={onClose}
+      />
+      
+      {/* 右侧悬浮面板 */}
+      <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl flex flex-col z-50">
       {/* 头部 */}
       <div className="px-4 py-3 border-b flex items-center justify-between bg-gray-50">
         <h2 className="font-semibold text-gray-900 truncate flex-1">{entity.name}</h2>
@@ -875,6 +883,8 @@ export default function EntityEditSidebar({
         )}
       </div>
 
+      </div>
+      
       {/* 内容编辑器对话框 */}
       <EntityContentEditor
         open={showContentEditor}
@@ -891,6 +901,6 @@ export default function EntityEditSidebar({
           });
         }}
       />
-    </div>
+    </>
   );
 }
