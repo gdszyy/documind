@@ -372,7 +372,7 @@ export default function Graph() {
       },
       label: {
         show: true,
-        color: "#fff",
+        color: "#000", // 修改为黑色
         fontSize: 12,
       },
       // 存储原始数据用于点击事件
