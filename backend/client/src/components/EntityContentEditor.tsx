@@ -99,7 +99,7 @@ export default function EntityContentEditor({
         className={
           isFullscreen 
             ? 'max-w-none w-screen h-screen max-h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 rounded-none flex flex-col' 
-            : 'max-w-[60vw] w-[60vw] max-h-[90vh] flex flex-col'
+            : 'w-[720px] min-w-[720px] max-w-[90vw] max-h-[90vh] flex flex-col'
         }
       >
         <DialogHeader className="flex-shrink-0">
