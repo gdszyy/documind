@@ -18,6 +18,7 @@ import {
   ExternalLink, FileEdit, ChevronDown, ChevronUp 
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
