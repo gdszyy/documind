@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Trash2, Edit2, Download } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit2, Download } from "lucide-react";
 import EntityEditSidebar from "@/components/EntityEditSidebar";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
