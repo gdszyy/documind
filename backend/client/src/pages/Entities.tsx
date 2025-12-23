@@ -39,8 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import EntityContentEditor from "@/components/EntityContentEditor";
-import EntityEditDialog from "@/components/EntityEditDialog";
+import EntityEditSidebar from "@/components/EntityEditSidebar";
 
 const statusColors: Record<string, string> = {
   Development: "bg-blue-100 text-blue-800",
@@ -70,16 +69,8 @@ export default function Entities() {
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
   const [limit, setLimit] = useState(10);
   
-  // 编辑器状态
-  const [editingEntity, setEditingEntity] = useState<{
-    id: number;
-    name: string;
-    content: string;
-    larkDocUrl: string | null;
-  } | null>(null);
-  
-  // 实体编辑对话框状态
-  const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
+  // 实体编辑侧边栏状态
+  const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   
   // 筛选状态
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -123,18 +114,6 @@ export default function Entities() {
     },
   });
 
-  // 更新实体内容 mutation
-  const updateContentMutation = trpc.entities.update.useMutation({
-    onSuccess: () => {
-      toast.success("内容保存成功");
-      utils.entities.list.invalidate();
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(`保存失败: ${error.message}`);
-    },
-  });
-
   const handleDelete = () => {
     if (deleteEntityId) {
       deleteMutation.mutate({ id: deleteEntityId });
@@ -168,29 +147,6 @@ export default function Entities() {
     setSelectedStatuses([]);
     setSearch("");
     setPage(1);
-  };
-
-  // 打开编辑器
-  const handleOpenEditor = (entity: any) => {
-    setEditingEntity({
-      id: entity.id,
-      name: entity.name,
-      content: entity.content || "",
-      larkDocUrl: entity.larkDocUrl,
-    });
-  };
-
-  // 保存内容
-  const handleSaveContent = async (content: string) => {
-    if (!editingEntity) return;
-    
-    await updateContentMutation.mutateAsync({
-      id: editingEntity.id,
-      content,
-    });
-    
-    // 更新本地状态
-    setEditingEntity(prev => prev ? { ...prev, content } : null);
   };
 
   const hasActiveFilters = selectedTypes.length > 0 || selectedStatuses.length > 0 || search.length > 0;
@@ -238,9 +194,9 @@ export default function Entities() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* 主内容区域 */}
-      <div className="min-h-screen bg-gray-50 flex-1">
+      <div className="min-h-screen bg-gray-50 flex-1 overflow-auto">
         <div className="container mx-auto py-8">
           {/* 页面标题 */}
           <div className="mb-8">
@@ -431,16 +387,6 @@ export default function Entities() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {/* 编辑内容按钮 */}
-                            {isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenEditor(entity)}
-                              >
-                                <Edit3 className="h-4 w-4 mr-1" />
-                                编辑内容
-                              </Button>
-                            )}
                             {/* 飞书文档外部链接 */}
                             {entity.larkDocUrl && (
                               <Button
@@ -452,24 +398,23 @@ export default function Entities() {
                                 飞书文档
                               </Button>
                             )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setSelectedEntityId(entity.id)}
+                            >
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              {isAdmin ? "编辑" : "查看"}
+                            </Button>
                             {isAdmin && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => setEditingEntityId(entity.id)}
-                                >
-                                  编辑
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setDeleteEntityId(entity.id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteEntityId(entity.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             )}
                           </div>
                         </TableCell>
@@ -649,30 +594,17 @@ export default function Entities() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Vditor 内容编辑器对话框 */}
-      {editingEntity && (
-        <EntityContentEditor
-          open={!!editingEntity}
-          onOpenChange={(open) => !open && setEditingEntity(null)}
-          entityId={editingEntity.id}
-          entityName={editingEntity.name}
-          content={editingEntity.content}
-          larkDocUrl={editingEntity.larkDocUrl}
-          onSave={handleSaveContent}
-          isLoading={updateContentMutation.isPending}
+      {/* 实体编辑侧边栏 */}
+      {selectedEntityId && (
+        <EntityEditSidebar
+          entityId={selectedEntityId}
+          onClose={() => setSelectedEntityId(null)}
+          onSuccess={() => {
+            refetch();
+          }}
+          onEntitySelect={(id) => setSelectedEntityId(id)}
         />
       )}
-
-      {/* 实体编辑对话框 */}
-      <EntityEditDialog
-        entityId={editingEntityId}
-        open={!!editingEntityId}
-        onOpenChange={(open) => !open && setEditingEntityId(null)}
-        onSuccess={() => {
-          // 刷新列表
-          refetch();
-        }}
-      />
     </div>
   );
 }

@@ -1,39 +1,11 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { ExternalLink, Loader2, Plus, Trash2, X, Save, Edit2, Check, FileEdit, Download } from "lucide-react";
-import EntityContentEditor from "@/components/EntityContentEditor";
-import EntityEditDialog from "@/components/EntityEditDialog";
+import { Loader2, Trash2, Edit2, Download } from "lucide-react";
+import EntityEditSidebar from "@/components/EntityEditSidebar";
 import { useEffect, useState, useRef } from "react";
-import { Link, useLocation } from "wouter";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -45,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 
@@ -108,13 +79,7 @@ export default function Graph() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Development", "Testing", "Production"]);
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
   const [deleteEntityId, setDeleteEntityId] = useState<number | null>(null);
-  // const [isEditing, setIsEditing] = useState(false); // 移除 isEditing 状态
-  const [showAddRelationDialog, setShowAddRelationDialog] = useState(false);
-  const [newRelationType, setNewRelationType] = useState<"EXPOSES_API" | "DEPENDS_ON" | "USES_COMPONENT" | "CONTAINS">("DEPENDS_ON");
-  const [newRelationTargetId, setNewRelationTargetId] = useState<number | null>(null);
-  const [showContentEditor, setShowContentEditor] = useState(false); // 内容编辑器状态
   const [contextMenuEntity, setContextMenuEntity] = useState<{ id: number; x: number; y: number } | null>(null); // 右键菜单状态
-  const [showEditDialog, setShowEditDialog] = useState(false); // 实体编辑对话框状态
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
 
@@ -146,37 +111,7 @@ export default function Graph() {
     }
   }, [data]);
 
-  const { data: selectedEntity, refetch: refetchEntity } = trpc.entities.getById.useQuery(
-    { id: selectedEntityId! },
-    { enabled: !!selectedEntityId }
-  );
-
-  const { data: relationships, refetch: refetchRelationships } = trpc.entities.getRelationships.useQuery(
-    { id: selectedEntityId! },
-    { enabled: !!selectedEntityId }
-  );
-
-  const { data: entitiesList } = trpc.entities.list.useQuery(
-    { page: 1, limit: 100, sortBy: "name", order: "asc" },
-    { enabled: showAddRelationDialog }
-  );
-
   const utils = trpc.useUtils();
-
-  // 移除 updateMutation，因为编辑逻辑已移至 EntityForm.tsx
-  /*
-  const updateMutation = trpc.entities.update.useMutation({
-    onSuccess: () => {
-      toast.success("实体更新成功");
-      utils.graph.getData.invalidate();
-      refetchEntity();
-      setIsEditing(false);
-    },
-    onError: (error) => {
-      toast.error(`更新失败: ${error.message}`);
-    },
-  });
-  */
 
   const deleteMutation = trpc.entities.delete.useMutation({
     onSuccess: () => {
@@ -190,101 +125,16 @@ export default function Graph() {
     },
   });
 
-  const createRelationMutation = trpc.relationships.create.useMutation({
-    onSuccess: () => {
-      toast.success("关系创建成功");
-      refetchRelationships();
-      utils.graph.getData.invalidate();
-    },
-    onError: (error) => {
-      toast.error(`创建关系失败: ${error.message}`);
-    },
-  });
-
-  const deleteRelationMutation = trpc.relationships.delete.useMutation({
-    onSuccess: () => {
-      toast.success("关系删除成功");
-      refetchRelationships();
-      utils.graph.getData.invalidate();
-    },
-    onError: (error) => {
-      toast.error(`删除关系失败: ${error.message}`);
-    },
-  });
-
-  // 更新实体内容 mutation
-  const updateContentMutation = trpc.entities.update.useMutation({
-    onSuccess: () => {
-      toast.success("内容保存成功");
-      refetchEntity();
-    },
-    onError: (error) => {
-      toast.error(`保存失败: ${error.message}`);
-    },
-  });
-
-  // 当选中实体变化时，更新编辑表单数据 (不再需要，因为跳转到 EntityForm)
-  /*
-  useEffect(() => {
-    if (selectedEntity) {
-      // setEditFormData({ ... }); // 移除 editFormData 状态
-      // setIsEditing(false); // 移除 isEditing 状态
-    }
-  }, [selectedEntity]);
-  */
-
   const handleDelete = () => {
     if (deleteEntityId) {
       deleteMutation.mutate({ id: deleteEntityId });
     }
   };
 
-  // 移除 handleSave，因为编辑逻辑已移至 EntityForm.tsx
-  /*
-  const handleSave = () => {
-    if (selectedEntityId) {
-      updateMutation.mutate({
-        id: selectedEntityId,
-        ...editFormData,
-      });
-    }
-  };
-  */
-
-  const handleAddRelation = async () => {
-    if (!selectedEntityId || !newRelationTargetId) {
-      toast.error("源实体或目标实体未选择");
-      return;
-    }
-
-    createRelationMutation.mutate({
-      sourceId: selectedEntityId,
-      targetId: newRelationTargetId,
-      type: newRelationType,
-    });
-
-    setShowAddRelationDialog(false);
-    setNewRelationTargetId(null);
-  };
-
-  const handleDeleteRelation = (relationId: number) => {
-    deleteRelationMutation.mutate({ id: relationId });
-  };
-
-  // 保存实体内容
-  const handleSaveContent = async (content: string) => {
-    if (!selectedEntityId) return;
-    await updateContentMutation.mutateAsync({
-      id: selectedEntityId,
-      content,
-    });
-  };
-
-  // 从右键菜单打开编辑器
-  const handleOpenEditorFromContextMenu = () => {
+  // 从右键菜单打开侧边栏
+  const handleOpenSidebarFromContextMenu = () => {
     if (contextMenuEntity) {
       setSelectedEntityId(contextMenuEntity.id);
-      setShowContentEditor(true);
       setContextMenuEntity(null);
     }
   };
@@ -588,202 +438,17 @@ export default function Graph() {
           )}
         </div>
 
-        {/* 右侧面板 - 实体详情 */}
-        <Sheet open={!!selectedEntityId} onOpenChange={(open) => !open && setSelectedEntityId(null)}>
-          <SheetContent className="w-96">
-            <SheetHeader>
-              <SheetTitle>实体详情</SheetTitle>
-            </SheetHeader>
-
-            {selectedEntity && (
-              <div className="space-y-4 mt-4">
-                <div>
-                  <Label className="text-sm font-medium">名称</Label>
-                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.name}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">类型</Label>
-                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.type}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">负责人</Label>
-                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.owner}</p>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">状态</Label>
-                  <Badge className={statusColors[selectedEntity.status]} variant="outline">
-                      {selectedEntity.status}
-                    </Badge>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium">描述</Label>
-                  <p className="text-sm text-gray-600 mt-1">{selectedEntity.description || "无"}</p>
-                </div>
-
-                {/* 关系列表 */}
-                {relationships && relationships.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium">关系</Label>
-                    <div className="space-y-2 mt-2">
-                      {relationships.map((rel) => (
-                        <div key={rel.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="text-sm">
-                            <Badge className={relationTypeBadgeColors[rel.type]} variant="outline">
-                              {relationTypeLabels[rel.type]}
-                            </Badge>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {rel.sourceId === selectedEntityId ? "→" : "←"} {rel.targetName || rel.targetId}
-                            </p>
-                          </div>
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleDeleteRelation(rel.id)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 操作按钮 */}
-                <div className="flex flex-col gap-2 pt-4">
-                  {isAdmin && (
-                    <>
-                      {/* 编辑文档按钮 */}
-                      <button
-                        onClick={() => setShowContentEditor(true)}
-                        className="w-full px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center justify-center"
-                      >
-                        <FileEdit className="h-4 w-4 mr-2" />
-                        编辑文档
-                      </button>
-                      <div className="flex gap-2">
-                        {/* 编辑实体按钮 */}
-                        <button
-                          onClick={() => setShowEditDialog(true)}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                        >
-                          <Edit2 className="h-4 w-4 mr-2 inline" />
-                          编辑
-                        </button>
-                        <button
-                          onClick={() => setShowAddRelationDialog(true)}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          <Plus className="h-4 w-4 mr-2 inline" />
-                          添加关系
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => setDeleteEntityId(selectedEntityId)}
-                        className="w-full px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2 inline" />
-                        删除
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </SheetContent>
-        </Sheet>
-
-        {/* 添加关系对话框 */}
-        <Dialog open={showAddRelationDialog} onOpenChange={setShowAddRelationDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>添加关系</DialogTitle>
-              <DialogDescription>
-                为当前实体添加新的关系
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="relationType" className="text-sm font-medium">
-                  关系类型
-                </Label>
-                <Select value={newRelationType} onValueChange={(value) => setNewRelationType(value as any)}>
-                  <SelectTrigger id="relationType" className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EXPOSES_API">暴露 API</SelectItem>
-                    <SelectItem value="DEPENDS_ON">依赖于</SelectItem>
-                    <SelectItem value="USES_COMPONENT">使用组件</SelectItem>
-                    <SelectItem value="CONTAINS">包含</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="targetEntity" className="text-sm font-medium">
-                  目标实体
-                </Label>
-                <Select value={newRelationTargetId?.toString() || ""} onValueChange={(value) => setNewRelationTargetId(parseInt(value))}>
-                  <SelectTrigger id="targetEntity" className="mt-1">
-                    <SelectValue placeholder="选择目标实体" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {entitiesList?.entities
-                      ?.filter((e) => e.id !== selectedEntityId)
-                      ?.map((e) => (
-                        <SelectItem key={e.id} value={e.id.toString()}>
-                          {e.name} ({e.type})
-                        </SelectItem>
-                      )) || (
-                      <div className="p-2 text-sm text-gray-500 text-center">
-                        加载中...
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <button
-                onClick={() => setShowAddRelationDialog(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleAddRelation}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-              >
-                添加
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* 删除确认对话框 */}
-        <AlertDialog open={!!deleteEntityId} onOpenChange={(open) => !open && setDeleteEntityId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>删除实体</AlertDialogTitle>
-              <AlertDialogDescription>
-                确定要删除此实体吗？此操作无法撤销。
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                删除
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* 右侧面板 - 实体编辑侧边栏 */}
+        {selectedEntityId && (
+          <EntityEditSidebar
+            entityId={selectedEntityId}
+            onClose={() => setSelectedEntityId(null)}
+            onSuccess={() => {
+              utils.graph.getData.invalidate();
+            }}
+            onEntitySelect={(id) => setSelectedEntityId(id)}
+          />
+        )}
 
         {/* 右键菜单 */}
         {contextMenuEntity && (
@@ -809,30 +474,10 @@ export default function Graph() {
                 <>
                   <button
                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                    onClick={handleOpenEditorFromContextMenu}
-                  >
-                    <FileEdit className="h-4 w-4" />
-                    编辑文档
-                  </button>
-                  <button
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => {
-                      setSelectedEntityId(contextMenuEntity.id);
-                      setContextMenuEntity(null);
-                    }}
+                    onClick={handleOpenSidebarFromContextMenu}
                   >
                     <Edit2 className="h-4 w-4" />
-                    查看详情
-                  </button>
-                  <button
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => {
-                      navigate(`/entities/${contextMenuEntity.id}/edit`);
-                      setContextMenuEntity(null);
-                    }}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    编辑实体
+                    查看/编辑实体
                   </button>
                   <div className="border-t border-gray-200 my-1" />
                   <button
@@ -863,32 +508,7 @@ export default function Graph() {
           </>
         )}
 
-        {/* Vditor 内容编辑器对话框 */}
-        {selectedEntity && (
-          <EntityContentEditor
-            open={showContentEditor}
-            onOpenChange={setShowContentEditor}
-            entityId={selectedEntity.id}
-            entityName={selectedEntity.name}
-            content={selectedEntity.content || ""}
-            larkDocUrl={selectedEntity.larkDocUrl}
-            onSave={handleSaveContent}
-            isLoading={updateContentMutation.isPending}
-          />
-        )}
 
-        {/* 实体编辑对话框 */}
-        <EntityEditDialog
-          entityId={selectedEntityId}
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          onSuccess={() => {
-            // 刷新图谱数据
-            utils.graph.getData.invalidate();
-            // 刷新当前实体数据
-            refetchEntity();
-          }}
-        />
       </div>
     </div>
   );
