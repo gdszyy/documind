@@ -346,8 +346,30 @@ export async function createEntity(data: any) {
   const newData = mapOldToNew(data);
   console.log('[createEntity] Converted to new format:', newData);
 
+  // 检查 uniqueId 是否已存在
+  if (newData.entityId) {
+    const existing = await db
+      .select()
+      .from(documindEntities)
+      .where(eq(documindEntities.entityId, newData.entityId))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      throw new Error(`实体 ID "${newData.entityId}" 已存在，请使用其他 ID`);
+    }
+  }
+
   // 1. 创建实体到MySQL
-  const result = await db.insert(documindEntities).values(newData as InsertDocumindEntity);
+  let result;
+  try {
+    result = await db.insert(documindEntities).values(newData as InsertDocumindEntity);
+  } catch (error: any) {
+    console.error('[createEntity] MySQL insert failed:', error);
+    if (error.code === 'ER_DUP_ENTRY' || error.message?.includes('Duplicate entry')) {
+      throw new Error(`实体 ID "${newData.entityId}" 已存在 (数据库冲突)`);
+    }
+    throw new Error(`创建实体失败: ${error.message}`);
+  }
   const insertedId = Number(result[0].insertId);
   console.log('[createEntity] Inserted into MySQL with ID:', insertedId);
   
