@@ -70,7 +70,7 @@ export const appRouter = router({
           search: z.string().optional(),
           type: z.enum(["Service", "API", "Component", "Page", "Module", "Documentation", "Document"]).optional(),
           page: z.number().min(1).default(1),
-          limit: z.number().min(1).max(100).default(10),
+          limit: z.number().min(1).max(500).default(10),
           sortBy: z.enum(["name", "updatedAt"]).default("updatedAt"),
           order: z.enum(["asc", "desc"]).default("desc"),
         })
